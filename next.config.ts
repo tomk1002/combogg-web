@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      { hostname: "lh3.googleusercontent.com" },
+      { hostname: "cdn.discordapp.com" },
+      { hostname: "ddragon.leagueoflegends.com" },
+    ],
+  },
 };
 
 export default nextConfig;
