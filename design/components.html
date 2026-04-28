@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>tut.gg — 콤보 카드 + 홈</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-family-base);
+      color: var(--gray-900);
+      background: var(--gray-100);
+    }
+    button, input, select { font-family: var(--font-family-base); }
+    @keyframes blinkLive {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    @keyframes comboFlash {
+      0% { opacity: 0; transform: translate(-50%,-50%) scale(0.4); }
+      40% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%,-50%) scale(1.4); }
+    }
+    @keyframes dmgFloat {
+      0% { opacity: 0; transform: translateY(0); }
+      20% { opacity: 1; }
+      100% { opacity: 0; transform: translateY(-30px); }
+    }
+    @keyframes hitRing {
+      0% { opacity: 0.9; transform: translate(-50%,-50%) scale(0.4); }
+      100% { opacity: 0; transform: translate(-50%,-50%) scale(1.6); }
+    }
+    /* Hide native select dropdown arrow consistency */
+    select::-ms-expand { display: none; }
+  </style>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="components/data.js"></script>
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="components/keycap.jsx"></script>
+  <script type="text/babel" src="components/combo-card.jsx"></script>
+  <script type="text/babel" src="components/home-page.jsx"></script>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    // ─── KEYCAP SHOWCASE ────────────────────────────────────────────────
+    const KeycapShowcase = () => (
+      <div style={{ padding: 40, background: "#FFFFFF", height: "100%" }}>
+        <div style={{ display: "grid", gap: 32 }}>
+          {/* Sizes */}
+          <section>
+            <SectionTitle eyebrow="01 — Sizes" title="크기별 키캡" />
+            <Row>
+              {["sm", "md", "lg", "xl"].map((s) => (
+                <Demo key={s} label={s.toUpperCase()}>
+                  <KeyCap label="Q" size={s} />
+                </Demo>
+              ))}
+            </Row>
+          </section>
+
+          {/* Variants */}
+          <section>
+            <SectionTitle eyebrow="02 — Variants" title="역할별 색상 (LoL)" />
+            <Row>
+              {[
+                { v: "default", l: "평타 / 일반", k: "A" },
+                { v: "spell", l: "스킬 Q/W/E", k: "Q" },
+                { v: "ult", l: "궁극기 R", k: "R" },
+                { v: "summoner", l: "소환사 D/F", k: "F" },
+                { v: "dark", l: "수정자", k: "⇧" },
+              ].map((o) => (
+                <Demo key={o.v} label={o.l}>
+                  <KeyCap label={o.k} size="lg" variant={o.v} />
+                </Demo>
+              ))}
+            </Row>
+          </section>
+
+          {/* Item slots */}
+          <section>
+            <SectionTitle eyebrow="03 — Item Slots" title="아이템 슬롯 (1~6)" />
+            <Row>
+              <Demo label="시간왜곡">
+                <ItemSlot item={ITEMS.Stopwatch} slot="3" size="lg" />
+              </Demo>
+              <Demo label="헥스플래시">
+                <ItemSlot item={ITEMS.Hexflash} slot="5" size="lg" />
+              </Demo>
+              <Demo label="강풍포">
+                <ItemSlot item={ITEMS.Galeforce} slot="1" size="lg" />
+              </Demo>
+              <Demo label="잠시 후의 활">
+                <ItemSlot item={ITEMS.Shieldbow} slot="2" size="lg" />
+              </Demo>
+              <Demo label="모래시계">
+                <ItemSlot item={ITEMS.Hourglass} slot="4" size="lg" />
+              </Demo>
+            </Row>
+          </section>
+
+          {/* Pressed state */}
+          <section>
+            <SectionTitle eyebrow="04 — States" title="기본 / 눌림" />
+            <Row>
+              <Demo label="Default">
+                <KeyCap label="Q" size="lg" variant="spell" />
+              </Demo>
+              <Demo label="Pressed">
+                <KeyCap label="Q" size="lg" variant="spell" state="pressed" />
+              </Demo>
+            </Row>
+          </section>
+
+          {/* Sequence examples */}
+          <section>
+            <SectionTitle eyebrow="05 — Sequences" title="콤보 시퀀스 (스킬 + 소환사 + 아이템)" />
+            <div style={{ display: "grid", gap: 20 }}>
+              <SeqExample
+                label="아리 — EQRWQ"
+                keys={[
+                  { label: "E", variant: "spell" },
+                  { label: "Q", variant: "spell" },
+                  { label: "R", variant: "ult" },
+                  { label: "W", variant: "spell" },
+                  { label: "Q", variant: "spell" },
+                ]}
+              />
+              <SeqExample
+                label="야스오 — Q3 점멸(F) → R"
+                keys={[
+                  { label: "Q", variant: "spell" },
+                  { label: "Q", variant: "spell" },
+                  { label: "Q", variant: "spell" },
+                  { label: "F", variant: "summoner" },
+                  { label: "R", variant: "ult" },
+                ]}
+                size="md"
+              />
+              <SeqExample
+                label="제드 — WEQR + 시간왜곡(3)"
+                size="lg"
+                keys={[
+                  { label: "W", variant: "spell" },
+                  { label: "E", variant: "spell" },
+                  { label: "Q", variant: "spell" },
+                  { label: "R", variant: "ult" },
+                  { label: "Q", variant: "spell" },
+                  { label: "3", item: ITEMS.Stopwatch },
+                ]}
+              />
+              <SeqExample
+                label="리 신 — QQW + 점화(D) + 헥스플래시(5) + R"
+                size="md"
+                keys={[
+                  { label: "Q", variant: "spell" },
+                  { label: "Q", variant: "spell" },
+                  { label: "W", variant: "spell" },
+                  { label: "D", variant: "summoner" },
+                  { label: "5", item: ITEMS.Hexflash },
+                  { label: "R", variant: "ult" },
+                ]}
+              />
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+
+    const SectionTitle = ({ eyebrow, title }) => (
+      <div style={{ marginBottom: 16 }}>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: "#9E9E9E",
+            letterSpacing: 1.5,
+            fontFamily: "'JetBrains Mono', monospace",
+            marginBottom: 4,
+          }}
+        >
+          {eyebrow}
+        </div>
+        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#212121", letterSpacing: -0.2 }}>
+          {title}
+        </h2>
+      </div>
+    );
+
+    const Row = ({ children }) => (
+      <div style={{ display: "flex", gap: 24, alignItems: "flex-end", flexWrap: "wrap" }}>{children}</div>
+    );
+
+    const Demo = ({ label, children }) => (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+        <div>{children}</div>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: "#757575",
+            fontFamily: "'JetBrains Mono', monospace",
+          }}
+        >
+          {label}
+        </div>
+      </div>
+    );
+
+    const SeqExample = ({ label, keys, size }) => (
+      <div
+        style={{
+          padding: 16,
+          background: "#FAFAFA",
+          border: "1px solid #EEEEEE",
+          borderRadius: 8,
+        }}
+      >
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#424242", marginBottom: 12 }}>{label}</div>
+        <KeySequence keys={keys} size={size || "md"} />
+      </div>
+    );
+
+    // ─── CARD VARIANTS SHOWCASE ────────────────────────────────────────
+    const CardVariantsShowcase = ({ Variant, sample }) => (
+      <div
+        style={{
+          padding: 40,
+          background: "#FAFAFA",
+          height: "100%",
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "center",
+          gap: 24,
+          flexWrap: "wrap",
+        }}
+      >
+        {sample.map((d) => (
+          <Variant key={d.id} data={d} />
+        ))}
+      </div>
+    );
+
+    // ─── ROOT ──────────────────────────────────────────────────────────
+    const App = () => (
+      <DesignCanvas title="tut.gg — Combo Card + Home" subtitle="LoL 콤보 공유 플랫폼 · MVP">
+        <DCSection id="cards" title="콤보 카드 — 4가지 변형">
+          <DCArtboard id="standard" label="A. Standard (KPP 기본) — 아이템·소환사 콤보 포함" width={1080} height={720} background="#FAFAFA">
+            <CardVariantsShowcase Variant={ComboCardStandard} sample={[COMBOS[2], COMBOS[5], COMBOS[7]]} />
+          </DCArtboard>
+          <DCArtboard id="compact" label="B. Compact (리스트 스타일)" width={1080} height={500} background="#FAFAFA">
+            <CardVariantsShowcase Variant={ComboCardCompact} sample={[COMBOS[2], COMBOS[5], COMBOS[7], COMBOS[1]]} />
+          </DCArtboard>
+          <DCArtboard id="hero" label="C. Hero (피처드, 다크)" width={1240} height={680} background="#F5F5F5">
+            <CardVariantsShowcase Variant={ComboCardHero} sample={[COMBOS[2], COMBOS[5], COMBOS[7]]} />
+          </DCArtboard>
+          <DCArtboard id="spec" label="D. Spec / Data-rich — 제약사항 노출" width={1140} height={920} background="#FAFAFA">
+            <CardVariantsShowcase Variant={ComboCardSpec} sample={[COMBOS[2], COMBOS[5], COMBOS[7]]} />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="keycap" title="키캡 컴포넌트 — 빌딩 블록 (LoL)">
+          <DCArtboard id="keycap-system" label="키캡 + 아이템 슬롯 시스템" width={920} height={1100} background="#FFFFFF">
+            <KeycapShowcase />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="home" title="홈 / 콤보 목록 페이지">
+          <DCArtboard id="home-page" label="Home — Variant A 카드 사용" width={1440} height={1600} background="#FAFAFA">
+            <HomePage />
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+    );
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>

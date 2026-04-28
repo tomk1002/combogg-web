@@ -1,0 +1,308 @@
+/* KPP Design System - Design Tokens */
+
+/* Pretendard Font Family */
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 100;
+  font-style: normal;
+  src: url('fonts/Pretendard-Thin.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 200;
+  font-style: normal;
+  src: url('fonts/Pretendard-ExtraLight.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 300;
+  font-style: normal;
+  src: url('fonts/Pretendard-Light.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 400;
+  font-style: normal;
+  src: url('fonts/Pretendard-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 500;
+  font-style: normal;
+  src: url('fonts/Pretendard-Medium.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 600;
+  font-style: normal;
+  src: url('fonts/Pretendard-SemiBold.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 700;
+  font-style: normal;
+  src: url('fonts/Pretendard-Bold.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 800;
+  font-style: normal;
+  src: url('fonts/Pretendard-ExtraBold.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 900;
+  font-style: normal;
+  src: url('fonts/Pretendard-Black.ttf') format('truetype');
+}
+
+:root {
+  /* ===== GRAY SCALE ===== */
+  --gray-0: #FFFFFF;
+  --gray-50: #FAFAFA;
+  --gray-100: #F5F5F5;
+  --gray-200: #EEEEEE;
+  --gray-300: #E0E0E0;
+  --gray-400: #BDBDBD;
+  --gray-500: #9E9E9E;
+  --gray-600: #757575;
+  --gray-700: #616161;
+  --gray-800: #424242;
+  --gray-900: #212121;
+  --gray-1000: #000000;
+
+  /* ===== COLOR SCALES ===== */
+  
+  /* Red */
+  --red-50: #FFEBEE;
+  --red-100: #FFCDD2;
+  --red-200: #EF9A9A;
+  --red-300: #E57373;
+  --red-400: #EF5350;
+  --red-500: #F44336;
+  --red-600: #E53935;
+  --red-700: #D32F2F;
+  --red-800: #C62828;
+  --red-900: #B71C1C;
+
+  /* Orange */
+  --orange-50: #FFF3E0;
+  --orange-100: #FFE0B2;
+  --orange-200: #FFCC80;
+  --orange-300: #FFB74D;
+  --orange-400: #FFA726;
+  --orange-500: #FF9800;
+  --orange-600: #FB8C00;
+  --orange-700: #F57C00;
+  --orange-800: #EF6C00;
+  --orange-900: #E65100;
+
+  /* Yellow */
+  --yellow-50: #FFFDE7;
+  --yellow-100: #FFF9C4;
+  --yellow-200: #FFF59D;
+  --yellow-300: #FFF176;
+  --yellow-400: #FFEE58;
+  --yellow-500: #FFEB3B;
+  --yellow-600: #FDD835;
+  --yellow-700: #FBC02D;
+  --yellow-800: #F9A825;
+  --yellow-900: #F57F17;
+
+  /* Green */
+  --green-50: #E8F5E9;
+  --green-100: #C8E6C9;
+  --green-200: #A5D6A7;
+  --green-300: #81C784;
+  --green-400: #66BB6A;
+  --green-500: #4CAF50;
+  --green-600: #43A047;
+  --green-700: #388E3C;
+  --green-800: #2E7D32;
+  --green-900: #1B5E20;
+
+  /* Teal */
+  --teal-50: #E0F2F1;
+  --teal-100: #B2DFDB;
+  --teal-200: #80CBC4;
+  --teal-300: #4DB6AC;
+  --teal-400: #26A69A;
+  --teal-500: #009688;
+  --teal-600: #00897B;
+  --teal-700: #00796B;
+  --teal-800: #00695C;
+  --teal-900: #004D40;
+
+  /* Blue */
+  --blue-50: #E3F2FD;
+  --blue-100: #BBDEFB;
+  --blue-200: #90CAF9;
+  --blue-300: #64B5F6;
+  --blue-400: #42A5F5;
+  --blue-500: #2196F3;
+  --blue-600: #1E88E5;
+  --blue-700: #1976D2;
+  --blue-800: #1565C0;
+  --blue-900: #0D47A1;
+
+  /* Indigo */
+  --indigo-50: #E8EAF6;
+  --indigo-100: #C5CAE9;
+  --indigo-200: #9FA8DA;
+  --indigo-300: #7986CB;
+  --indigo-400: #5C6BC0;
+  --indigo-500: #3F51B5;
+  --indigo-600: #3949AB;
+  --indigo-700: #303F9F;
+  --indigo-800: #283593;
+  --indigo-900: #1A237E;
+
+  /* Purple */
+  --purple-50: #F3E5F5;
+  --purple-100: #E1BEE7;
+  --purple-200: #CE93D8;
+  --purple-300: #BA68C8;
+  --purple-400: #AB47BC;
+  --purple-500: #9C27B0;
+  --purple-600: #8E24AA;
+  --purple-700: #7B1FA2;
+  --purple-800: #6A1B9A;
+  --purple-900: #4A148C;
+
+  /* Pink */
+  --pink-50: #FCE4EC;
+  --pink-100: #F8BBD0;
+  --pink-200: #F48FB1;
+  --pink-300: #F06292;
+  --pink-400: #EC407A;
+  --pink-500: #E91E63;
+  --pink-600: #D81B60;
+  --pink-700: #C2185B;
+  --pink-800: #AD1457;
+  --pink-900: #880E4F;
+
+  /* Brown */
+  --brown-50: #EFEBE9;
+  --brown-100: #D7CCC8;
+  --brown-200: #BCAAA4;
+  --brown-300: #A1887F;
+  --brown-400: #8D6E63;
+  --brown-500: #795548;
+  --brown-600: #6D4C41;
+  --brown-700: #5D4037;
+  --brown-800: #4E342E;
+  --brown-900: #3E2723;
+
+  /* ===== TRANSPARENCY ===== */
+  --transparent-gray-4: rgba(0, 0, 0, 0.04);
+  --transparent-gray-8: rgba(0, 0, 0, 0.08);
+  --transparent-gray-12: rgba(0, 0, 0, 0.12);
+  --transparent-gray-16: rgba(0, 0, 0, 0.16);
+  --transparent-gray-24: rgba(0, 0, 0, 0.24);
+  --transparent-gray-32: rgba(0, 0, 0, 0.32);
+  --transparent-gray-48: rgba(0, 0, 0, 0.48);
+  --transparent-gray-64: rgba(0, 0, 0, 0.64);
+  --transparent-gray-80: rgba(0, 0, 0, 0.80);
+  --transparent-gray-88: rgba(0, 0, 0, 0.88);
+  --transparent-gray-92: rgba(0, 0, 0, 0.92);
+  --transparent-gray-96: rgba(0, 0, 0, 0.96);
+
+  --transparent-white-4: rgba(255, 255, 255, 0.04);
+  --transparent-white-8: rgba(255, 255, 255, 0.08);
+  --transparent-white-12: rgba(255, 255, 255, 0.12);
+  --transparent-white-16: rgba(255, 255, 255, 0.16);
+  --transparent-white-24: rgba(255, 255, 255, 0.24);
+  --transparent-white-32: rgba(255, 255, 255, 0.32);
+  --transparent-white-48: rgba(255, 255, 255, 0.48);
+  --transparent-white-64: rgba(255, 255, 255, 0.64);
+  --transparent-white-80: rgba(255, 255, 255, 0.80);
+  --transparent-white-88: rgba(255, 255, 255, 0.88);
+  --transparent-white-92: rgba(255, 255, 255, 0.92);
+  --transparent-white-96: rgba(255, 255, 255, 0.96);
+
+  --transparent-red: rgba(255, 87, 87, 0.12);
+  --transparent-blue: rgba(100, 181, 246, 0.12);
+
+  /* ===== SPACING ===== */
+  --spacing-0: 0px;
+  --spacing-2: 2px;
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-12: 12px;
+  --spacing-16: 16px;
+  --spacing-20: 20px;
+  --spacing-24: 24px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-48: 48px;
+  --spacing-56: 56px;
+  --spacing-64: 64px;
+
+  /* ===== BORDER RADIUS ===== */
+  --radius-sm: 8px;
+  --radius-full: 9999px;
+
+  /* ===== ELEVATION (Box Shadow) ===== */
+  --elevation-xs: 0px 1px 2px 0px rgba(0, 0, 0, 0.08);
+  --elevation-sm: 0px 2px 4px 0px rgba(0, 0, 0, 0.08);
+  --elevation-md: 0px 4px 8px 0px rgba(0, 0, 0, 0.08);
+  --elevation-lg: 0px 8px 16px 0px rgba(0, 0, 0, 0.08);
+  --elevation-xl: 0px 16px 32px 0px rgba(0, 0, 0, 0.08);
+
+  /* Light Tint variants */
+  --elevation-light-xs: 0px 1px 2px 0px rgba(0, 0, 0, 0.04);
+  --elevation-light-sm: 0px 2px 4px 0px rgba(0, 0, 0, 0.04);
+  --elevation-light-md: 0px 4px 8px 0px rgba(0, 0, 0, 0.04);
+  --elevation-light-lg: 0px 8px 16px 0px rgba(0, 0, 0, 0.04);
+  --elevation-light-xl: 0px 16px 32px 0px rgba(0, 0, 0, 0.04);
+
+  /* Dark Tint variants */
+  --elevation-dark-xs: 0px 1px 2px 0px rgba(0, 0, 0, 0.24);
+  --elevation-dark-sm: 0px 2px 4px 0px rgba(0, 0, 0, 0.24);
+  --elevation-dark-md: 0px 4px 8px 0px rgba(0, 0, 0, 0.24);
+  --elevation-dark-lg: 0px 8px 16px 0px rgba(0, 0, 0, 0.24);
+  --elevation-dark-xl: 0px 16px 32px 0px rgba(0, 0, 0, 0.24);
+
+  /* ===== INSET (Inner Shadow) ===== */
+  --inset-light: inset 0px 1px 0px 0px rgba(255, 255, 255, 0.04);
+  --inset-dark: inset 0px -1px 0px 0px rgba(0, 0, 0, 0.04);
+
+  /* ===== TYPOGRAPHY ===== */
+  /* Font families - KPP uses Pretendard */
+  --font-family-base: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+  /* Font sizes */
+  --font-size-10: 10px;
+  --font-size-12: 12px;
+  --font-size-14: 14px;
+  --font-size-16: 16px;
+  --font-size-18: 18px;
+  --font-size-20: 20px;
+  --font-size-24: 24px;
+  --font-size-28: 28px;
+  --font-size-32: 32px;
+  --font-size-40: 40px;
+  --font-size-48: 48px;
+  --font-size-56: 56px;
+  --font-size-64: 64px;
+  --font-size-72: 72px;
+
+  /* Font weights */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Line heights */
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+}
