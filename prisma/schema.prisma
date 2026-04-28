@@ -1,0 +1,214 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ──────────────────────────────────────────────────────────
+// ENUMS
+// ──────────────────────────────────────────────────────────
+
+enum Difficulty {
+  easy
+  medium
+  hard
+}
+
+enum ComboStatus {
+  draft
+  published
+  removed
+}
+
+enum OAuthProvider {
+  google
+  discord
+}
+
+// ──────────────────────────────────────────────────────────
+// USER
+// ──────────────────────────────────────────────────────────
+
+model User {
+  id            String        @id @default(cuid())
+  email         String?       @unique
+  nickname      String        @unique
+  avatarUrl     String?
+  oauthProvider OAuthProvider?
+  oauthId       String?
+  createdAt     DateTime      @default(now())
+
+  combos    Combo[]
+  likes     Like[]
+  comments  Comment[]
+  downloads Download[]
+
+  // Auth.js relations
+  accounts Account[]
+  sessions Session[]
+
+  @@map("users")
+}
+
+// Auth.js required models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ──────────────────────────────────────────────────────────
+// GAME & CHARACTER
+// ──────────────────────────────────────────────────────────
+
+model Game {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  name            String
+  iconUrl         String?
+  currentPatch    String?
+  inputCategories Json     @default("[]")
+  createdAt       DateTime @default(now())
+
+  characters Character[]
+  combos     Combo[]
+
+  @@map("games")
+}
+
+model Character {
+  id      String  @id @default(cuid())
+  gameId  String
+  slug    String
+  name    String
+  iconUrl String?
+
+  game   Game    @relation(fields: [gameId], references: [id])
+  combos Combo[]
+
+  @@unique([gameId, slug])
+  @@map("characters")
+}
+
+// ──────────────────────────────────────────────────────────
+// COMBO
+// ──────────────────────────────────────────────────────────
+
+model Combo {
+  id           String      @id @default(cuid())
+  title        String
+  description  String?     @db.Text
+  authorId     String
+  gameId       String
+  characterId  String
+  difficulty   Difficulty
+  tags         String[]
+  durationMs   Int?
+  inputCount   Int         @default(0)
+  inputSummary Json        @default("[]")
+  gameSpecific Json        @default("{}")
+  thumbnailUrl String?
+  videoUrl     String?
+  tutfileUrl   String?
+  patchVersion String?
+  viewCount    Int         @default(0)
+  downloadCount Int        @default(0)
+  likeCount    Int         @default(0)
+  status       ComboStatus @default(published)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  author    User      @relation(fields: [authorId], references: [id])
+  game      Game      @relation(fields: [gameId], references: [id])
+  character Character @relation(fields: [characterId], references: [id])
+  likes     Like[]
+  comments  Comment[]
+  downloads Download[]
+
+  @@index([gameId, characterId])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([status, likeCount(sort: Desc)])
+  @@map("combos")
+}
+
+// ──────────────────────────────────────────────────────────
+// INTERACTIONS
+// ──────────────────────────────────────────────────────────
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  comboId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  combo Combo @relation(fields: [comboId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, comboId])
+  @@index([userId, comboId])
+  @@map("likes")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  comboId   String
+  userId    String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  combo Combo @relation(fields: [comboId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([comboId, createdAt(sort: Desc)])
+  @@map("comments")
+}
+
+model Download {
+  id           String   @id @default(cuid())
+  userId       String?
+  comboId      String
+  downloadedAt DateTime @default(now())
+
+  user  User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  combo Combo  @relation(fields: [comboId], references: [id], onDelete: Cascade)
+
+  @@map("downloads")
+}

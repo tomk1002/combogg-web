@@ -1,0 +1,22 @@
+# Claude Code
+CLAUDE.local.md
+.claude/settings.local.json
+
+# Node
+node_modules/
+.next/
+dist/
+*.log
+
+# Env
+.env
+.env.local
+
+# Build artifacts
+tsconfig.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+
+/app/generated/prisma
