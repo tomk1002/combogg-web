@@ -1,82 +1,152 @@
 import Link from "next/link";
-import ComboCard from "@/components/combo/combo-card";
+import Image from "next/image";
 import { prisma } from "@/lib/db";
 import { COMBO_INCLUDE, toComboListItem } from "@/lib/combo-queries";
+import HomeContent from "@/components/home/home-content";
+import type { Difficulty } from "@/types";
 
-async function getPopularCombos() {
-  const combos = await prisma.combo.findMany({
-    where: { status: "published" },
-    include: COMBO_INCLUDE,
-    orderBy: { likeCount: "desc" },
-    take: 6,
-  });
-  return combos.map(toComboListItem);
+async function getHomeData() {
+  const [popularRaw, newestRaw, characters, diffGroups] = await Promise.all([
+    prisma.combo.findMany({
+      where: { status: "published" },
+      include: COMBO_INCLUDE,
+      orderBy: { likeCount: "desc" },
+      take: 20,
+    }),
+    prisma.combo.findMany({
+      where: { status: "published" },
+      include: COMBO_INCLUDE,
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    }),
+    prisma.character.findMany({
+      where: { game: { slug: "lol" } },
+      include: { _count: { select: { combos: { where: { status: "published" } } } } },
+      orderBy: [{ name: "asc" }],
+    }),
+    prisma.combo.groupBy({
+      by: ["difficulty"],
+      where: { status: "published" },
+      _count: { id: true },
+    }),
+  ]);
+
+  const difficultyCounts = { easy: 0, medium: 0, hard: 0 } as Record<Difficulty, number>;
+  for (const g of diffGroups) {
+    difficultyCounts[g.difficulty as Difficulty] = g._count.id;
+  }
+
+  const characterList = characters
+    .map((c) => ({ slug: c.slug, name: c.name, iconUrl: c.iconUrl, comboCount: c._count.combos }))
+    .sort((a, b) => b.comboCount - a.comboCount || a.name.localeCompare(b.name));
+
+  return {
+    popularCombos: popularRaw.map(toComboListItem),
+    newestCombos: newestRaw.map(toComboListItem),
+    characters: characterList,
+    difficultyCounts,
+    featuredCombo: popularRaw.length > 0 ? toComboListItem(popularRaw[0]) : null,
+  };
 }
 
 export default async function Home() {
-  const combos = await getPopularCombos();
+  const { popularCombos, newestCombos, characters, difficultyCounts, featuredCombo } = await getHomeData();
 
   return (
     <main className="flex-1">
-      {/* Hero */}
+      {/* ── Hero ──────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden border-b border-border">
-        <div
-          aria-hidden
-          className="absolute inset-0 opacity-60 pointer-events-none"
-          style={{ backgroundImage: "radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)", backgroundSize: "20px 20px" }}
-        />
-        <div
-          aria-hidden
-          className="absolute right-[-150px] top-[-200px] w-[600px] h-[600px] rounded-full pointer-events-none"
-          style={{ background: "radial-gradient(circle, rgba(184,134,11,0.15) 0%, transparent 60%)" }}
-        />
-        <div className="relative max-w-[var(--width-content)] mx-auto px-8 py-16">
-          <div className="max-w-2xl">
+        <div aria-hidden className="absolute inset-0 opacity-60 pointer-events-none"
+          style={{ backgroundImage: "radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
+        <div aria-hidden className="absolute right-[-150px] top-[-200px] w-[600px] h-[600px] rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(184,134,11,0.15) 0%, transparent 60%)" }} />
+
+        <div className="relative max-w-[var(--width-content)] mx-auto px-8 py-16 grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-14 items-center">
+          {/* Left */}
+          <div>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gold-muted border border-gold/40 text-[11px] font-bold text-gold mb-6">
               <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
               League of Legends · 패치 16.8
             </div>
-            <h1 className="text-4xl font-black tracking-tight leading-tight mb-4">
-              콤보를 녹화하고,<br />
-              <span className="text-gold">공유하고, 연습하세요</span>
+            <h1 className="text-4xl lg:text-5xl font-black tracking-tight leading-tight mb-4">
+              완벽한 콤보,<br />
+              <span className="text-gold">한 번의 클릭</span>으로.
             </h1>
-            <p className="text-text-secondary text-lg mb-8">
-              챔피언별 콤보를 업로드하고 커뮤니티와 공유하세요.
-              오버레이 앱으로 인게임에서 바로 연습할 수 있습니다.
+            <p className="text-text-secondary text-base lg:text-lg mb-8 max-w-lg">
+              전 세계 플레이어가 공유한 콤보를 다운로드하고, 데스크톱 앱에서 바로 연습하세요.
             </p>
             <div className="flex gap-3">
-              <Link href="/games/lol" className="inline-flex items-center gap-2 h-11 px-6 rounded-[8px] bg-gold text-white font-bold text-sm shadow-[0_2px_8px_rgba(184,134,11,0.32)] hover:bg-gold-light transition-colors">
-                콤보 탐색하기
+              <Link href="/upload" className="inline-flex items-center gap-2 h-11 px-6 rounded-[8px] bg-gold text-white font-bold text-sm shadow-[0_2px_8px_rgba(184,134,11,0.32)] hover:bg-gold-light transition-colors">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M7 11V3m0 0L4 6m3-3 3 3M2 12h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                내 콤보 공유하기
               </Link>
               <Link href="/download" className="inline-flex items-center gap-2 h-11 px-6 rounded-[8px] border border-[rgba(255,255,255,0.12)] text-text-secondary font-bold text-sm hover:bg-surface-overlay hover:text-text transition-colors">
                 앱 다운로드
               </Link>
             </div>
           </div>
+
+          {/* Right — featured combo card */}
+          {featuredCombo && (
+            <Link
+              href={`/combos/${featuredCombo.id}`}
+              className="group relative rounded-2xl overflow-hidden border border-[rgba(255,255,255,0.12)] bg-surface-raised hover:-translate-y-1 transition-transform shadow-[0_30px_80px_rgba(0,0,0,0.5),0_0_0_1px_rgba(232,198,121,0.12)]"
+            >
+              <div className="absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gold text-bg text-[10px] font-black tracking-widest">
+                <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor">
+                  <path d="M5 0l1.4 3.2L10 4 7 6.4 8 10 5 8 2 10l1-3.6L0 4l3.6-.8L5 0z"/>
+                </svg>
+                SPOTLIGHT
+              </div>
+
+              <div className="relative aspect-video bg-surface-overlay">
+                {featuredCombo.thumbnailUrl ? (
+                  <Image src={featuredCombo.thumbnailUrl} alt={featuredCombo.title} fill className="object-cover" />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-[140px] font-black italic text-white/10 leading-none select-none">
+                      {featuredCombo.character.name[0]}
+                    </span>
+                  </div>
+                )}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#1A1D24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  </div>
+                </div>
+                {featuredCombo.durationMs && (
+                  <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded bg-black/70 text-white text-[11px] font-mono font-bold">
+                    {Math.floor(featuredCombo.durationMs / 60000)}:{String(Math.floor((featuredCombo.durationMs % 60000) / 1000)).padStart(2, "0")}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-5">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  {featuredCombo.character.iconUrl && (
+                    <Image src={featuredCombo.character.iconUrl} alt={featuredCombo.character.name} width={20} height={20} className="rounded" />
+                  )}
+                  <span className="text-xs font-bold">{featuredCombo.character.name}</span>
+                  <span className="text-[11px] text-text-muted font-mono ml-auto">↓ {featuredCombo.downloadCount.toLocaleString()}</span>
+                </div>
+                <h3 className="text-base font-bold tracking-tight">{featuredCombo.title}</h3>
+              </div>
+            </Link>
+          )}
         </div>
       </section>
 
-      {/* Combo grid */}
-      <section className="max-w-[var(--width-content)] mx-auto px-8 py-12">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-extrabold tracking-tight">인기 콤보</h2>
-          <Link href="/games/lol" className="text-sm text-text-secondary hover:text-gold transition-colors font-semibold">
-            전체 보기 →
-          </Link>
-        </div>
-        {combos.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {combos.map((combo) => (
-              <ComboCard key={combo.id} combo={combo} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-24 text-text-secondary">
-            <p className="text-lg font-semibold mb-2">아직 등록된 콤보가 없습니다</p>
-            <Link href="/upload" className="text-sm text-gold hover:underline">첫 번째 콤보를 업로드해보세요 →</Link>
-          </div>
-        )}
-      </section>
+      {/* ── Interactive sections (champion filter, difficulty, newest, CTA) ── */}
+      <HomeContent
+        popularCombos={popularCombos}
+        newestCombos={newestCombos}
+        characters={characters}
+        difficultyCounts={difficultyCounts}
+      />
     </main>
   );
 }
