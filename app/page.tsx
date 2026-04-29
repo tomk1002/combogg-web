@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/db";
 import { COMBO_INCLUDE, toComboListItem } from "@/lib/combo-queries";
 import HomeContent from "@/components/home/home-content";
@@ -7,7 +8,7 @@ import { getLocale } from "@/lib/i18n-server";
 import { getT } from "@/lib/i18n";
 import type { Difficulty } from "@/types";
 
-async function getHomeData() {
+const getHomeData = unstable_cache(async function getHomeData() {
   const [popularRaw, newestRaw, characters, diffGroups] = await Promise.all([
     prisma.combo.findMany({
       where: { status: "published" },
@@ -49,7 +50,7 @@ async function getHomeData() {
     difficultyCounts,
     featuredCombo: popularRaw.length > 0 ? toComboListItem(popularRaw[0]) : null,
   };
-}
+}, ["home-data"], { revalidate: 60 });
 
 export default async function Home() {
   const [{ popularCombos, newestCombos, characters, difficultyCounts, featuredCombo }, locale] = await Promise.all([

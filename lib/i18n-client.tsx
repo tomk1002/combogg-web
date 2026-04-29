@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import type { Locale, T } from "./i18n";
 import { dict } from "./i18n";
 
@@ -16,8 +16,17 @@ const LangContext = createContext<LangCtx>({
   setLocale: () => {},
 });
 
-export function LangProvider({ locale: initial, children }: { locale: Locale; children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(initial);
+function readLocaleCookie(): Locale {
+  const match = document.cookie.match(/(?:^|;\s*)NEXT_LOCALE=([^;]*)/);
+  return match?.[1] === "en" ? "en" : "ko";
+}
+
+export function LangProvider({ children }: { children: React.ReactNode }) {
+  const [locale, setLocaleState] = useState<Locale>("ko");
+
+  useEffect(() => {
+    setLocaleState(readLocaleCookie());
+  }, []);
 
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);

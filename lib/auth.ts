@@ -7,12 +7,15 @@ import { prisma } from "@/lib/db";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   trustHost: true,
+  pages: {
+    error: "/error",
+  },
   cookies: {
     pkceCodeVerifier: {
       name: "authjs.pkce.code_verifier",
       options: {
         httpOnly: true,
-        sameSite: "none",
+        sameSite: "lax",
         path: "/",
         secure: true,
       },
@@ -21,7 +24,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       name: "authjs.state",
       options: {
         httpOnly: true,
-        sameSite: "none",
+        sameSite: "lax",
         path: "/",
         secure: true,
       },
