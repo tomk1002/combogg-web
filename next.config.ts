@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
       { hostname: "lh3.googleusercontent.com" },
       { hostname: "cdn.discordapp.com" },
       { hostname: "ddragon.leagueoflegends.com" },
+      { hostname: "*.supabase.co" },
     ],
   },
 };
