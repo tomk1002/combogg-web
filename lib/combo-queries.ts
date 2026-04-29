@@ -13,7 +13,7 @@ export function toComboListItem(c: ComboWithRelations): ComboListItemDTO {
   return {
     id: c.id,
     title: c.title,
-    author: c.author,
+    author: { ...c.author, nickname: c.author.nickname ?? "" },
     game: c.game,
     character: c.character,
     difficulty: c.difficulty as "easy" | "medium" | "hard",

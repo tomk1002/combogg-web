@@ -35,8 +35,13 @@ enum OAuthProvider {
 
 model User {
   id            String        @id @default(cuid())
+  // Auth.js standard fields
+  name          String?
   email         String?       @unique
-  nickname      String        @unique
+  emailVerified DateTime?
+  image         String?
+  // Custom fields
+  nickname      String?       @unique
   avatarUrl     String?
   oauthProvider OAuthProvider?
   oauthId       String?
