@@ -9,6 +9,7 @@ import DifficultyPips from "@/components/shared/difficulty-pips";
 import LolUploadForm from "@/components/games/lol/lol-upload-form";
 import type { LolGameSpecific } from "@/lib/games/lol/schema";
 import type { Difficulty } from "@/types";
+import { getChampIconUrl } from "@/lib/games/lol/ddragon";
 
 interface Character {
   id: string;
@@ -17,8 +18,16 @@ interface Character {
   iconUrl: string | null;
 }
 
+interface ItemMeta {
+  id: string;
+  name: string;
+  iconUrl: string;
+}
+
 interface Props {
   characters: Character[];
+  patch: string;
+  items: ItemMeta[];
 }
 
 type Step = "drop" | "form" | "submitting" | "done";
@@ -29,7 +38,91 @@ const DIFFICULTY_OPTIONS: { value: Difficulty; label: string }[] = [
   { value: "hard",   label: "어려움" },
 ];
 
-export default function UploadWizard({ characters }: Props) {
+// ── ChampionPicker (inline component) ────────────────────────
+interface ChampionPickerProps {
+  characters: Character[];
+  patch: string;
+  value: string;
+  onChange: (slug: string) => void;
+}
+
+function ChampionPicker({ characters, patch, value, onChange }: ChampionPickerProps) {
+  const [search, setSearch] = useState("");
+
+  const filtered = search.trim()
+    ? characters.filter((c) =>
+        c.name.toLowerCase().includes(search.trim().toLowerCase()) ||
+        c.slug.toLowerCase().includes(search.trim().toLowerCase())
+      )
+    : characters;
+
+  const selected = characters.find((c) => c.slug === value);
+
+  return (
+    <div className="flex flex-col gap-2">
+      {/* Selected display */}
+      {selected && (
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <Image
+            src={selected.iconUrl ?? getChampIconUrl(selected.slug, patch)}
+            alt={selected.name}
+            width={24}
+            height={24}
+            sizes="24px"
+            className="rounded-md shrink-0"
+          />
+          <span>{selected.name}</span>
+        </div>
+      )}
+
+      {/* Search input */}
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="챔피언 검색..."
+        className="h-9 px-3 rounded-lg border border-border bg-surface-overlay text-sm focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors"
+      />
+
+      {/* Scrollable icon grid */}
+      <div className="max-h-48 overflow-y-auto rounded-lg border border-border bg-surface-overlay p-2">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(44px,1fr))] gap-1.5">
+          {filtered.map((c) => {
+            const isSelected = c.slug === value;
+            const iconUrl = c.iconUrl ?? getChampIconUrl(c.slug, patch);
+            return (
+              <button
+                key={c.slug}
+                type="button"
+                title={c.name}
+                onClick={() => onChange(c.slug)}
+                className={`relative w-10 h-10 rounded-md overflow-hidden transition-all cursor-pointer ${
+                  isSelected
+                    ? "ring-2 ring-gold ring-offset-1 ring-offset-surface-overlay"
+                    : "hover:ring-1 hover:ring-[rgba(255,255,255,0.3)]"
+                }`}
+              >
+                <Image
+                  src={iconUrl}
+                  alt={c.name}
+                  fill
+                  sizes="40px"
+                  className="object-cover"
+                />
+              </button>
+            );
+          })}
+          {filtered.length === 0 && (
+            <p className="col-span-full text-xs text-text-muted py-2 text-center">검색 결과 없음</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── UploadWizard ──────────────────────────────────────────────
+export default function UploadWizard({ characters, patch, items }: Props) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("drop");
   const [isDragging, setIsDragging] = useState(false);
@@ -77,28 +170,28 @@ export default function UploadWizard({ characters }: Props) {
       try {
         const text = await f.text();
         const rawJson = JSON.parse(text);
-        const parsed = parseAppComboJson(rawJson);
+        const parsedJson = parseAppComboJson(rawJson);
         const syntheticParsed: ParsedTutfile = {
           manifest: {
             version: "1",
             id: "",
-            title: parsed.title,
-            game: parsed.game,
-            character: parsed.characterSlug,
+            title: parsedJson.title,
+            game: parsedJson.game,
+            character: parsedJson.characterSlug,
             difficulty: "medium",
-            tags: parsed.tags,
-            duration_ms: parsed.duration_ms,
+            tags: parsedJson.tags,
+            duration_ms: parsedJson.duration_ms,
             game_specific: {},
           },
-          inputs: parsed.inputs,
+          inputs: parsedJson.inputs,
           steps: [],
           videoBuffer: null,
         };
         setFile(f);
         setParsed(syntheticParsed);
-        setTitle(parsed.title);
-        setCharacterSlug(parsed.characterSlug);
-        setTags(parsed.tags.join(", "));
+        setTitle(parsedJson.title);
+        setCharacterSlug(parsedJson.characterSlug);
+        setTags(parsedJson.tags.join(", "));
         setGameSpecific({});
         setIsJsonMode(true);
         setStep("form");
@@ -320,35 +413,24 @@ export default function UploadWizard({ characters }: Props) {
           />
         </label>
 
-        {/* 챔피언 */}
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-semibold">챔피언 <span className="text-hard">*</span></span>
-          <div className="flex items-center gap-2">
-            {characterSlug && (() => {
-              const champ = characters.find((c) => c.slug === characterSlug);
-              return champ?.iconUrl ? (
-                <Image src={champ.iconUrl} alt={champ.name} width={28} height={28} className="rounded-md shrink-0" />
-              ) : null;
-            })()}
-            <select
-              required
-              value={characterSlug}
-              onChange={(e) => setCharacterSlug(e.target.value)}
-              className="flex-1 h-10 px-3 rounded-lg border border-border bg-surface-overlay text-sm focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors"
-            >
-              <option value="">선택</option>
-              {characters.map((c) => (
-                <option key={c.slug} value={c.slug}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-        </label>
+        {/* 챔피언 — picker */}
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-semibold">
+            챔피언 <span className="text-hard">*</span>
+          </span>
+          <ChampionPicker
+            characters={characters}
+            patch={patch}
+            value={characterSlug}
+            onChange={setCharacterSlug}
+          />
+        </div>
 
         {/* 난이도 */}
         <div className="flex flex-col gap-2">
           <span className="text-sm font-semibold">난이도</span>
           <div className="flex gap-2">
-            {DIFFICULTY_OPTIONS.map(({ value: v, label }) => (
+            {DIFFICULTY_OPTIONS.map(({ value: v }) => (
               <button
                 key={v}
                 type="button"
@@ -408,7 +490,7 @@ export default function UploadWizard({ characters }: Props) {
           <label className="cursor-pointer">
             {thumbnailPreview ? (
               <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-border bg-surface-overlay">
-                <Image src={thumbnailPreview} alt="썸네일 미리보기" fill className="object-cover" />
+                <Image src={thumbnailPreview} alt="썸네일 미리보기" fill sizes="(max-width: 672px) 100vw, 672px" className="object-cover" />
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                   <span className="text-xs font-semibold text-white">클릭해서 변경</span>
                 </div>
@@ -430,8 +512,8 @@ export default function UploadWizard({ characters }: Props) {
 
       {/* LoL 조건 */}
       {parsed?.manifest.game === "lol" && (
-        <div className="bg-surface-raised rounded-xl p-6 border border-border">
-          <LolUploadForm value={gameSpecific} onChange={setGameSpecific} />
+        <div className="bg-surface-raised rounded-xl border border-border overflow-hidden">
+          <LolUploadForm value={gameSpecific} onChange={setGameSpecific} items={items} patch={patch} />
         </div>
       )}
 

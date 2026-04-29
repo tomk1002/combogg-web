@@ -32,3 +32,32 @@ export async function getAllChampions(patch: string) {
   const json = await res.json();
   return json.data as Record<string, { id: string; name: string; key: string }>;
 }
+
+interface DdragonItemData {
+  name: string;
+  gold: { purchasable: boolean; total: number };
+  maps: Record<string, boolean>;
+}
+
+export async function getAllItems(
+  patch: string
+): Promise<{ id: string; name: string; iconUrl: string }[]> {
+  const res = await fetch(
+    `${DDRAGON_BASE}/cdn/${patch}/data/ko_KR/item.json`,
+    { next: { revalidate: 3600 } }
+  );
+  const json = await res.json();
+  const data = json.data as Record<string, DdragonItemData>;
+  return Object.entries(data)
+    .filter(
+      ([, item]) =>
+        item.gold.purchasable === true &&
+        item.maps["11"] === true &&
+        item.gold.total >= 400
+    )
+    .map(([id, item]) => ({
+      id,
+      name: item.name,
+      iconUrl: getItemIconUrl(id, patch),
+    }));
+}
