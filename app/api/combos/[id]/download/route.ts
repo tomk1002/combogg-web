@@ -29,7 +29,7 @@ export async function POST(_req: Request, { params }: Ctx) {
 
     if (error || !data) return serverError(error);
 
-    return ok({ downloadUrl: data.signedUrl });
+    return ok({ url: data.signedUrl });
   } catch (err) {
     return serverError(err);
   }
