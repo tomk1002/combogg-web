@@ -130,8 +130,8 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
 
           {filteredCombos.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredCombos.slice(0, 6).map((combo) => (
-                <ComboCard key={combo.id} combo={combo} />
+              {filteredCombos.slice(0, 6).map((combo, i) => (
+                <ComboCard key={combo.id} combo={combo} priority={i < 3} />
               ))}
             </div>
           ) : (

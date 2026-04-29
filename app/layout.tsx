@@ -15,6 +15,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" className="h-full">
+      <head>
+        <link rel="preconnect" href="https://vklbmllbdhjtamcvcxhh.supabase.co" />
+        <link rel="preconnect" href="https://ddragon.leagueoflegends.com" />
+        <link rel="preconnect" href="https://lh3.googleusercontent.com" />
+      </head>
       <body className="min-h-full flex flex-col bg-surface text-text antialiased">
         <Providers>
           <SiteHeader />

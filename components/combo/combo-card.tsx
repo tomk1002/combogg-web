@@ -7,9 +7,10 @@ import type { ComboListItemDTO } from "@/lib/api/types";
 
 interface Props {
   combo: ComboListItemDTO;
+  priority?: boolean;
 }
 
-export default function ComboCard({ combo }: Props) {
+export default function ComboCard({ combo, priority = false }: Props) {
   const keys = inputToKeySequence(combo.inputSummary);
 
   return (
@@ -24,6 +25,8 @@ export default function ComboCard({ combo }: Props) {
             src={combo.thumbnailUrl}
             alt={combo.title}
             fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            priority={priority}
             className="object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : combo.character.iconUrl ? (
@@ -61,6 +64,7 @@ export default function ComboCard({ combo }: Props) {
               alt={combo.character.name}
               width={32}
               height={32}
+              sizes="32px"
               className="rounded-md shrink-0 mt-0.5"
             />
           )}

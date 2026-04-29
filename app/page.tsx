@@ -108,7 +108,7 @@ export default async function Home() {
 
               <div className="relative aspect-video bg-surface-overlay">
                 {featuredCombo.thumbnailUrl ? (
-                  <Image src={featuredCombo.thumbnailUrl} alt={featuredCombo.title} fill className="object-cover" />
+                  <Image src={featuredCombo.thumbnailUrl} alt={featuredCombo.title} fill priority sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-[140px] font-black italic text-white/10 leading-none select-none">

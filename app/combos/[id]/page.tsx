@@ -62,6 +62,7 @@ export default async function ComboDetailPage({ params }: Props) {
               <video
                 src={combo.videoUrl}
                 controls
+                preload="none"
                 className="w-full h-full object-cover"
                 poster={combo.thumbnailUrl ?? undefined}
               />
