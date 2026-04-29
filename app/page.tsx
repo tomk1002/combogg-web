@@ -90,10 +90,6 @@ export default async function Home() {
         <div className="relative max-w-[var(--width-content)] mx-auto px-4 sm:px-8 py-10 sm:py-16 grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-14 items-center">
           {/* Left */}
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gold-muted border border-gold/40 text-[11px] font-bold text-gold mb-6">
-              <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
-              {t.hero_badge}
-            </div>
             <h1 className="text-3xl lg:text-5xl font-black tracking-tight leading-tight mb-4">
               {t.hero_title1}<br />
               <span className="text-gold">{t.hero_title2}</span>
