@@ -1,18 +1,37 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import DifficultyPips from "@/components/shared/difficulty-pips";
-import { KeySequence, inputToKeySequence } from "@/components/shared/keycap";
-import { formatCount, formatDuration, timeAgo } from "@/lib/utils";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { COMBO_INCLUDE } from "@/lib/combo-queries";
-import type { InputEntryDTO } from "@/lib/api/types";
+import DifficultyPips from "@/components/shared/difficulty-pips";
+import { KeySequence, inputToKeySequence } from "@/components/shared/keycap";
+import LolConditions from "@/components/games/lol/lol-conditions";
+import ComboActions from "@/components/combo/combo-actions";
+import ComboComments from "@/components/combo/combo-comments";
+import { formatCount, formatDuration, timeAgo } from "@/lib/utils";
+import type { InputEntryDTO, CommentDTO } from "@/lib/api/types";
+import type { LolGameSpecific } from "@/lib/games/lol/schema";
 
 interface Props { params: Promise<{ id: string }> }
 
 export default async function ComboDetailPage({ params }: Props) {
   const { id } = await params;
+  const session = await auth();
+  const userId = session?.user?.id ?? null;
 
-  const combo = await prisma.combo.findUnique({ where: { id, status: "published" }, include: COMBO_INCLUDE });
+  const [combo, isLikedRecord, commentsRaw] = await Promise.all([
+    prisma.combo.findUnique({ where: { id, status: "published" }, include: COMBO_INCLUDE }),
+    userId
+      ? prisma.like.findUnique({ where: { userId_comboId: { userId, comboId: id } } })
+      : null,
+    prisma.comment.findMany({
+      where: { comboId: id },
+      include: { user: { select: { id: true, nickname: true, avatarUrl: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    }),
+  ]);
+
   if (!combo) notFound();
 
   // 조회수 +1 (fire-and-forget)
@@ -20,36 +39,60 @@ export default async function ComboDetailPage({ params }: Props) {
 
   const inputSummary = (combo.inputSummary as unknown as InputEntryDTO[]) ?? [];
   const keys = inputToKeySequence(inputSummary);
-  const gameSpecific = (combo.gameSpecific as unknown as Record<string, unknown>) ?? {};
+  const gameSpecific = (combo.gameSpecific as unknown as Partial<LolGameSpecific>) ?? {};
+  const isLiked = !!isLikedRecord;
+
+  const initialComments: CommentDTO[] = commentsRaw.map((c) => ({
+    id: c.id,
+    content: c.content,
+    author: { id: c.user.id, nickname: c.user.nickname, avatarUrl: c.user.avatarUrl },
+    createdAt: c.createdAt.toISOString(),
+  }));
 
   return (
     <main className="flex-1 max-w-[var(--width-content)] mx-auto px-8 py-10 w-full">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
-        {/* Left */}
+
+        {/* ── Left ── */}
         <div className="flex flex-col gap-6">
+
           {/* Video */}
           <div className="relative aspect-video bg-surface-overlay rounded-xl overflow-hidden border border-border">
-            {combo.thumbnailUrl ? (
+            {combo.videoUrl ? (
+              <video
+                src={combo.videoUrl}
+                controls
+                className="w-full h-full object-cover"
+                poster={combo.thumbnailUrl ?? undefined}
+              />
+            ) : combo.thumbnailUrl ? (
               <Image src={combo.thumbnailUrl} alt={combo.title} fill className="object-cover" />
             ) : combo.character.iconUrl ? (
               <div className="absolute inset-0 flex items-center justify-center">
                 <Image src={combo.character.iconUrl} alt={combo.character.name} width={96} height={96} className="rounded-full opacity-20" />
               </div>
             ) : null}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-16 h-16 rounded-full bg-black/50 border border-[rgba(255,255,255,0.16)] flex items-center justify-center text-white">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            {!combo.videoUrl && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-black/50 border border-[rgba(255,255,255,0.16)] flex items-center justify-center text-white">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
+          {/* Title / meta */}
           <div>
             <div className="flex items-center gap-3 mb-2">
               <DifficultyPips difficulty={combo.difficulty} />
-              {combo.patchVersion && <span className="text-[11px] text-text-muted font-semibold">패치 {combo.patchVersion}</span>}
+              {combo.patchVersion && (
+                <span className="text-[11px] text-text-muted font-semibold">패치 {combo.patchVersion}</span>
+              )}
             </div>
             <h1 className="text-2xl font-black tracking-tight mb-3">{combo.title}</h1>
-            {combo.description && <p className="text-text-secondary text-sm mb-3 leading-relaxed">{combo.description}</p>}
+            {combo.description && (
+              <p className="text-text-secondary text-sm mb-3 leading-relaxed">{combo.description}</p>
+            )}
             <div className="flex items-center gap-4 text-sm text-text-secondary">
               <span className="flex items-center gap-1.5">
                 <span className="w-6 h-6 rounded-full bg-gold/20 flex items-center justify-center text-[10px] font-bold text-gold">
@@ -61,13 +104,19 @@ export default async function ComboDetailPage({ params }: Props) {
             </div>
           </div>
 
+          {/* Input sequence */}
           {keys.length > 0 && (
             <div className="bg-surface-raised rounded-xl p-5 border border-border">
               <h2 className="text-xs font-bold mb-4 text-text-secondary uppercase tracking-wide">입력 시퀀스</h2>
               <KeySequence keys={keys} size="md" maxKeys={12} />
+              <p className="text-[11px] text-text-muted mt-2">
+                총 {combo.inputCount}개 입력
+                {combo.durationMs ? ` · ${formatDuration(combo.durationMs)}` : ""}
+              </p>
             </div>
           )}
 
+          {/* Tags */}
           {combo.tags.length > 0 && (
             <div className="flex gap-2 flex-wrap">
               {combo.tags.map((tag) => (
@@ -77,10 +126,21 @@ export default async function ComboDetailPage({ params }: Props) {
               ))}
             </div>
           )}
+
+          {/* Comments */}
+          <div className="bg-surface-raised rounded-xl p-5 border border-border">
+            <ComboComments
+              comboId={id}
+              initialComments={initialComments}
+              currentUserId={userId}
+            />
+          </div>
         </div>
 
-        {/* Right */}
+        {/* ── Right ── */}
         <div className="flex flex-col gap-4">
+
+          {/* Champion */}
           <div className="bg-surface-raised rounded-xl p-5 border border-border">
             <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">챔피언</h2>
             <div className="flex items-center gap-3">
@@ -94,13 +154,19 @@ export default async function ComboDetailPage({ params }: Props) {
             </div>
           </div>
 
+          {/* LoL conditions */}
+          {combo.game.slug === "lol" && (
+            <LolConditions gameSpecific={gameSpecific} patch={combo.patchVersion ?? undefined} />
+          )}
+
+          {/* Stats */}
           <div className="bg-surface-raised rounded-xl p-5 border border-border">
             <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">통계</h2>
             <div className="grid grid-cols-3 gap-3 text-center">
               {[
-                { label: "좋아요",    value: formatCount(combo.likeCount) },
-                { label: "다운로드",  value: formatCount(combo.downloadCount) },
-                { label: "조회",      value: formatCount(combo.viewCount) },
+                { label: "좋아요",   value: formatCount(combo.likeCount) },
+                { label: "다운로드", value: formatCount(combo.downloadCount) },
+                { label: "조회",     value: formatCount(combo.viewCount) },
               ].map(({ label, value }) => (
                 <div key={label}>
                   <p className="text-lg font-black">{value}</p>
@@ -110,20 +176,16 @@ export default async function ComboDetailPage({ params }: Props) {
             </div>
           </div>
 
-          {combo.durationMs && (
-            <div className="bg-surface-raised rounded-xl p-5 border border-border">
-              <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-1">길이</h2>
-              <p className="text-2xl font-black font-mono">{formatDuration(combo.durationMs)}</p>
-            </div>
-          )}
-
-          <button className="w-full h-12 rounded-xl bg-gold text-white font-bold text-sm shadow-[0_2px_8px_rgba(184,134,11,0.32)] hover:bg-gold-light transition-colors cursor-pointer">
-            .tutfile 다운로드
-          </button>
-          <button className="w-full h-10 rounded-xl border border-border text-text-secondary font-semibold text-sm hover:bg-surface-overlay hover:text-text transition-colors cursor-pointer">
-            좋아요
-          </button>
+          {/* Actions */}
+          <ComboActions
+            comboId={id}
+            initialIsLiked={isLiked}
+            initialLikeCount={combo.likeCount}
+            tutfileUrl={combo.tutfileUrl}
+            isLoggedIn={!!userId}
+          />
         </div>
+
       </div>
     </main>
   );
