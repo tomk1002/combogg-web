@@ -130,7 +130,7 @@ export default function LolUploadForm({ value, onChange }: Props) {
                     const next = { ...(value.required_skills ?? {}) };
                     if (e.target.value) next[skill] = Number(e.target.value);
                     else delete next[skill];
-                    set("required_skills", Object.keys(next).length ? next : undefined);
+                    set("required_skills", Object.keys(next).length ? next as Record<"Q"|"W"|"E"|"R", number> : undefined);
                   }}
                   className="w-full h-9 px-2 rounded-lg border border-border bg-surface-overlay text-sm text-center focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors"
                 >
