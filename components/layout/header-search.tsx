@@ -10,7 +10,7 @@ export default function HeaderSearch() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      router.push(`/combos?q=${encodeURIComponent(query.trim())}`);
+      router.push(`/games/lol?q=${encodeURIComponent(query.trim())}`);
     }
   };
 
