@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { parseTutfile, type ParsedTutfile } from "@/lib/tutfile";
+import { parseTutfile, parseAppComboJson, buildInputSummary, type ParsedTutfile } from "@/lib/tutfile";
 import { KeySequence, inputToKeySequence } from "@/components/shared/keycap";
 import DifficultyPips from "@/components/shared/difficulty-pips";
 import LolUploadForm from "@/components/games/lol/lol-upload-form";
@@ -47,29 +47,68 @@ export default function UploadWizard({ characters }: Props) {
   const [gameSpecific, setGameSpecific] = useState<Partial<LolGameSpecific>>({});
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [isJsonMode, setIsJsonMode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleFile = useCallback(async (f: File) => {
-    if (!f.name.endsWith(".tutfile")) {
-      setError(".tutfile 파일만 업로드할 수 있습니다");
+    setError(null);
+
+    if (f.name.endsWith(".tutfile")) {
+      try {
+        const buffer = await f.arrayBuffer();
+        const data = await parseTutfile(buffer);
+        setFile(f);
+        setParsed(data);
+        setTitle(data.manifest.title);
+        setCharacterSlug(data.manifest.character);
+        setDifficulty(data.manifest.difficulty);
+        setTags(data.manifest.tags.join(", "));
+        setGameSpecific((data.manifest.game_specific as Partial<LolGameSpecific>) ?? {});
+        setIsJsonMode(false);
+        setStep("form");
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "파일을 파싱할 수 없습니다");
+      }
       return;
     }
-    setError(null);
-    try {
-      const buffer = await f.arrayBuffer();
-      const data = await parseTutfile(buffer);
-      setFile(f);
-      setParsed(data);
-      // 폼 초기값 세팅
-      setTitle(data.manifest.title);
-      setCharacterSlug(data.manifest.character);
-      setDifficulty(data.manifest.difficulty);
-      setTags(data.manifest.tags.join(", "));
-      setGameSpecific((data.manifest.game_specific as Partial<LolGameSpecific>) ?? {});
-      setStep("form");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "파일을 파싱할 수 없습니다");
+
+    if (f.name.endsWith(".json")) {
+      try {
+        const text = await f.text();
+        const rawJson = JSON.parse(text);
+        const parsed = parseAppComboJson(rawJson);
+        const syntheticParsed: ParsedTutfile = {
+          manifest: {
+            version: "1",
+            id: "",
+            title: parsed.title,
+            game: parsed.game,
+            character: parsed.characterSlug,
+            difficulty: "medium",
+            tags: parsed.tags,
+            duration_ms: parsed.duration_ms,
+            game_specific: {},
+          },
+          inputs: parsed.inputs,
+          steps: [],
+          videoBuffer: null,
+        };
+        setFile(f);
+        setParsed(syntheticParsed);
+        setTitle(parsed.title);
+        setCharacterSlug(parsed.characterSlug);
+        setTags(parsed.tags.join(", "));
+        setGameSpecific({});
+        setIsJsonMode(true);
+        setStep("form");
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "JSON 파일을 파싱할 수 없습니다");
+      }
+      return;
     }
+
+    setError(".tutfile 또는 .json 파일만 업로드할 수 있습니다");
   }, []);
 
   const onDrop = useCallback((e: React.DragEvent) => {
@@ -84,6 +123,19 @@ export default function UploadWizard({ characters }: Props) {
     setThumbnailPreview(URL.createObjectURL(f));
   };
 
+  const uploadFile = async (bucket: string, f: File, contentType: string): Promise<{ path: string; publicUrl: string }> => {
+    const presignedRes = await fetch("/api/uploads/presigned-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bucket, filename: f.name }),
+    });
+    if (!presignedRes.ok) throw new Error(`${bucket} URL 발급 실패`);
+    const { uploadUrl, path } = await presignedRes.json();
+    const uploadRes = await fetch(uploadUrl, { method: "PUT", body: f, headers: { "Content-Type": contentType } });
+    if (!uploadRes.ok) throw new Error(`${bucket} 업로드 실패`);
+    return { path, publicUrl: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${path}` };
+  };
+
   const onSubmit = async () => {
     if (!file || !parsed) return;
     setIsSubmitting(true);
@@ -93,50 +145,61 @@ export default function UploadWizard({ characters }: Props) {
       // 1. 썸네일 업로드 (선택)
       let thumbnailUrl: string | undefined;
       if (thumbnailFile) {
-        const tPresignedRes = await fetch("/api/uploads/presigned-url", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ bucket: "thumbnails", filename: thumbnailFile.name }),
-        });
-        if (!tPresignedRes.ok) throw new Error("썸네일 URL 발급 실패");
-        const { uploadUrl: tUrl, path: tPath } = await tPresignedRes.json();
-        const tUploadRes = await fetch(tUrl, {
-          method: "PUT",
-          body: thumbnailFile,
-          headers: { "Content-Type": thumbnailFile.type || "image/jpeg" },
-        });
-        if (!tUploadRes.ok) throw new Error("썸네일 업로드 실패");
-        thumbnailUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${tPath}`;
+        const t = await uploadFile("thumbnails", thumbnailFile, thumbnailFile.type || "image/jpeg");
+        thumbnailUrl = t.publicUrl;
       }
 
-      // 2. Presigned URL 발급
-      const presignedRes = await fetch("/api/uploads/presigned-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bucket: "tutfiles", filename: file.name }),
-      });
-      if (!presignedRes.ok) throw new Error("업로드 URL 발급 실패");
-      const { uploadUrl, path } = await presignedRes.json();
+      // ── JSON + MP4 모드 ──────────────────────────────────────
+      if (isJsonMode) {
+        let videoUrl: string | undefined;
+        if (videoFile) {
+          const v = await uploadFile("videos", videoFile, "video/mp4");
+          videoUrl = v.publicUrl;
+        }
 
-      // 3. Supabase Storage에 tutfile 직접 업로드
-      const uploadRes = await fetch(uploadUrl, {
-        method: "PUT",
-        body: file,
-        headers: { "Content-Type": "application/octet-stream" },
-      });
-      if (!uploadRes.ok) throw new Error("파일 업로드 실패");
+        const { path: jsonPath } = await uploadFile("tutfiles", file, "application/json");
 
-      // 4. 콤보 생성 (서버에서 tutfile 파싱 + video 분리 처리)
+        const comboRes = await fetch("/api/combos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title:        title.trim(),
+            description:  description.trim() || undefined,
+            gameSlug:     parsed.manifest.game,
+            characterSlug,
+            difficulty,
+            tags:         tags.split(",").map((t) => t.trim()).filter(Boolean),
+            durationMs:   parsed.manifest.duration_ms,
+            inputSummary: buildInputSummary(parsed.inputs),
+            gameSpecific,
+            thumbnailUrl,
+            videoUrl,
+            tutfileUrl:   jsonPath,
+          }),
+        });
+        if (!comboRes.ok) {
+          const err = await comboRes.json();
+          throw new Error(err.error ?? "콤보 등록 실패");
+        }
+        const { id } = await comboRes.json();
+        setStep("done");
+        setTimeout(() => router.push(`/combos/${id}`), 800);
+        return;
+      }
+
+      // ── .tutfile 모드 (서버 파싱) ─────────────────────────────
+      const { path } = await uploadFile("tutfiles", file, "application/octet-stream");
+
       const comboRes = await fetch("/api/combos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tutfilePath: path,
-          title: title.trim(),
-          description: description.trim() || undefined,
+          tutfilePath:  path,
+          title:        title.trim(),
+          description:  description.trim() || undefined,
           characterSlug,
           difficulty,
-          tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+          tags:         tags.split(",").map((t) => t.trim()).filter(Boolean),
           gameSpecific,
           thumbnailUrl,
         }),
@@ -161,7 +224,7 @@ export default function UploadWizard({ characters }: Props) {
       <div className="flex flex-col gap-6">
         <div>
           <h1 className="text-2xl font-black tracking-tight mb-1">콤보 업로드</h1>
-          <p className="text-text-secondary text-sm">데스크톱 앱에서 녹화한 .tutfile을 업로드하세요</p>
+          <p className="text-text-secondary text-sm">데스크톱 앱에서 녹화한 .tutfile 또는 .json 파일을 업로드하세요</p>
         </div>
 
         <button
@@ -180,10 +243,10 @@ export default function UploadWizard({ characters }: Props) {
             <path d="M12 16V4m0 0L8 8m4-4 4 4M4 20h16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <div className="text-center">
-            <p className="font-bold mb-1">{isDragging ? "여기에 놓으세요" : ".tutfile 드래그 또는 클릭"}</p>
-            <p className="text-sm text-text-secondary">데스크톱 앱에서 내보낸 .tutfile 파일만 지원</p>
+            <p className="font-bold mb-1">{isDragging ? "여기에 놓으세요" : "파일 드래그 또는 클릭"}</p>
+            <p className="text-sm text-text-secondary">.tutfile · .json 지원</p>
           </div>
-          <input ref={fileRef} type="file" accept=".tutfile" className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+          <input ref={fileRef} type="file" accept=".tutfile,.json" className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
         </button>
 
         {error && <p className="text-sm text-hard text-center">{error}</p>}
@@ -211,7 +274,7 @@ export default function UploadWizard({ characters }: Props) {
           <h1 className="text-2xl font-black tracking-tight mb-1">콤보 정보 입력</h1>
           <p className="text-text-secondary text-sm">{file?.name}</p>
         </div>
-        <button type="button" onClick={() => { setStep("drop"); setFile(null); setParsed(null); setError(null); }}
+        <button type="button" onClick={() => { setStep("drop"); setFile(null); setParsed(null); setError(null); setVideoFile(null); setIsJsonMode(false); }}
           className="text-sm text-text-secondary hover:text-text transition-colors">
           ← 다시 선택
         </button>
@@ -313,6 +376,31 @@ export default function UploadWizard({ characters }: Props) {
             className="h-10 px-3 rounded-lg border border-border bg-surface-overlay text-sm focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors"
           />
         </label>
+
+        {/* 동영상 (JSON 모드에서만 표시) */}
+        {isJsonMode && (
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-semibold">동영상 <span className="text-text-muted font-normal">(선택)</span></span>
+            <label className="cursor-pointer">
+              {videoFile ? (
+                <div className="w-full h-12 rounded-lg border border-border bg-surface-overlay flex items-center justify-between px-3 hover:border-[rgba(255,255,255,0.24)] transition-colors">
+                  <span className="text-sm text-text truncate">{videoFile.name}</span>
+                  <span className="text-xs text-text-muted shrink-0">클릭해서 변경</span>
+                </div>
+              ) : (
+                <div className="w-full h-12 rounded-lg border border-dashed border-border bg-surface-overlay flex items-center justify-center text-sm text-text-muted hover:border-[rgba(255,255,255,0.24)] hover:text-text transition-colors">
+                  + mp4 동영상 선택
+                </div>
+              )}
+              <input
+                type="file"
+                accept="video/mp4,video/*"
+                className="hidden"
+                onChange={(e) => e.target.files?.[0] && setVideoFile(e.target.files[0])}
+              />
+            </label>
+          </div>
+        )}
 
         {/* 썸네일 */}
         <div className="flex flex-col gap-1.5">

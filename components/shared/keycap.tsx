@@ -88,7 +88,8 @@ export function inputToKeySequence(
   if (!inputs) return [];
   return inputs.map((inp) => {
     if (inp.category === "skill" && inp.ref) {
-      const key = inp.ref.slice(-1).toUpperCase();
+      const match = inp.ref.match(/([QWER])\d*$/i);
+      const key = match ? match[1].toUpperCase() : inp.ref.slice(-1).toUpperCase();
       return { label: key, variant: key === "R" ? "ult" : "spell" };
     }
     if (inp.category === "summoner_spell") {
