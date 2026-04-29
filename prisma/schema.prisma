@@ -46,6 +46,11 @@ model User {
   oauthProvider OAuthProvider?
   oauthId       String?
   createdAt     DateTime      @default(now())
+  // Riot account linking
+  riotPuuid           String?
+  riotGameName        String?
+  riotTagLine         String?
+  riotSummonerIconId  Int?
 
   combos    Combo[]
   likes     Like[]

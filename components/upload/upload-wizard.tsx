@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { parseTutfile, parseAppComboJson, buildInputSummary, type ParsedTutfile } from "@/lib/tutfile";
@@ -390,17 +390,14 @@ export default function UploadWizard({ characters, patch, items }: Props) {
       <div className="flex flex-col gap-5 bg-surface-raised rounded-xl p-6 border border-border">
         <p className="text-xs font-bold uppercase tracking-wide text-text-secondary">기본 정보</p>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-semibold">제목 <span className="text-hard">*</span></span>
-          <input
-            type="text"
-            required
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="콤보 제목을 입력하세요"
-            className="h-10 px-3 rounded-lg border border-border bg-surface-overlay text-sm focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors"
-          />
-        </label>
+        <TitleField
+          title={title}
+          setTitle={setTitle}
+          character={characterSlug}
+          difficulty={difficulty}
+          inputSummary={parsed?.inputs.map(({ category, ref, slot }) => ({ category, ref, slot })) ?? []}
+          patch={parsed?.manifest.patch_version}
+        />
 
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-semibold">설명</span>
@@ -527,5 +524,89 @@ export default function UploadWizard({ characters, patch, items }: Props) {
         {isSubmitting ? "업로드 중..." : "콤보 게시하기"}
       </button>
     </form>
+  );
+}
+
+// ── TitleField with AI suggestions ───────────────────────────
+interface TitleFieldProps {
+  title: string;
+  setTitle: (v: string) => void;
+  character: string;
+  difficulty: string;
+  inputSummary: Array<{ category: string; ref?: string; slot?: string | number }>;
+  patch?: string | null;
+}
+
+function TitleField({ title, setTitle, character, difficulty, inputSummary, patch }: TitleFieldProps) {
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [isPending, startTransition] = useTransition();
+  const [suggestError, setSuggestError] = useState<string | null>(null);
+
+  const handleSuggest = () => {
+    setSuggestError(null);
+    startTransition(async () => {
+      const res = await fetch("/api/ai/suggest-title", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ character, difficulty, inputSummary, patch }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSuggestions(data.suggestions ?? []);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setSuggestError(data.error ?? "제목 제안에 실패했습니다");
+      }
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold">제목 <span className="text-hard">*</span></span>
+        <button
+          type="button"
+          onClick={handleSuggest}
+          disabled={isPending || !character}
+          className="flex items-center gap-1 text-xs text-text-muted hover:text-gold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className={isPending ? "animate-spin" : ""}>
+            {isPending ? (
+              <path d="M12 3v3m0 12v3M3 12h3m12 0h3m-2.636-6.364-2.121 2.121M8.757 15.243l-2.121 2.121m0-12.728 2.121 2.121m9.486 9.486-2.121-2.121" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            ) : (
+              <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3zm7 10l.75 2.25L22 16l-2.25.75L19 19l-.75-2.25L16 16l2.25-.75L19 13zM5 17l.5 1.5L7 19l-1.5.5L5 21l-.5-1.5L3 19l1.5-.5L5 17z" fill="currentColor"/>
+            )}
+          </svg>
+          {isPending ? "제안 중..." : "AI 제목 제안"}
+        </button>
+      </div>
+
+      <input
+        type="text"
+        required
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="콤보 제목을 입력하세요"
+        className="h-10 px-3 rounded-lg border border-border bg-surface-overlay text-sm focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors"
+      />
+
+      {suggestError && <p className="text-xs text-hard">{suggestError}</p>}
+
+      {suggestions.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <p className="text-[11px] text-text-muted">제안 클릭 시 바로 적용됩니다</p>
+          {suggestions.map((s, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => { setTitle(s); setSuggestions([]); }}
+              className="text-left px-3 py-2 rounded-lg border border-border bg-surface-overlay text-sm hover:border-gold/50 hover:bg-gold/5 transition-colors"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
