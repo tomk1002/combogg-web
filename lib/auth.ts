@@ -10,36 +10,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: {
     error: "/error",
   },
-  cookies: {
-    pkceCodeVerifier: {
-      name: "authjs.pkce.code_verifier",
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: true,
-      },
-    },
-    state: {
-      name: "authjs.state",
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: true,
-      },
-    },
-  },
   providers: [
     Google({
       clientId: process.env.AUTH_GOOGLE_ID!,
       clientSecret: process.env.AUTH_GOOGLE_SECRET!,
-      checks: ["pkce"],
+      checks: [],
     }),
     Discord({
       clientId: process.env.AUTH_DISCORD_ID!,
       clientSecret: process.env.AUTH_DISCORD_SECRET!,
-      checks: ["pkce"],
+      checks: [],
     }),
   ],
   callbacks: {
