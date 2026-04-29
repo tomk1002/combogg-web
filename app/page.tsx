@@ -3,6 +3,7 @@ import Image from "next/image";
 import { prisma } from "@/lib/db";
 import { COMBO_INCLUDE, toComboListItem } from "@/lib/combo-queries";
 import HomeContent from "@/components/home/home-content";
+import { getLocale, getT } from "@/lib/i18n";
 import type { Difficulty } from "@/types";
 
 async function getHomeData() {
@@ -50,7 +51,11 @@ async function getHomeData() {
 }
 
 export default async function Home() {
-  const { popularCombos, newestCombos, characters, difficultyCounts, featuredCombo } = await getHomeData();
+  const [{ popularCombos, newestCombos, characters, difficultyCounts, featuredCombo }, locale] = await Promise.all([
+    getHomeData(),
+    getLocale(),
+  ]);
+  const t = getT(locale);
 
   return (
     <main className="flex-1">
@@ -66,24 +71,24 @@ export default async function Home() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gold-muted border border-gold/40 text-[11px] font-bold text-gold mb-6">
               <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
-              League of Legends · 패치 16.8
+              {t.hero_badge}
             </div>
             <h1 className="text-4xl lg:text-5xl font-black tracking-tight leading-tight mb-4">
-              완벽한 콤보,<br />
-              <span className="text-gold">한 번의 클릭</span>으로.
+              {t.hero_title1}<br />
+              <span className="text-gold">{t.hero_title2}</span>
             </h1>
             <p className="text-text-secondary text-base lg:text-lg mb-8 max-w-lg">
-              전 세계 플레이어가 공유한 콤보를 다운로드하고, 데스크톱 앱에서 바로 연습하세요.
+              {t.hero_subtitle}
             </p>
             <div className="flex gap-3">
               <Link href="/upload" className="inline-flex items-center gap-2 h-11 px-6 rounded-[8px] bg-gold text-white font-bold text-sm shadow-[0_2px_8px_rgba(184,134,11,0.32)] hover:bg-gold-light transition-colors">
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                   <path d="M7 11V3m0 0L4 6m3-3 3 3M2 12h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                내 콤보 공유하기
+                {t.hero_share}
               </Link>
               <Link href="/download" className="inline-flex items-center gap-2 h-11 px-6 rounded-[8px] border border-[rgba(255,255,255,0.12)] text-text-secondary font-bold text-sm hover:bg-surface-overlay hover:text-text transition-colors">
-                앱 다운로드
+                {t.hero_download}
               </Link>
             </div>
           </div>
@@ -98,7 +103,7 @@ export default async function Home() {
                 <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor">
                   <path d="M5 0l1.4 3.2L10 4 7 6.4 8 10 5 8 2 10l1-3.6L0 4l3.6-.8L5 0z"/>
                 </svg>
-                SPOTLIGHT
+                {t.spotlight}
               </div>
 
               <div className="relative aspect-video bg-surface-overlay">

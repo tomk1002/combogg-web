@@ -20,3 +20,5 @@ tsconfig.tsbuildinfo
 Thumbs.db
 
 /app/generated/prisma
+
+.vercel

@@ -3,10 +3,14 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { handleSignOut } from "@/lib/actions/auth";
 import HeaderSearch from "./header-search";
+import LangToggle from "./lang-toggle";
+import { getT } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n";
 
-export default async function SiteHeader() {
+export default async function SiteHeader({ locale }: { locale: Locale }) {
   const session = await auth();
   const user = session?.user;
+  const t = getT(locale);
 
   return (
     <header className="sticky top-0 z-50 bg-surface/90 backdrop-blur-md border-b border-border">
@@ -32,6 +36,8 @@ export default async function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2 shrink-0 ml-auto">
+          <LangToggle />
+
           <Link
             href="/upload"
             className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[7px] bg-gold text-white text-sm font-bold shadow-[0_1px_2px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.10)] hover:bg-gold-light transition-colors"
@@ -39,7 +45,7 @@ export default async function SiteHeader() {
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
               <path d="M8 14V2m0 0L4 6m4-4 4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            업로드
+            {t.nav_upload}
           </Link>
 
           {user ? (
@@ -68,7 +74,7 @@ export default async function SiteHeader() {
                   type="submit"
                   className="h-9 px-3 rounded-[7px] border border-[rgba(255,255,255,0.08)] text-sm font-semibold text-text-secondary hover:text-text hover:bg-surface-overlay transition-colors cursor-pointer"
                 >
-                  로그아웃
+                  {t.nav_logout}
                 </button>
               </form>
             </div>
@@ -77,7 +83,7 @@ export default async function SiteHeader() {
               href="/login"
               className="inline-flex items-center h-9 px-3.5 rounded-[7px] border border-[rgba(255,255,255,0.08)] text-sm font-semibold text-text-secondary hover:text-text hover:bg-surface-overlay transition-colors"
             >
-              로그인
+              {t.nav_login}
             </Link>
           )}
         </div>
