@@ -17,6 +17,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         secure: process.env.NODE_ENV === "production",
       },
     },
+    state: {
+      name: "authjs.state",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
   },
   providers: [
     Google({
