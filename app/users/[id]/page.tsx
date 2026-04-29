@@ -25,10 +25,10 @@ export default async function UserProfilePage({ params }: Props) {
     <main className="flex-1 max-w-[var(--width-content)] mx-auto px-8 py-10 w-full">
       <div className="flex items-center gap-4 mb-10 pb-8 border-b border-border">
         <span className="w-16 h-16 rounded-full bg-gold/20 flex items-center justify-center text-2xl font-black text-gold">
-          {user.nickname[0]?.toUpperCase()}
+          {(user.nickname ?? "?")[0]?.toUpperCase()}
         </span>
         <div>
-          <h1 className="text-2xl font-black tracking-tight">{user.nickname}</h1>
+          <h1 className="text-2xl font-black tracking-tight">{user.nickname ?? "unknown"}</h1>
           <p className="text-text-secondary text-sm mt-0.5">{items.length}개 콤보 게시</p>
         </div>
       </div>

@@ -45,7 +45,7 @@ export default async function ComboDetailPage({ params }: Props) {
   const initialComments: CommentDTO[] = commentsRaw.map((c) => ({
     id: c.id,
     content: c.content,
-    author: { id: c.user.id, nickname: c.user.nickname, avatarUrl: c.user.avatarUrl },
+    author: { id: c.user.id, nickname: c.user.nickname ?? "", avatarUrl: c.user.avatarUrl },
     createdAt: c.createdAt.toISOString(),
   }));
 
@@ -96,9 +96,9 @@ export default async function ComboDetailPage({ params }: Props) {
             <div className="flex items-center gap-4 text-sm text-text-secondary">
               <span className="flex items-center gap-1.5">
                 <span className="w-6 h-6 rounded-full bg-gold/20 flex items-center justify-center text-[10px] font-bold text-gold">
-                  {combo.author.nickname[0]?.toUpperCase()}
+                  {(combo.author.nickname ?? "?")[0]?.toUpperCase()}
                 </span>
-                {combo.author.nickname}
+                {combo.author.nickname ?? "unknown"}
               </span>
               <span>{timeAgo(combo.createdAt)}</span>
             </div>
