@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { unstable_cache } from "next/cache";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { COMBO_INCLUDE, toComboListItem } from "@/lib/combo-queries";
 import HomeContent from "@/components/home/home-content";
@@ -8,6 +9,18 @@ import { getT } from "@/lib/i18n";
 import type { Difficulty } from "@/types";
 
 export const revalidate = 60;
+
+export const metadata: Metadata = {
+  title: "combo.gg — LoL 콤보 공유 플랫폼",
+  description: "리그 오브 레전드 챔피언 콤보를 녹화하고 공유하세요. 데스크톱 앱으로 오버레이 연습까지.",
+  openGraph: {
+    title: "combo.gg — LoL 콤보 공유 플랫폼",
+    description: "리그 오브 레전드 챔피언 콤보를 녹화하고 공유하세요.",
+    images: [{ url: "/og-default.png", width: 1200, height: 630 }],
+    type: "website",
+  },
+  twitter: { card: "summary_large_image" },
+};
 
 const getHomeData = unstable_cache(async function getHomeData() {
   const [popularRaw, newestRaw, characters, diffGroups] = await Promise.all([

@@ -1,16 +1,37 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
-export default function HeaderSearch() {
-  const [query, setQuery] = useState("");
+function HeaderSearchInner() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
+
+  // Sync input when URL searchParams change (e.g. navigating back/forward)
+  useEffect(() => {
+    setQuery(searchParams.get("q") ?? "");
+  }, [searchParams]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (query.trim()) {
-      router.push(`/games/lol?q=${encodeURIComponent(query.trim())}`);
+    const trimmed = query.trim();
+    if (pathname === "/games/lol") {
+      const params = new URLSearchParams(searchParams.toString());
+      if (trimmed) {
+        params.set("q", trimmed);
+      } else {
+        params.delete("q");
+      }
+      // Reset to page 1 when searching
+      params.delete("page");
+      router.push(`/games/lol?${params.toString()}`);
+    } else {
+      if (trimmed) {
+        router.push(`/games/lol?q=${encodeURIComponent(trimmed)}`);
+      }
     }
   };
 
@@ -37,5 +58,17 @@ export default function HeaderSearch() {
         ⌘K
       </span>
     </form>
+  );
+}
+
+export default function HeaderSearch() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex-1 max-w-[540px] h-10 rounded-lg border border-[rgba(255,255,255,0.08)] bg-surface-overlay animate-pulse" />
+      }
+    >
+      <HeaderSearchInner />
+    </Suspense>
   );
 }

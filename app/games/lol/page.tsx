@@ -1,10 +1,21 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import ComboCard from "@/components/combo/combo-card";
 import LolFilters from "@/components/games/lol/lol-filters";
 import { prisma } from "@/lib/db";
 import { COMBO_INCLUDE, toComboListItem } from "@/lib/combo-queries";
 import type { Prisma } from "@prisma/client";
+
+export const metadata: Metadata = {
+  title: "League of Legends 콤보 | combo.gg",
+  description: "리그 오브 레전드 챔피언별 콤보 모음. 쉬움부터 고급까지.",
+  openGraph: {
+    title: "LoL 콤보 | combo.gg",
+    description: "챔피언별 콤보를 찾아보세요.",
+    type: "website",
+  },
+};
 
 interface Props {
   searchParams: Promise<{

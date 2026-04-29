@@ -1,18 +1,56 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { COMBO_INCLUDE } from "@/lib/combo-queries";
+import { COMBO_INCLUDE, toComboListItem } from "@/lib/combo-queries";
 import DifficultyPips from "@/components/shared/difficulty-pips";
 import { KeySequence, inputToKeySequence } from "@/components/shared/keycap";
 import LolConditions from "@/components/games/lol/lol-conditions";
 import ComboActions from "@/components/combo/combo-actions";
 import ComboComments from "@/components/combo/combo-comments";
+import ComboCard from "@/components/combo/combo-card";
+import ComboAuthorActions from "@/components/combo/combo-author-actions";
 import { formatCount, formatDuration, timeAgo } from "@/lib/utils";
 import type { InputEntryDTO, CommentDTO } from "@/lib/api/types";
 import type { LolGameSpecific } from "@/lib/games/lol/schema";
 
 interface Props { params: Promise<{ id: string }> }
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const combo = await prisma.combo.findUnique({
+    where: { id, status: "published" },
+    select: {
+      title: true,
+      description: true,
+      thumbnailUrl: true,
+      character: { select: { name: true } },
+      difficulty: true,
+    },
+  });
+  if (!combo) return {};
+  const title = `${combo.title} — ${combo.character.name} | combo.gg`;
+  const desc = combo.description ?? `${combo.character.name} 콤보`;
+  return {
+    title,
+    description: desc,
+    openGraph: {
+      title,
+      description: desc,
+      images: combo.thumbnailUrl
+        ? [{ url: combo.thumbnailUrl, width: 1280, height: 720, alt: combo.title }]
+        : [],
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: desc,
+      images: combo.thumbnailUrl ? [combo.thumbnailUrl] : [],
+    },
+  };
+}
 
 export default async function ComboDetailPage({ params }: Props) {
   const { id } = await params;
@@ -33,6 +71,14 @@ export default async function ComboDetailPage({ params }: Props) {
   ]);
 
   if (!combo) notFound();
+
+  const relatedRaw = await prisma.combo.findMany({
+    where: { characterId: combo.characterId, status: "published", id: { not: id } },
+    include: COMBO_INCLUDE,
+    orderBy: { likeCount: "desc" },
+    take: 6,
+  });
+  const relatedItems = relatedRaw.map(toComboListItem);
 
   // 조회수 +1 (fire-and-forget)
   prisma.combo.update({ where: { id }, data: { viewCount: { increment: 1 } } }).catch(() => {});
@@ -136,6 +182,20 @@ export default async function ComboDetailPage({ params }: Props) {
               currentUserId={userId}
             />
           </div>
+
+          {/* Related combos */}
+          {relatedItems.length > 0 && (
+            <div>
+              <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">
+                {combo.character.name} 다른 콤보
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {relatedItems.map((c) => (
+                  <ComboCard key={c.id} combo={c} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Right ── */}
@@ -185,6 +245,11 @@ export default async function ComboDetailPage({ params }: Props) {
             tutfileUrl={combo.tutfileUrl}
             isLoggedIn={!!userId}
           />
+
+          {/* Author actions */}
+          {combo.authorId === userId && (
+            <ComboAuthorActions comboId={id} />
+          )}
         </div>
 
       </div>
