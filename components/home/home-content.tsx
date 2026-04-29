@@ -59,7 +59,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
     <>
       {/* ── Champion Rail ─────────────────────────────────────────────── */}
       <div className="sticky top-[69px] z-30 bg-[rgba(15,17,21,0.92)] backdrop-blur-md border-b border-border">
-        <div className="max-w-[var(--width-content)] mx-auto px-8 py-3 flex items-center gap-3">
+        <div className="max-w-[var(--width-content)] mx-auto px-4 sm:px-8 py-3 flex items-center gap-3">
           <span className="text-[10px] font-black tracking-widest text-text-muted shrink-0">{t.rail_label}</span>
 
           <div className="relative shrink-0">
@@ -68,7 +68,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
               value={champSearch}
               onChange={(e) => setChampSearch(e.target.value)}
               placeholder={t.rail_search}
-              className="h-7 pl-7 pr-3 rounded-full border border-border bg-surface-overlay text-xs focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors w-36"
+              className="h-7 pl-7 pr-3 rounded-full border border-border bg-surface-overlay text-xs focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors w-24 sm:w-36"
             />
             <svg className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" width="12" height="12" viewBox="0 0 24 24" fill="none">
               <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2"/>
@@ -108,7 +108,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
         </div>
       </div>
 
-      <div className="max-w-[var(--width-content)] mx-auto px-8">
+      <div className="max-w-[var(--width-content)] mx-auto px-4 sm:px-8">
         {/* ── Trending ──────────────────────────────────────────────────── */}
         <section className="pt-12 pb-4">
           <div className="flex items-end justify-between mb-6 gap-6">

@@ -23,7 +23,7 @@ export default async function SettingsPage() {
   if (!user) redirect("/login");
 
   return (
-    <main className="flex-1 max-w-2xl mx-auto px-8 py-10 w-full">
+    <main className="flex-1 max-w-2xl mx-auto px-4 sm:px-8 py-10 w-full">
       <h1 className="text-2xl font-black tracking-tight mb-8">계정 설정</h1>
       <SettingsContent user={user} />
     </main>

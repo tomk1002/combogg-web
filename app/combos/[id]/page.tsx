@@ -96,11 +96,65 @@ export default async function ComboDetailPage({ params }: Props) {
   }));
 
   return (
-    <main className="flex-1 max-w-[var(--width-content)] mx-auto px-8 py-10 w-full">
+    <main className="flex-1 max-w-[var(--width-content)] mx-auto px-4 sm:px-8 py-6 sm:py-10 w-full">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
 
-        {/* ── Left ── */}
-        <div className="flex flex-col gap-6">
+        {/* ── Right (챔피언·통계·액션) — 모바일에서 먼저 표시 ── */}
+        <div className="flex flex-col gap-4 order-first lg:order-last">
+
+          {/* Champion */}
+          <div className="bg-surface-raised rounded-xl p-5 border border-border">
+            <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">챔피언</h2>
+            <div className="flex items-center gap-3">
+              {combo.character.iconUrl && (
+                <Image src={combo.character.iconUrl} alt={combo.character.name} width={48} height={48} className="rounded-lg" />
+              )}
+              <div>
+                <p className="font-bold">{combo.character.name}</p>
+                <p className="text-xs text-text-secondary">{combo.game.name}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* LoL conditions */}
+          {combo.game.slug === "lol" && (
+            <LolConditions gameSpecific={gameSpecific} patch={combo.patchVersion ?? undefined} />
+          )}
+
+          {/* Stats */}
+          <div className="bg-surface-raised rounded-xl p-5 border border-border">
+            <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">통계</h2>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              {[
+                { label: "좋아요",   value: formatCount(combo.likeCount) },
+                { label: "다운로드", value: formatCount(combo.downloadCount) },
+                { label: "조회",     value: formatCount(combo.viewCount) },
+              ].map(({ label, value }) => (
+                <div key={label}>
+                  <p className="text-lg font-black">{value}</p>
+                  <p className="text-[10px] text-text-muted">{label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <ComboActions
+            comboId={id}
+            initialIsLiked={isLiked}
+            initialLikeCount={combo.likeCount}
+            tutfileUrl={combo.tutfileUrl}
+            isLoggedIn={!!userId}
+          />
+
+          {/* Author actions */}
+          {combo.authorId === userId && (
+            <ComboAuthorActions comboId={id} />
+          )}
+        </div>
+
+        {/* ── Left (영상·제목·시퀀스·댓글·관련) ── */}
+        <div className="flex flex-col gap-6 order-last lg:order-first">
 
           {/* Video */}
           <div className="relative aspect-video bg-surface-overlay rounded-xl overflow-hidden border border-border">
@@ -195,60 +249,6 @@ export default async function ComboDetailPage({ params }: Props) {
                 ))}
               </div>
             </div>
-          )}
-        </div>
-
-        {/* ── Right ── */}
-        <div className="flex flex-col gap-4">
-
-          {/* Champion */}
-          <div className="bg-surface-raised rounded-xl p-5 border border-border">
-            <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">챔피언</h2>
-            <div className="flex items-center gap-3">
-              {combo.character.iconUrl && (
-                <Image src={combo.character.iconUrl} alt={combo.character.name} width={48} height={48} className="rounded-lg" />
-              )}
-              <div>
-                <p className="font-bold">{combo.character.name}</p>
-                <p className="text-xs text-text-secondary">{combo.game.name}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* LoL conditions */}
-          {combo.game.slug === "lol" && (
-            <LolConditions gameSpecific={gameSpecific} patch={combo.patchVersion ?? undefined} />
-          )}
-
-          {/* Stats */}
-          <div className="bg-surface-raised rounded-xl p-5 border border-border">
-            <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">통계</h2>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              {[
-                { label: "좋아요",   value: formatCount(combo.likeCount) },
-                { label: "다운로드", value: formatCount(combo.downloadCount) },
-                { label: "조회",     value: formatCount(combo.viewCount) },
-              ].map(({ label, value }) => (
-                <div key={label}>
-                  <p className="text-lg font-black">{value}</p>
-                  <p className="text-[10px] text-text-muted">{label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Actions */}
-          <ComboActions
-            comboId={id}
-            initialIsLiked={isLiked}
-            initialLikeCount={combo.likeCount}
-            tutfileUrl={combo.tutfileUrl}
-            isLoggedIn={!!userId}
-          />
-
-          {/* Author actions */}
-          {combo.authorId === userId && (
-            <ComboAuthorActions comboId={id} />
           )}
         </div>
 

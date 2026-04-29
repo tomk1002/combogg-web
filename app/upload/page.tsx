@@ -23,7 +23,7 @@ export default async function UploadPage() {
   const items = await getAllItems(patch);
 
   return (
-    <main className="flex-1 max-w-2xl mx-auto px-8 py-10 w-full">
+    <main className="flex-1 max-w-2xl mx-auto px-4 sm:px-8 py-10 w-full">
       <UploadWizard characters={characters} patch={patch} items={items} />
     </main>
   );

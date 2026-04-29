@@ -88,7 +88,7 @@ export default async function LolPage({ searchParams }: Props) {
     }, []);
 
   return (
-    <main className="flex-1 max-w-[var(--width-content)] mx-auto px-8 py-10 w-full">
+    <main className="flex-1 max-w-[var(--width-content)] mx-auto px-4 sm:px-8 py-6 sm:py-10 w-full">
 
       {/* 헤더 */}
       <div className="flex items-center gap-4 mb-8 pb-8 border-b border-border">

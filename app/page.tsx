@@ -79,14 +79,14 @@ export default async function Home() {
         <div aria-hidden className="absolute right-[-150px] top-[-200px] w-[600px] h-[600px] rounded-full pointer-events-none"
           style={{ background: "radial-gradient(circle, rgba(184,134,11,0.15) 0%, transparent 60%)" }} />
 
-        <div className="relative max-w-[var(--width-content)] mx-auto px-8 py-16 grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-14 items-center">
+        <div className="relative max-w-[var(--width-content)] mx-auto px-4 sm:px-8 py-10 sm:py-16 grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-14 items-center">
           {/* Left */}
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gold-muted border border-gold/40 text-[11px] font-bold text-gold mb-6">
               <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
               {t.hero_badge}
             </div>
-            <h1 className="text-4xl lg:text-5xl font-black tracking-tight leading-tight mb-4">
+            <h1 className="text-3xl lg:text-5xl font-black tracking-tight leading-tight mb-4">
               {t.hero_title1}<br />
               <span className="text-gold">{t.hero_title2}</span>
             </h1>
@@ -106,11 +106,11 @@ export default async function Home() {
             </div>
           </div>
 
-          {/* Right — featured combo card */}
+          {/* Right — featured combo card (hidden on mobile) */}
           {featuredCombo && (
             <Link
               href={`/combos/${featuredCombo.id}`}
-              className="group relative rounded-2xl overflow-hidden border border-[rgba(255,255,255,0.12)] bg-surface-raised hover:-translate-y-1 transition-transform shadow-[0_30px_80px_rgba(0,0,0,0.5),0_0_0_1px_rgba(232,198,121,0.12)]"
+              className="hidden lg:block group relative rounded-2xl overflow-hidden border border-[rgba(255,255,255,0.12)] bg-surface-raised hover:-translate-y-1 transition-transform shadow-[0_30px_80px_rgba(0,0,0,0.5),0_0_0_1px_rgba(232,198,121,0.12)]"
             >
               <div className="absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gold text-bg text-[10px] font-black tracking-widest">
                 <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor">

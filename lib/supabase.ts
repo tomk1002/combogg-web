@@ -20,4 +20,5 @@ export const BUCKETS = {
   tutfiles: "tutfiles",
   videos: "videos",
   thumbnails: "thumbnails",
+  avatars: "avatars",
 } as const;
