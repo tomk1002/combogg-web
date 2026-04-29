@@ -4,9 +4,10 @@ import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/db";
 import { COMBO_INCLUDE, toComboListItem } from "@/lib/combo-queries";
 import HomeContent from "@/components/home/home-content";
-import { getLocale } from "@/lib/i18n-server";
 import { getT } from "@/lib/i18n";
 import type { Difficulty } from "@/types";
+
+export const revalidate = 60;
 
 const getHomeData = unstable_cache(async function getHomeData() {
   const [popularRaw, newestRaw, characters, diffGroups] = await Promise.all([
@@ -53,11 +54,8 @@ const getHomeData = unstable_cache(async function getHomeData() {
 }, ["home-data"], { revalidate: 60 });
 
 export default async function Home() {
-  const [{ popularCombos, newestCombos, characters, difficultyCounts, featuredCombo }, locale] = await Promise.all([
-    getHomeData(),
-    getLocale(),
-  ]);
-  const t = getT(locale);
+  const { popularCombos, newestCombos, characters, difficultyCounts, featuredCombo } = await getHomeData();
+  const t = getT("ko");
 
   return (
     <main className="flex-1">

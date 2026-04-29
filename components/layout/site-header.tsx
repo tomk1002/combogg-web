@@ -1,13 +1,9 @@
 import Link from "next/link";
-import { auth } from "@/lib/auth";
 import HeaderSearch from "./header-search";
 import LangToggle from "./lang-toggle";
 import HeaderNav from "./header-nav";
 
-export default async function SiteHeader() {
-  const session = await auth();
-  const user = session?.user;
-
+export default function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 bg-surface/90 backdrop-blur-md border-b border-border">
       <div className="max-w-[var(--width-content)] mx-auto px-8 py-3.5 flex items-center gap-6">
@@ -33,7 +29,7 @@ export default async function SiteHeader() {
 
         <div className="flex items-center gap-2 shrink-0 ml-auto">
           <LangToggle />
-          <HeaderNav user={user ? { id: user.id!, name: user.name, image: user.image } : null} />
+          <HeaderNav />
         </div>
       </div>
     </header>

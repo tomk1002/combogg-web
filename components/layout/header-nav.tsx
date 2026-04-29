@@ -2,15 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { handleSignOut } from "@/lib/actions/auth";
+import { useSession, signOut } from "next-auth/react";
 import { useLang } from "@/lib/i18n-client";
 
-interface HeaderNavProps {
-  user: { id: string; name?: string | null; image?: string | null } | null;
-}
-
-export default function HeaderNav({ user }: HeaderNavProps) {
+export default function HeaderNav() {
+  const { data: session, status } = useSession();
   const { t } = useLang();
+  const user = session?.user;
 
   return (
     <>
@@ -24,7 +22,9 @@ export default function HeaderNav({ user }: HeaderNavProps) {
         {t.nav_upload}
       </Link>
 
-      {user ? (
+      {status === "loading" ? (
+        <div className="w-[72px] h-9 rounded-[7px] bg-surface-raised animate-pulse" />
+      ) : user ? (
         <div className="flex items-center gap-1.5">
           <Link
             href={`/users/${user.id}`}
@@ -45,14 +45,12 @@ export default function HeaderNav({ user }: HeaderNavProps) {
             )}
             <span className="text-sm font-semibold">{user.name}</span>
           </Link>
-          <form action={handleSignOut}>
-            <button
-              type="submit"
-              className="h-9 px-3 rounded-[7px] border border-[rgba(255,255,255,0.08)] text-sm font-semibold text-text-secondary hover:text-text hover:bg-surface-overlay transition-colors cursor-pointer"
-            >
-              {t.nav_logout}
-            </button>
-          </form>
+          <button
+            onClick={() => signOut({ callbackUrl: "/" })}
+            className="h-9 px-3 rounded-[7px] border border-[rgba(255,255,255,0.08)] text-sm font-semibold text-text-secondary hover:text-text hover:bg-surface-overlay transition-colors cursor-pointer"
+          >
+            {t.nav_logout}
+          </button>
         </div>
       ) : (
         <Link

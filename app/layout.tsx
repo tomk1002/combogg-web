@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import SiteHeader from "@/components/layout/site-header";
-import { LangProvider } from "@/lib/i18n-client";
+import Providers from "@/components/providers";
 
 export const metadata: Metadata = {
   title: "combo.gg",
@@ -16,10 +16,10 @@ export default function RootLayout({
   return (
     <html lang="ko" className="h-full">
       <body className="min-h-full flex flex-col bg-surface text-text antialiased">
-        <LangProvider>
+        <Providers>
           <SiteHeader />
           {children}
-        </LangProvider>
+        </Providers>
       </body>
     </html>
   );
