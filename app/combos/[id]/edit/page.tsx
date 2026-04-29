@@ -25,6 +25,8 @@ export default async function ComboEditPage({ params }: Props) {
       difficulty: true,
       tags: true,
       gameSpecific: true,
+      thumbnailUrl: true,
+      videoUrl: true,
       authorId: true,
       game: { select: { slug: true } },
     },

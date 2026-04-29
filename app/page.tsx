@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 };
 
 const getHomeData = unstable_cache(async function getHomeData() {
-  const [popularRaw, newestRaw, characters, diffGroups] = await Promise.all([
+  const [popularRaw, newestRaw, characters, diffGroups, easyTop, mediumTop, hardTop] = await Promise.all([
     prisma.combo.findMany({
       where: { status: "published" },
       include: COMBO_INCLUDE,
@@ -46,6 +46,9 @@ const getHomeData = unstable_cache(async function getHomeData() {
       where: { status: "published" },
       _count: { id: true },
     }),
+    prisma.combo.findMany({ where: { status: "published", difficulty: "easy" }, include: COMBO_INCLUDE, orderBy: { likeCount: "desc" }, take: 6 }),
+    prisma.combo.findMany({ where: { status: "published", difficulty: "medium" }, include: COMBO_INCLUDE, orderBy: { likeCount: "desc" }, take: 6 }),
+    prisma.combo.findMany({ where: { status: "published", difficulty: "hard" }, include: COMBO_INCLUDE, orderBy: { likeCount: "desc" }, take: 6 }),
   ]);
 
   const difficultyCounts = { easy: 0, medium: 0, hard: 0 } as Record<Difficulty, number>;
@@ -63,11 +66,16 @@ const getHomeData = unstable_cache(async function getHomeData() {
     characters: characterList,
     difficultyCounts,
     featuredCombo: popularRaw.length > 0 ? toComboListItem(popularRaw[0]) : null,
+    difficultyGroups: {
+      easy: easyTop.map(toComboListItem),
+      medium: mediumTop.map(toComboListItem),
+      hard: hardTop.map(toComboListItem),
+    } as Record<Difficulty, ReturnType<typeof toComboListItem>[]>,
   };
 }, ["home-data"], { revalidate: 60 });
 
 export default async function Home() {
-  const { popularCombos, newestCombos, characters, difficultyCounts, featuredCombo } = await getHomeData();
+  const { popularCombos, newestCombos, characters, difficultyCounts, featuredCombo, difficultyGroups } = await getHomeData();
   const t = getT("ko");
 
   return (
@@ -164,6 +172,7 @@ export default async function Home() {
         newestCombos={newestCombos}
         characters={characters}
         difficultyCounts={difficultyCounts}
+        difficultyGroups={difficultyGroups}
       />
     </main>
   );

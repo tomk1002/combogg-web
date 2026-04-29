@@ -21,12 +21,14 @@ interface Props {
   newestCombos: ComboListItemDTO[];
   characters: Character[];
   difficultyCounts: Record<Difficulty, number>;
+  difficultyGroups: Record<Difficulty, ComboListItemDTO[]>;
 }
 
-export default function HomeContent({ popularCombos, newestCombos, characters, difficultyCounts }: Props) {
+export default function HomeContent({ popularCombos, newestCombos, characters, difficultyCounts, difficultyGroups }: Props) {
   const { t } = useLang();
   const [selectedChamp, setSelectedChamp] = useState<string | null>(null);
   const [champSearch, setChampSearch] = useState("");
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>("easy");
 
   const champsWithCombos = useMemo(
     () => characters.filter((c) => c.comboCount > 0),
@@ -180,39 +182,58 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
 
         {/* ── Difficulty ────────────────────────────────────────────────── */}
         <section className="pb-4">
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="inline-block w-6 h-0.5 bg-easy rounded" />
-              <span className="text-[10px] font-black tracking-widest text-easy">{t.diff_kicker}</span>
+          <div className="flex items-end justify-between mb-6 gap-6">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="inline-block w-6 h-0.5 bg-easy rounded" />
+                <span className="text-[10px] font-black tracking-widest text-easy">{t.diff_kicker}</span>
+              </div>
+              <h2 className="text-2xl font-extrabold tracking-tight">{t.diff_title}</h2>
             </div>
-            <h2 className="text-2xl font-extrabold tracking-tight">{t.diff_title}</h2>
-            <p className="text-sm text-text-secondary mt-1">{t.diff_subtitle}</p>
+            <Link href={`/games/lol?difficulty=${selectedDifficulty}`} className="text-sm text-text-secondary hover:text-gold transition-colors font-semibold shrink-0 pb-1">
+              {t.view_all}
+            </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+          {/* 난이도 태그 */}
+          <div className="flex gap-2 mb-6">
             {(["easy", "medium", "hard"] as Difficulty[]).map((d) => {
               const meta = diffMeta[d];
               const count = difficultyCounts[d] ?? 0;
+              const active = selectedDifficulty === d;
               return (
-                <Link
+                <button
                   key={d}
-                  href={`/games/lol?difficulty=${d}`}
-                  className="group p-5 rounded-xl border border-border bg-surface-raised hover:bg-surface-overlay transition-colors"
+                  type="button"
+                  onClick={() => setSelectedDifficulty(d)}
+                  className={`flex items-center gap-2 h-9 px-4 rounded-full border text-sm font-bold transition-colors cursor-pointer ${
+                    active
+                      ? d === "easy"   ? "bg-easy/15 border-easy text-easy"
+                      : d === "medium" ? "bg-medium/15 border-medium text-medium"
+                      : "bg-hard/15 border-hard text-hard"
+                      : "border-border text-text-secondary hover:border-[rgba(255,255,255,0.2)] hover:text-text"
+                  }`}
                 >
-                  <div className="flex items-center justify-between mb-4">
-                    <DifficultyPips difficulty={d} />
-                    <svg className="text-text-muted group-hover:text-text transition-colors group-hover:translate-x-1 transition-transform" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M4 4l4 4-4 4M8 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                  <div className="text-base font-extrabold tracking-tight mb-1">{meta.label}</div>
-                  <div className="text-xs text-text-secondary leading-relaxed">{meta.desc}</div>
-                  <div className="mt-4 pt-3 border-t border-dashed border-border text-[11px] font-mono text-text-muted">
-                    <strong className="text-text text-sm">{count}</strong> {t.combos_unit}
-                  </div>
-                </Link>
+                  <DifficultyPips difficulty={d} />
+                  <span>{meta.label}</span>
+                  <span className={`text-[11px] font-mono ${active ? "opacity-70" : "text-text-muted"}`}>{count}</span>
+                </button>
               );
             })}
           </div>
+
+          {/* 선택된 난이도 콤보 */}
+          {difficultyGroups[selectedDifficulty].length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {difficultyGroups[selectedDifficulty].map((combo) => (
+                <ComboCard key={combo.id} combo={combo} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 text-text-muted border border-dashed border-border rounded-xl">
+              <p className="text-sm">{diffMeta[selectedDifficulty].label} 콤보가 아직 없습니다.</p>
+            </div>
+          )}
         </section>
 
         <div className="h-px my-12 bg-gradient-to-r from-transparent via-border to-transparent" />
