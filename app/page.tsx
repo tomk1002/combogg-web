@@ -3,7 +3,8 @@ import Image from "next/image";
 import { prisma } from "@/lib/db";
 import { COMBO_INCLUDE, toComboListItem } from "@/lib/combo-queries";
 import HomeContent from "@/components/home/home-content";
-import { getLocale, getT } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n-server";
+import { getT } from "@/lib/i18n";
 import type { Difficulty } from "@/types";
 
 async function getHomeData() {

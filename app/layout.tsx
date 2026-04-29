@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import SiteHeader from "@/components/layout/site-header";
 import { LangProvider } from "@/lib/i18n-client";
-import { getLocale } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n-server";
 
 export const metadata: Metadata = {
   title: "combo.gg",

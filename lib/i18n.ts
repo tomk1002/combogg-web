@@ -1,5 +1,3 @@
-import { cookies } from "next/headers";
-
 export type Locale = "ko" | "en";
 
 export const LOCALES: Locale[] = ["ko", "en"];
@@ -227,12 +225,6 @@ export const dict = {
 
 export type TranslationKey = keyof typeof dict.ko;
 export type T = typeof dict.ko;
-
-export async function getLocale(): Promise<Locale> {
-  const c = await cookies();
-  const val = c.get("NEXT_LOCALE")?.value;
-  return val === "en" ? "en" : "ko";
-}
 
 export function getT(locale: Locale): T {
   return dict[locale] as T;
