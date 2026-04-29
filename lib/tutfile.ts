@@ -1,6 +1,81 @@
 import { unzip } from "fflate";
 import { z } from "zod";
 
+// ── 데스크톱 앱 JSON 포맷 (신규) ─────────────────────────────
+interface AppEvent {
+  t_ms: number;
+  type: string;
+  key: string;
+  icon?: string;
+}
+
+interface AppComboJson {
+  version?: number;
+  title?: string;
+  game?: string;
+  tags?: string[];
+  duration_ms?: number;
+  created_at?: string;
+  events?: AppEvent[];
+  champion_id?: string;
+  key_icons?: Record<string, string>;
+  video_file?: string;
+}
+
+// "LeeSin" → "lee-sin", "MissFortune" → "miss-fortune"
+function championIdToSlug(id: string): string {
+  return id.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+}
+
+// "resources/champion/spells/LeeSinW2.png" → "LeeSinW2"
+function pathToRef(iconPath: string): string {
+  return (iconPath.split("/").pop() ?? "").replace(/\.[^.]+$/, "");
+}
+
+const SKILL_KEYS = new Set(["q", "w", "e", "r"]);
+const SUMMONER_KEYS = new Set(["d", "f"]);
+
+export function parseAppComboJson(raw: unknown): {
+  title: string;
+  game: string;
+  tags: string[];
+  duration_ms: number | undefined;
+  characterSlug: string;
+  inputs: ParsedInput[];
+} {
+  const json = raw as AppComboJson;
+  const keyIcons = json.key_icons ?? {};
+  const championId = json.champion_id ?? "";
+
+  const inputs: ParsedInput[] = (json.events ?? []).map((ev): ParsedInput => {
+    const key = ev.key.toLowerCase();
+
+    if (SKILL_KEYS.has(key)) {
+      const ref = ev.icon ? pathToRef(ev.icon) : championId + ev.key.toUpperCase();
+      return { t: ev.t_ms, category: "skill", ref };
+    }
+
+    if (SUMMONER_KEYS.has(key)) {
+      return { t: ev.t_ms, category: "summoner_spell", slot: ev.key.toUpperCase() };
+    }
+
+    if (keyIcons[ev.key]) {
+      return { t: ev.t_ms, category: "item", ref: pathToRef(keyIcons[ev.key]), slot: Number(ev.key) || ev.key };
+    }
+
+    return { t: ev.t_ms, category: "key", ref: ev.key.toUpperCase() };
+  });
+
+  return {
+    title:         json.title ?? "",
+    game:          json.game ?? "lol",
+    tags:          json.tags ?? [],
+    duration_ms:   json.duration_ms,
+    characterSlug: championIdToSlug(championId),
+    inputs,
+  };
+}
+
 // ── manifest.json 스키마 ──────────────────────────────────────
 const manifestSchema = z.object({
   version:       z.string(),
