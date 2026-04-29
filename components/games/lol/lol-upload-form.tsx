@@ -3,13 +3,17 @@
 import type { LolGameSpecific } from "@/lib/games/lol/schema";
 
 const COMMON_SUMMONER_SPELLS = [
-  { id: "SummonerFlash",   label: "점멸" },
-  { id: "SummonerDot",     label: "점화" },
-  { id: "SummonerExhaust", label: "탈진" },
-  { id: "SummonerHaste",   label: "유체화" },
-  { id: "SummonerHeal",    label: "회복" },
-  { id: "SummonerBarrier", label: "방어막" },
+  { id: "SummonerFlash",    label: "점멸" },
+  { id: "SummonerDot",      label: "점화" },
+  { id: "SummonerExhaust",  label: "탈진" },
+  { id: "SummonerHaste",    label: "유체화" },
+  { id: "SummonerHeal",     label: "회복" },
+  { id: "SummonerBarrier",  label: "방어막" },
+  { id: "SummonerSmite",    label: "강타" },
+  { id: "SummonerTeleport", label: "순간이동" },
 ];
+
+const SKILL_KEYS = ["Q", "W", "E", "R"] as const;
 
 interface Props {
   value: Partial<LolGameSpecific>;
@@ -110,6 +114,37 @@ export default function LolUploadForm({ value, onChange }: Props) {
         />
         <p className="text-[10px] text-text-muted">Riot 아이템 ID. 예: 3142 (요마의 망토), 3814 (에지 오브 나이트)</p>
       </label>
+
+      {/* 필요 스킬 레벨 */}
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-semibold text-text-secondary">필요 스킬 레벨</span>
+        <div className="grid grid-cols-4 gap-2">
+          {SKILL_KEYS.map((skill) => {
+            const cur = (value.required_skills ?? {})[skill];
+            return (
+              <label key={skill} className="flex flex-col gap-1 items-center">
+                <span className="text-xs font-black text-gold">{skill}</span>
+                <select
+                  value={cur ?? ""}
+                  onChange={(e) => {
+                    const next = { ...(value.required_skills ?? {}) };
+                    if (e.target.value) next[skill] = Number(e.target.value);
+                    else delete next[skill];
+                    set("required_skills", Object.keys(next).length ? next : undefined);
+                  }}
+                  className="w-full h-9 px-2 rounded-lg border border-border bg-surface-overlay text-sm text-center focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors"
+                >
+                  <option value="">-</option>
+                  {[1,2,3,4,5].map((lv) => (
+                    <option key={lv} value={lv}>Lv.{lv}</option>
+                  ))}
+                </select>
+              </label>
+            );
+          })}
+        </div>
+        <p className="text-[10px] text-text-muted">콤보에 필요한 최소 스킬 레벨. 예: R Lv.1 = 6레벨 이상</p>
+      </div>
     </div>
   );
 }

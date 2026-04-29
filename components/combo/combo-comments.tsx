@@ -17,6 +17,8 @@ export default function ComboComments({ comboId, initialComments, currentUserId 
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +50,34 @@ export default function ComboComments({ comboId, initialComments, currentUserId 
       setComments((prev) => prev.filter((c) => c.id !== commentId));
     } catch {
       // silently fail
+    }
+  };
+
+  const startEdit = (comment: CommentDTO) => {
+    setEditingId(comment.id);
+    setEditContent(comment.content);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditContent("");
+  };
+
+  const handleEdit = async (commentId: string) => {
+    const text = editContent.trim();
+    if (!text) return;
+    try {
+      const res = await fetch(`/api/combos/${comboId}/comments/${commentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: text }),
+      });
+      if (!res.ok) throw new Error();
+      const { content: newContent } = await res.json();
+      setComments((prev) => prev.map((c) => c.id === commentId ? { ...c, content: newContent } : c));
+      cancelEdit();
+    } catch {
+      setError("댓글 수정에 실패했습니다.");
     }
   };
 
@@ -89,16 +119,40 @@ export default function ComboComments({ comboId, initialComments, currentUserId 
                   <span className="text-xs font-semibold">{c.author.nickname}</span>
                   <span className="text-[10px] text-text-muted">{timeAgo(new Date(c.createdAt))}</span>
                 </div>
-                <p className="text-sm text-text-secondary break-words">{c.content}</p>
+                {editingId === c.id ? (
+                  <div className="flex gap-2 mt-1">
+                    <input
+                      type="text"
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") handleEdit(c.id); if (e.key === "Escape") cancelEdit(); }}
+                      autoFocus
+                      className="flex-1 h-8 px-2 rounded-md border border-border bg-surface-overlay text-sm focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors"
+                    />
+                    <button type="button" onClick={() => handleEdit(c.id)} className="text-[10px] text-gold hover:text-gold-light font-semibold transition-colors cursor-pointer">저장</button>
+                    <button type="button" onClick={cancelEdit} className="text-[10px] text-text-muted hover:text-text transition-colors cursor-pointer">취소</button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-text-secondary break-words">{c.content}</p>
+                )}
               </div>
-              {currentUserId === c.author.id && (
-                <button
-                  type="button"
-                  onClick={() => handleDelete(c.id)}
-                  className="text-[10px] text-text-muted hover:text-hard transition-colors shrink-0 cursor-pointer"
-                >
-                  삭제
-                </button>
+              {currentUserId === c.author.id && editingId !== c.id && (
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => startEdit(c)}
+                    className="text-[10px] text-text-muted hover:text-text transition-colors cursor-pointer"
+                  >
+                    수정
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(c.id)}
+                    className="text-[10px] text-text-muted hover:text-hard transition-colors cursor-pointer"
+                  >
+                    삭제
+                  </button>
+                </div>
               )}
             </div>
           ))}

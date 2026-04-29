@@ -18,14 +18,17 @@ interface Props {
   patch?: string;
 }
 
+const SKILL_LABELS: Record<string, string> = { Q: "Q", W: "W", E: "E", R: "R" };
+
 export default function LolConditions({ gameSpecific, patch = "16.8.1" }: Props) {
-  const { required_level, ability_haste_min, attack_speed_min, summoner_spells, required_items } = gameSpecific;
+  const { required_level, ability_haste_min, attack_speed_min, summoner_spells, required_items, required_skills } = gameSpecific;
 
   const hasStats  = required_level || ability_haste_min || attack_speed_min;
   const hasSpells = summoner_spells && summoner_spells.length > 0;
   const hasItems  = required_items && required_items.length > 0;
+  const hasSkills = required_skills && Object.keys(required_skills).length > 0;
 
-  if (!hasStats && !hasSpells && !hasItems) return null;
+  if (!hasStats && !hasSpells && !hasItems && !hasSkills) return null;
 
   return (
     <div className="bg-surface-raised rounded-xl p-5 border border-border">
@@ -89,6 +92,20 @@ export default function LolConditions({ gameSpecific, patch = "16.8.1" }: Props)
                     className="rounded-sm"
                   />
                   <span className="text-xs font-semibold text-text-muted">{itemId}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {hasSkills && (
+          <div>
+            <p className="text-[10px] font-semibold text-text-muted mb-2">필요 스킬 레벨</p>
+            <div className="flex gap-2 flex-wrap">
+              {Object.entries(required_skills!).map(([skill, level]) => (
+                <div key={skill} className="flex items-center gap-1 bg-surface-overlay rounded-lg px-2.5 py-1.5">
+                  <span className="text-xs font-black text-gold">{SKILL_LABELS[skill] ?? skill}</span>
+                  <span className="text-xs font-semibold text-text-muted">Lv.{level}+</span>
                 </div>
               ))}
             </div>

@@ -45,6 +45,8 @@ export default function UploadWizard({ characters }: Props) {
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [tags, setTags] = useState("");
   const [gameSpecific, setGameSpecific] = useState<Partial<LolGameSpecific>>({});
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleFile = useCallback(async (f: File) => {
@@ -77,13 +79,37 @@ export default function UploadWizard({ characters }: Props) {
     if (f) handleFile(f);
   }, [handleFile]);
 
+  const handleThumbnailChange = (f: File) => {
+    setThumbnailFile(f);
+    setThumbnailPreview(URL.createObjectURL(f));
+  };
+
   const onSubmit = async () => {
     if (!file || !parsed) return;
     setIsSubmitting(true);
     setError(null);
 
     try {
-      // 1. Presigned URL 발급
+      // 1. 썸네일 업로드 (선택)
+      let thumbnailUrl: string | undefined;
+      if (thumbnailFile) {
+        const tPresignedRes = await fetch("/api/uploads/presigned-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bucket: "thumbnails", filename: thumbnailFile.name }),
+        });
+        if (!tPresignedRes.ok) throw new Error("썸네일 URL 발급 실패");
+        const { uploadUrl: tUrl, path: tPath } = await tPresignedRes.json();
+        const tUploadRes = await fetch(tUrl, {
+          method: "PUT",
+          body: thumbnailFile,
+          headers: { "Content-Type": thumbnailFile.type || "image/jpeg" },
+        });
+        if (!tUploadRes.ok) throw new Error("썸네일 업로드 실패");
+        thumbnailUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${tPath}`;
+      }
+
+      // 2. Presigned URL 발급
       const presignedRes = await fetch("/api/uploads/presigned-url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -92,7 +118,7 @@ export default function UploadWizard({ characters }: Props) {
       if (!presignedRes.ok) throw new Error("업로드 URL 발급 실패");
       const { uploadUrl, path } = await presignedRes.json();
 
-      // 2. Supabase Storage에 tutfile 직접 업로드
+      // 3. Supabase Storage에 tutfile 직접 업로드
       const uploadRes = await fetch(uploadUrl, {
         method: "PUT",
         body: file,
@@ -100,7 +126,7 @@ export default function UploadWizard({ characters }: Props) {
       });
       if (!uploadRes.ok) throw new Error("파일 업로드 실패");
 
-      // 3. 콤보 생성 (서버에서 tutfile 파싱 + video 분리 처리)
+      // 4. 콤보 생성 (서버에서 tutfile 파싱 + video 분리 처리)
       const comboRes = await fetch("/api/combos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -112,6 +138,7 @@ export default function UploadWizard({ characters }: Props) {
           difficulty,
           tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
           gameSpecific,
+          thumbnailUrl,
         }),
       });
       if (!comboRes.ok) {
@@ -286,6 +313,31 @@ export default function UploadWizard({ characters }: Props) {
             className="h-10 px-3 rounded-lg border border-border bg-surface-overlay text-sm focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors"
           />
         </label>
+
+        {/* 썸네일 */}
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-semibold">썸네일 <span className="text-text-muted font-normal">(선택)</span></span>
+          <label className="cursor-pointer">
+            {thumbnailPreview ? (
+              <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-border bg-surface-overlay">
+                <Image src={thumbnailPreview} alt="썸네일 미리보기" fill className="object-cover" />
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                  <span className="text-xs font-semibold text-white">클릭해서 변경</span>
+                </div>
+              </div>
+            ) : (
+              <div className="w-full h-24 rounded-lg border border-dashed border-border bg-surface-overlay flex items-center justify-center text-sm text-text-muted hover:border-[rgba(255,255,255,0.24)] hover:text-text transition-colors">
+                + 이미지 선택 (jpg, png, webp)
+              </div>
+            )}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => e.target.files?.[0] && handleThumbnailChange(e.target.files[0])}
+            />
+          </label>
+        </div>
       </div>
 
       {/* LoL 조건 */}

@@ -22,15 +22,18 @@ export default function ComboActions({ comboId, initialIsLiked, initialLikeCount
     if (!isLoggedIn) { router.push("/login"); return; }
     if (isLiking) return;
     setIsLiking(true);
+    const prevLiked = isLiked;
     // optimistic
-    setIsLiked((p) => !p);
-    setLikeCount((p) => isLiked ? p - 1 : p + 1);
+    setIsLiked(!prevLiked);
+    setLikeCount((p) => prevLiked ? p - 1 : p + 1);
     try {
-      await fetch(`/api/combos/${comboId}/like`, { method: "POST" });
+      const res = await fetch(`/api/combos/${comboId}/like`, { method: "POST" });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setIsLiked(data.liked);
     } catch {
-      // revert on failure
-      setIsLiked((p) => !p);
-      setLikeCount((p) => isLiked ? p + 1 : p - 1);
+      setIsLiked(prevLiked);
+      setLikeCount((p) => prevLiked ? p + 1 : p - 1);
     } finally {
       setIsLiking(false);
     }
