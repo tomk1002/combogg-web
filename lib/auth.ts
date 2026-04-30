@@ -3,13 +3,12 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import Google from "next-auth/providers/google";
 import Discord from "next-auth/providers/discord";
 import { prisma } from "@/lib/db";
+import { authConfig } from "@/lib/auth.config";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(prisma),
   trustHost: true,
-  pages: {
-    error: "/error",
-  },
   providers: [
     Google({
       clientId: process.env.AUTH_GOOGLE_ID!,
