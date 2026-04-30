@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -15,20 +16,18 @@ import { formatCount, formatDuration, timeAgo } from "@/lib/utils";
 import type { InputEntryDTO, CommentDTO } from "@/lib/api/types";
 import type { LolGameSpecific } from "@/lib/games/lol/schema";
 
+export const revalidate = 30;
+
 interface Props { params: Promise<{ id: string }> }
+
+// React cache() — generateMetadata와 페이지 컴포넌트가 같은 요청 안에서 결과 공유
+const getCombo = cache(async (id: string) =>
+  prisma.combo.findUnique({ where: { id, status: "published" }, include: COMBO_INCLUDE })
+);
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const combo = await prisma.combo.findUnique({
-    where: { id, status: "published" },
-    select: {
-      title: true,
-      description: true,
-      thumbnailUrl: true,
-      character: { select: { name: true } },
-      difficulty: true,
-    },
-  });
+  const combo = await getCombo(id);
   if (!combo) return {};
   const title = `${combo.title} — ${combo.character.name} | combo.gg`;
   const desc = combo.description ?? `${combo.character.name} 콤보`;
@@ -57,8 +56,11 @@ export default async function ComboDetailPage({ params }: Props) {
   const session = await auth();
   const userId = session?.user?.id ?? null;
 
-  const [combo, isLikedRecord, commentsRaw] = await Promise.all([
-    prisma.combo.findUnique({ where: { id, status: "published" }, include: COMBO_INCLUDE }),
+  // combo를 먼저 가져와 characterId 확보 후 나머지를 병렬 실행
+  const combo = await getCombo(id);
+  if (!combo) notFound();
+
+  const [isLikedRecord, commentsRaw, relatedRaw] = await Promise.all([
     userId
       ? prisma.like.findUnique({ where: { userId_comboId: { userId, comboId: id } } })
       : null,
@@ -68,16 +70,14 @@ export default async function ComboDetailPage({ params }: Props) {
       orderBy: { createdAt: "desc" },
       take: 20,
     }),
+    prisma.combo.findMany({
+      where: { characterId: combo.characterId, status: "published", id: { not: id } },
+      include: COMBO_INCLUDE,
+      orderBy: { likeCount: "desc" },
+      take: 6,
+    }),
   ]);
 
-  if (!combo) notFound();
-
-  const relatedRaw = await prisma.combo.findMany({
-    where: { characterId: combo.characterId, status: "published", id: { not: id } },
-    include: COMBO_INCLUDE,
-    orderBy: { likeCount: "desc" },
-    take: 6,
-  });
   const relatedItems = relatedRaw.map(toComboListItem);
 
   // 조회수 +1 (fire-and-forget)
