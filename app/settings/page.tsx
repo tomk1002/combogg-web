@@ -17,6 +17,10 @@ export default async function SettingsPage() {
       riotGameName: true,
       riotTagLine: true,
       riotSummonerIconId: true,
+      riotTier: true,
+      riotRank: true,
+      riotLP: true,
+      riotTopMasteries: true,
     },
   });
 

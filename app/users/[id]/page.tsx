@@ -7,6 +7,27 @@ import { prisma } from "@/lib/db";
 export const revalidate = 30;
 import { COMBO_INCLUDE, toComboListItem } from "@/lib/combo-queries";
 
+interface MasteryEntry {
+  championId: number;
+  championName: string;
+  championIconUrl: string | null;
+  points: number;
+  level: number;
+}
+
+const TIER_STYLE: Record<string, { label: string; color: string }> = {
+  IRON:        { label: "아이언",      color: "#8d8d8d" },
+  BRONZE:      { label: "브론즈",      color: "#a0522d" },
+  SILVER:      { label: "실버",        color: "#9e9e9e" },
+  GOLD:        { label: "골드",        color: "#c9a227" },
+  PLATINUM:    { label: "플래티넘",    color: "#00b4b4" },
+  EMERALD:     { label: "에메랄드",    color: "#00a86b" },
+  DIAMOND:     { label: "다이아",      color: "#5b9bd5" },
+  MASTER:      { label: "마스터",      color: "#9b59b6" },
+  GRANDMASTER: { label: "그랜드마스터", color: "#e74c3c" },
+  CHALLENGER:  { label: "챌린저",      color: "#f0c040" },
+};
+
 interface Props {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ tab?: string }>;
@@ -28,6 +49,10 @@ export default async function UserProfilePage({ params, searchParams }: Props) {
         riotGameName: true,
         riotTagLine: true,
         riotSummonerIconId: true,
+        riotTier: true,
+        riotRank: true,
+        riotLP: true,
+        riotTopMasteries: true,
       },
     }),
     prisma.combo.findMany({
@@ -71,11 +96,11 @@ export default async function UserProfilePage({ params, searchParams }: Props) {
             {(user.nickname ?? "?")[0]?.toUpperCase()}
           </span>
         )}
-        <div>
+        <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-black tracking-tight">
             {user.nickname ?? "unknown"}
           </h1>
-          <div className="flex items-center gap-3 mt-1">
+          <div className="flex flex-wrap items-center gap-3 mt-1">
             <p className="text-text-secondary text-sm">{items.length}개 콤보 게시</p>
             {user.riotGameName && (
               <span className="flex items-center gap-1.5 text-xs text-text-muted">
@@ -93,7 +118,39 @@ export default async function UserProfilePage({ params, searchParams }: Props) {
                 </span>
               </span>
             )}
+            {user.riotTier && (() => {
+              const style = TIER_STYLE[user.riotTier] ?? { label: user.riotTier, color: "#888" };
+              return (
+                <span
+                  className="text-xs font-bold px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: style.color + "22", color: style.color, border: `1px solid ${style.color}55` }}
+                >
+                  {style.label}{user.riotRank ? ` ${user.riotRank}` : ""}
+                  {user.riotLP !== null ? ` ${user.riotLP}LP` : ""}
+                </span>
+              );
+            })()}
           </div>
+          {Array.isArray(user.riotTopMasteries) && (user.riotTopMasteries as unknown as MasteryEntry[]).length > 0 && (
+            <div className="flex items-center gap-2 mt-2">
+              {(user.riotTopMasteries as unknown as MasteryEntry[]).map((m) => (
+                <div key={m.championId} className="flex items-center gap-1 text-xs text-text-muted">
+                  {m.championIconUrl && (
+                    <Image
+                      src={m.championIconUrl}
+                      alt={m.championName}
+                      width={20}
+                      height={20}
+                      className="rounded-full"
+                      title={m.championName}
+                    />
+                  )}
+                  <span className="hidden sm:inline">{m.championName}</span>
+                  <span className="text-text-secondary">Lv.{m.level}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

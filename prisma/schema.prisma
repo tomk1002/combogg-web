@@ -51,6 +51,11 @@ model User {
   riotGameName        String?
   riotTagLine         String?
   riotSummonerIconId  Int?
+  riotSummonerId      String?
+  riotTier            String?
+  riotRank            String?
+  riotLP              Int?
+  riotTopMasteries    Json?
 
   combos    Combo[]
   likes     Like[]

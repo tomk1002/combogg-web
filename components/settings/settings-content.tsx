@@ -3,6 +3,14 @@
 import { useState, useRef } from "react";
 import Image from "next/image";
 
+interface MasteryEntry {
+  championId: number;
+  championName: string;
+  championIconUrl: string | null;
+  points: number;
+  level: number;
+}
+
 interface UserData {
   id: string;
   nickname: string | null;
@@ -11,7 +19,24 @@ interface UserData {
   riotGameName: string | null;
   riotTagLine: string | null;
   riotSummonerIconId: number | null;
+  riotTier: string | null;
+  riotRank: string | null;
+  riotLP: number | null;
+  riotTopMasteries: unknown;
 }
+
+const TIER_STYLE: Record<string, string> = {
+  IRON: "text-[#a0a0a0] border-[#a0a0a0]/40 bg-[#a0a0a0]/10",
+  BRONZE: "text-[#b87333] border-[#b87333]/40 bg-[#b87333]/10",
+  SILVER: "text-[#c0c0c0] border-[#c0c0c0]/40 bg-[#c0c0c0]/10",
+  GOLD: "text-gold border-gold/40 bg-gold/10",
+  PLATINUM: "text-[#00b4b4] border-[#00b4b4]/40 bg-[#00b4b4]/10",
+  EMERALD: "text-[#50c878] border-[#50c878]/40 bg-[#50c878]/10",
+  DIAMOND: "text-[#6495ed] border-[#6495ed]/40 bg-[#6495ed]/10",
+  MASTER: "text-[#9b59b6] border-[#9b59b6]/40 bg-[#9b59b6]/10",
+  GRANDMASTER: "text-[#e74c3c] border-[#e74c3c]/40 bg-[#e74c3c]/10",
+  CHALLENGER: "text-[#f1c40f] border-[#f1c40f]/40 bg-[#f1c40f]/10",
+};
 
 interface Props {
   user: UserData;
@@ -185,41 +210,47 @@ function ProfileSection({ user }: { user: UserData }) {
 function RiotSection({ user }: { user: UserData }) {
   const [gameName, setGameName] = useState("");
   const [tagLine, setTagLine] = useState("");
-  const [linked, setLinked] = useState<{
-    gameName: string;
-    tagLine: string;
-    summonerIconId: number | null;
-  } | null>(
-    user.riotGameName
-      ? { gameName: user.riotGameName, tagLine: user.riotTagLine ?? "", summonerIconId: user.riotSummonerIconId }
-      : null
-  );
-  const [status, setStatus] = useState<"idle" | "linking" | "error">("idle");
+
+  const initLinked = user.riotGameName ? {
+    gameName: user.riotGameName,
+    tagLine: user.riotTagLine ?? "",
+    summonerIconId: user.riotSummonerIconId,
+    tier: user.riotTier,
+    rank: user.riotRank,
+    lp: user.riotLP,
+    topMasteries: (user.riotTopMasteries as MasteryEntry[] | null) ?? [],
+  } : null;
+
+  const [linked, setLinked] = useState(initLinked);
+  const [status, setStatus] = useState<"idle" | "linking" | "refreshing" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
   const handleLink = async () => {
-    const g = gameName.trim();
-    const t = tagLine.trim();
+    const g = gameName.trim(); const t = tagLine.trim();
     if (!g || !t) return;
-    setStatus("linking");
-    setErrorMsg("");
-
+    setStatus("linking"); setErrorMsg("");
     const res = await fetch("/api/users/me/riot", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ gameName: g, tagLine: t }),
     });
-
-    const data = await res.json().catch(() => ({}));
+    const data = await res.json().catch(() => ({})) as typeof linked & { error?: string };
     if (res.ok) {
-      setLinked({ gameName: data.gameName, tagLine: data.tagLine, summonerIconId: data.summonerIconId });
-      setGameName("");
-      setTagLine("");
-      setStatus("idle");
+      setLinked({ gameName: data!.gameName, tagLine: data!.tagLine, summonerIconId: data!.summonerIconId ?? null, tier: data!.tier ?? null, rank: data!.rank ?? null, lp: data!.lp ?? null, topMasteries: data!.topMasteries ?? [] });
+      setGameName(""); setTagLine(""); setStatus("idle");
     } else {
-      setErrorMsg(data.error ?? "연동에 실패했습니다");
-      setStatus("error");
+      setErrorMsg((data as { error?: string }).error ?? "연동에 실패했습니다"); setStatus("error");
     }
+  };
+
+  const handleRefresh = async () => {
+    setStatus("refreshing");
+    const res = await fetch("/api/users/me/riot", { method: "PUT" });
+    const data = await res.json().catch(() => ({})) as typeof linked & { error?: string };
+    if (res.ok) {
+      setLinked(prev => prev ? { ...prev, summonerIconId: data!.summonerIconId ?? prev.summonerIconId, tier: data!.tier ?? null, rank: data!.rank ?? null, lp: data!.lp ?? null, topMasteries: data!.topMasteries ?? [] } : prev);
+    }
+    setStatus("idle");
   };
 
   const handleUnlink = async () => {
@@ -227,60 +258,84 @@ function RiotSection({ user }: { user: UserData }) {
     if (res.ok) setLinked(null);
   };
 
+  const tierStyle = linked?.tier ? (TIER_STYLE[linked.tier] ?? TIER_STYLE.GOLD) : "";
+
   return (
     <section>
       <h2 className="text-sm font-black uppercase tracking-widest text-text-secondary mb-1">라이엇 계정</h2>
-      <p className="text-xs text-text-muted mb-5">Riot ID를 연동하면 프로필에 인게임 이름이 표시됩니다.</p>
+      <p className="text-xs text-text-muted mb-5">Riot ID를 연동하면 프로필에 소환사 정보가 표시됩니다.</p>
 
       {linked ? (
-        <div className="flex items-center justify-between p-4 rounded-xl bg-surface-raised border border-border">
-          <div className="flex items-center gap-3">
-            {linked.summonerIconId && (
-              <Image
-                src={`https://ddragon.leagueoflegends.com/cdn/15.1.1/img/profileicon/${linked.summonerIconId}.png`}
-                alt="소환사 아이콘"
-                width={40}
-                height={40}
-                className="rounded-full border border-border"
-              />
-            )}
-            <div>
-              <p className="font-bold text-sm">{linked.gameName}<span className="text-text-muted font-mono">#{linked.tagLine}</span></p>
-              <p className="text-xs text-easy mt-0.5">연동됨</p>
+        <div className="flex flex-col gap-3 p-4 rounded-xl bg-surface-raised border border-border">
+          {/* 헤더 행 */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {linked.summonerIconId && (
+                <Image src={`https://ddragon.leagueoflegends.com/cdn/15.1.1/img/profileicon/${linked.summonerIconId}.png`}
+                  alt="소환사 아이콘" width={40} height={40} className="rounded-full border border-border" />
+              )}
+              <div>
+                <p className="font-bold text-sm">{linked.gameName}<span className="text-text-muted font-mono">#{linked.tagLine}</span></p>
+                <p className="text-xs text-easy mt-0.5">연동됨</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleRefresh} disabled={status === "refreshing"}
+                className="text-xs text-text-secondary hover:text-text border border-border rounded-lg px-2.5 py-1.5 transition-colors disabled:opacity-40">
+                {status === "refreshing" ? "새로고침 중..." : "↻ 새로고침"}
+              </button>
+              <button onClick={handleUnlink} className="text-xs text-text-muted hover:text-hard transition-colors font-semibold px-1">
+                연동 해제
+              </button>
             </div>
           </div>
-          <button
-            onClick={handleUnlink}
-            className="text-xs text-text-muted hover:text-hard transition-colors font-semibold"
-          >
-            연동 해제
-          </button>
+
+          {/* 티어 */}
+          {linked.tier && (
+            <div className="flex items-center gap-2">
+              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold ${tierStyle}`}>
+                {linked.tier} {linked.rank}
+              </span>
+              {linked.lp !== null && (
+                <span className="text-xs text-text-muted font-mono">{linked.lp} LP</span>
+              )}
+            </div>
+          )}
+
+          {/* 챔피언 숙련도 */}
+          {linked.topMasteries.length > 0 && (
+            <div>
+              <p className="text-[11px] text-text-muted mb-2 font-semibold uppercase tracking-wide">주요 챔피언</p>
+              <div className="flex gap-2">
+                {linked.topMasteries.map((m) => (
+                  <div key={m.championId} className="flex flex-col items-center gap-1">
+                    {m.championIconUrl ? (
+                      <Image src={m.championIconUrl} alt={m.championName} width={44} height={44} className="rounded-lg border border-border" />
+                    ) : (
+                      <div className="w-11 h-11 rounded-lg bg-surface-overlay border border-border flex items-center justify-center text-xs text-text-muted">
+                        {m.championName[0]}
+                      </div>
+                    )}
+                    <span className="text-[10px] text-text-secondary font-semibold">{m.championName}</span>
+                    <span className="text-[10px] font-mono text-text-muted">Lv.{m.level}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex flex-col gap-3">
           <div className="flex gap-2">
             <div className="flex flex-1 rounded-lg border border-border bg-surface-overlay overflow-hidden focus-within:border-[rgba(255,255,255,0.3)] transition-colors">
-              <input
-                type="text"
-                value={gameName}
-                onChange={(e) => { setGameName(e.target.value); setStatus("idle"); }}
-                placeholder="게임명"
-                className="flex-1 h-10 px-3 bg-transparent text-sm focus:outline-none"
-              />
+              <input type="text" value={gameName} onChange={(e) => { setGameName(e.target.value); setStatus("idle"); }}
+                placeholder="게임명" className="flex-1 h-10 px-3 bg-transparent text-sm focus:outline-none" />
               <span className="flex items-center px-2 text-text-muted font-mono text-sm select-none">#</span>
-              <input
-                type="text"
-                value={tagLine}
-                onChange={(e) => { setTagLine(e.target.value); setStatus("idle"); }}
-                placeholder="KR1"
-                className="w-20 h-10 pr-3 bg-transparent text-sm focus:outline-none"
-              />
+              <input type="text" value={tagLine} onChange={(e) => { setTagLine(e.target.value); setStatus("idle"); }}
+                placeholder="KR1" className="w-20 h-10 pr-3 bg-transparent text-sm focus:outline-none" />
             </div>
-            <button
-              onClick={handleLink}
-              disabled={status === "linking" || !gameName.trim() || !tagLine.trim()}
-              className="h-10 px-4 rounded-lg bg-gold text-white text-sm font-bold hover:bg-gold-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-            >
+            <button onClick={handleLink} disabled={status === "linking" || !gameName.trim() || !tagLine.trim()}
+              className="h-10 px-4 rounded-lg bg-gold text-white text-sm font-bold hover:bg-gold-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap">
               {status === "linking" ? "확인 중..." : "연동하기"}
             </button>
           </div>
