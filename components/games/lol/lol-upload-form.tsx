@@ -17,6 +17,7 @@ const COMMON_SUMMONER_SPELLS = [
 ];
 
 const SKILL_KEYS = ["Q", "W", "E", "R"] as const;
+const SKILL_MAX: Record<typeof SKILL_KEYS[number], number> = { Q: 5, W: 5, E: 5, R: 3 };
 
 interface ItemMeta {
   id: string;
@@ -289,28 +290,44 @@ export default function LolUploadForm({ value, onChange, items, patch }: Props) 
           {/* 필요 스킬 레벨 */}
           <div className="flex flex-col gap-2">
             <span className="text-xs font-semibold text-text-secondary">필요 스킬 레벨</span>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="flex flex-col gap-1.5">
               {SKILL_KEYS.map((skill) => {
                 const cur = (value.required_skills ?? {})[skill];
+                const maxLv = SKILL_MAX[skill];
                 return (
-                  <label key={skill} className="flex flex-col gap-1 items-center">
-                    <span className="text-xs font-black text-gold">{skill}</span>
-                    <select
-                      value={cur ?? ""}
-                      onChange={(e) => {
-                        const next = { ...(value.required_skills ?? {}) };
-                        if (e.target.value) next[skill] = Number(e.target.value);
-                        else delete next[skill];
-                        set("required_skills", Object.keys(next).length ? next as Record<"Q"|"W"|"E"|"R", number> : undefined);
-                      }}
-                      className="w-full h-9 px-2 rounded-lg border border-border bg-surface-overlay text-sm text-center focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors"
-                    >
-                      <option value="">-</option>
-                      {[1,2,3,4,5].map((lv) => (
-                        <option key={lv} value={lv}>Lv.{lv}</option>
+                  <div key={skill} className="flex items-center gap-2">
+                    <span className="text-xs font-black text-gold w-3 shrink-0">{skill}</span>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = { ...(value.required_skills ?? {}) };
+                          delete next[skill];
+                          set("required_skills", Object.keys(next).length ? next as Record<"Q"|"W"|"E"|"R", number> : undefined);
+                        }}
+                        className={`h-7 px-2.5 rounded text-xs font-semibold border transition-colors cursor-pointer ${
+                          !cur ? "bg-gold/20 text-gold border-gold/60" : "border-border text-text-muted hover:border-[rgba(255,255,255,0.24)]"
+                        }`}
+                      >
+                        -
+                      </button>
+                      {Array.from({ length: maxLv }, (_, i) => i + 1).map((lv) => (
+                        <button
+                          key={lv}
+                          type="button"
+                          onClick={() => {
+                            const next = { ...(value.required_skills ?? {}), [skill]: lv };
+                            set("required_skills", next as Record<"Q"|"W"|"E"|"R", number>);
+                          }}
+                          className={`h-7 w-7 rounded text-xs font-semibold border transition-colors cursor-pointer ${
+                            cur === lv ? "bg-gold/20 text-gold border-gold/60" : "border-border text-text-muted hover:border-[rgba(255,255,255,0.24)]"
+                          }`}
+                        >
+                          {lv}
+                        </button>
                       ))}
-                    </select>
-                  </label>
+                    </div>
+                  </div>
                 );
               })}
             </div>

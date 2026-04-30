@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { LolGameSpecific } from "@/lib/games/lol/schema";
+import { getAllItems } from "@/lib/games/lol/ddragon";
 
 const SPELL_LABELS: Record<string, string> = {
   SummonerFlash:   "점멸",
@@ -20,7 +21,7 @@ interface Props {
 
 const SKILL_LABELS: Record<string, string> = { Q: "Q", W: "W", E: "E", R: "R" };
 
-export default function LolConditions({ gameSpecific, patch = "16.8.1" }: Props) {
+export default async function LolConditions({ gameSpecific, patch = "16.8.1" }: Props) {
   const { required_level, ability_haste_min, attack_speed_min, summoner_spells, required_items, required_skills } = gameSpecific;
 
   const hasStats  = required_level || ability_haste_min || attack_speed_min;
@@ -29,6 +30,16 @@ export default function LolConditions({ gameSpecific, patch = "16.8.1" }: Props)
   const hasSkills = required_skills && Object.keys(required_skills).length > 0;
 
   if (!hasStats && !hasSpells && !hasItems && !hasSkills) return null;
+
+  let itemNameMap: Map<string, string> = new Map();
+  if (hasItems) {
+    try {
+      const allItems = await getAllItems(patch);
+      allItems.forEach((item) => itemNameMap.set(item.id, item.name));
+    } catch {
+      // fallback: show IDs
+    }
+  }
 
   return (
     <div className="bg-surface-raised rounded-xl p-5 border border-border">
@@ -91,7 +102,7 @@ export default function LolConditions({ gameSpecific, patch = "16.8.1" }: Props)
                     height={20}
                     className="rounded-sm"
                   />
-                  <span className="text-xs font-semibold text-text-muted">{itemId}</span>
+                  <span className="text-xs font-semibold">{itemNameMap.get(itemId) ?? itemId}</span>
                 </div>
               ))}
             </div>
