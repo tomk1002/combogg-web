@@ -14,8 +14,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className="h-full">
+    <html lang="ko" className="h-full" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{__html: `(function(){try{var t=localStorage.getItem('theme');if(t==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}})()`}} />
         <link rel="preconnect" href="https://vklbmllbdhjtamcvcxhh.supabase.co" />
         <link rel="preconnect" href="https://ddragon.leagueoflegends.com" />
         <link rel="preconnect" href="https://lh3.googleusercontent.com" />

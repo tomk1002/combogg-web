@@ -1,6 +1,7 @@
 import Link from "next/link";
 import HeaderSearch from "./header-search";
 import LangToggle from "./lang-toggle";
+import ThemeToggle from "./theme-toggle";
 import HeaderNav from "./header-nav";
 
 export default function SiteHeader() {
@@ -30,6 +31,7 @@ export default function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2 shrink-0 ml-auto">
+          <ThemeToggle />
           <LangToggle />
           <HeaderNav />
         </div>
