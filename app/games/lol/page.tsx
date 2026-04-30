@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import type { Metadata } from "next";
+
+export const revalidate = 60;
 import ComboCard from "@/components/combo/combo-card";
 import LolFilters from "@/components/games/lol/lol-filters";
 import { prisma } from "@/lib/db";

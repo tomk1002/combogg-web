@@ -3,6 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import ComboCard from "@/components/combo/combo-card";
 import { prisma } from "@/lib/db";
+
+export const revalidate = 30;
 import { COMBO_INCLUDE, toComboListItem } from "@/lib/combo-queries";
 
 interface Props {

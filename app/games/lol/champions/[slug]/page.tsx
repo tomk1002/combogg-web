@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Prisma, Difficulty } from "@prisma/client";
+
+export const revalidate = 60;
 import ComboCard from "@/components/combo/combo-card";
 import { prisma } from "@/lib/db";
 import { COMBO_INCLUDE, toComboListItem } from "@/lib/combo-queries";

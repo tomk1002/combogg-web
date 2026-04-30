@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { cache } from "react";
+import { cache, Suspense } from "react";
 import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -56,29 +56,13 @@ export default async function ComboDetailPage({ params }: Props) {
   const session = await auth();
   const userId = session?.user?.id ?? null;
 
-  // combo를 먼저 가져와 characterId 확보 후 나머지를 병렬 실행
   const combo = await getCombo(id);
   if (!combo) notFound();
 
-  const [isLikedRecord, commentsRaw, relatedRaw] = await Promise.all([
-    userId
-      ? prisma.like.findUnique({ where: { userId_comboId: { userId, comboId: id } } })
-      : null,
-    prisma.comment.findMany({
-      where: { comboId: id },
-      include: { user: { select: { id: true, nickname: true, avatarUrl: true } } },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-    }),
-    prisma.combo.findMany({
-      where: { characterId: combo.characterId, status: "published", id: { not: id } },
-      include: COMBO_INCLUDE,
-      orderBy: { likeCount: "desc" },
-      take: 6,
-    }),
-  ]);
-
-  const relatedItems = relatedRaw.map(toComboListItem);
+  // 좋아요 여부만 여기서 확인 (댓글·관련 콤보는 Suspense로 스트리밍)
+  const isLikedRecord = userId
+    ? await prisma.like.findUnique({ where: { userId_comboId: { userId, comboId: id } } })
+    : null;
 
   // 조회수 +1 (fire-and-forget)
   prisma.combo.update({ where: { id }, data: { viewCount: { increment: 1 } } }).catch(() => {});
@@ -87,13 +71,6 @@ export default async function ComboDetailPage({ params }: Props) {
   const keys = inputToKeySequence(inputSummary);
   const gameSpecific = (combo.gameSpecific as unknown as Partial<LolGameSpecific>) ?? {};
   const isLiked = !!isLikedRecord;
-
-  const initialComments: CommentDTO[] = commentsRaw.map((c) => ({
-    id: c.id,
-    content: c.content,
-    author: { id: c.user.id, nickname: c.user.nickname ?? "", avatarUrl: c.user.avatarUrl },
-    createdAt: c.createdAt.toISOString(),
-  }));
 
   return (
     <main className="flex-1 max-w-[var(--width-content)] mx-auto px-4 sm:px-8 py-6 sm:py-10 w-full">
@@ -228,31 +205,76 @@ export default async function ComboDetailPage({ params }: Props) {
             </div>
           )}
 
-          {/* Comments */}
-          <div className="bg-surface-raised rounded-xl p-5 border border-border">
-            <ComboComments
-              comboId={id}
-              initialComments={initialComments}
-              currentUserId={userId}
-            />
-          </div>
-
-          {/* Related combos */}
-          {relatedItems.length > 0 && (
-            <div>
-              <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">
-                {combo.character.name} 다른 콤보
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {relatedItems.map((c) => (
-                  <ComboCard key={c.id} combo={c} />
-                ))}
+          {/* Comments — streamed */}
+          <Suspense fallback={
+            <div className="bg-surface-raised rounded-xl p-5 border border-border">
+              <div className="h-4 w-16 bg-surface-overlay rounded animate-pulse mb-4" />
+              <div className="space-y-3">
+                {[1,2].map(i => <div key={i} className="h-12 bg-surface-overlay rounded-lg animate-pulse" />)}
               </div>
             </div>
-          )}
+          }>
+            <CommentsSection comboId={id} currentUserId={userId} />
+          </Suspense>
+
+          {/* Related combos — streamed */}
+          <Suspense fallback={null}>
+            <RelatedCombosSection
+              characterId={combo.characterId}
+              comboId={id}
+              characterName={combo.character.name}
+            />
+          </Suspense>
         </div>
 
       </div>
     </main>
+  );
+}
+
+// ── Streaming sections ────────────────────────────────────────────
+
+async function CommentsSection({ comboId, currentUserId }: { comboId: string; currentUserId: string | null }) {
+  const commentsRaw = await prisma.comment.findMany({
+    where: { comboId },
+    include: { user: { select: { id: true, nickname: true, avatarUrl: true } } },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  });
+  const initialComments: CommentDTO[] = commentsRaw.map((c) => ({
+    id: c.id,
+    content: c.content,
+    author: { id: c.user.id, nickname: c.user.nickname ?? "", avatarUrl: c.user.avatarUrl },
+    createdAt: c.createdAt.toISOString(),
+  }));
+  return (
+    <div className="bg-surface-raised rounded-xl p-5 border border-border">
+      <ComboComments comboId={comboId} initialComments={initialComments} currentUserId={currentUserId} />
+    </div>
+  );
+}
+
+async function RelatedCombosSection({ characterId, comboId, characterName }: {
+  characterId: string;
+  comboId: string;
+  characterName: string;
+}) {
+  const relatedRaw = await prisma.combo.findMany({
+    where: { characterId, status: "published", id: { not: comboId } },
+    include: COMBO_INCLUDE,
+    orderBy: { likeCount: "desc" },
+    take: 6,
+  });
+  if (relatedRaw.length === 0) return null;
+  const items = relatedRaw.map(toComboListItem);
+  return (
+    <div>
+      <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">
+        {characterName} 다른 콤보
+      </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {items.map((c) => <ComboCard key={c.id} combo={c} />)}
+      </div>
+    </div>
   );
 }

@@ -35,13 +35,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const base = (user.name ?? "user")
         .replace(/\s+/g, "_")
         .toLowerCase()
-        .slice(0, 20) || "user";
+        .slice(0, 16) || "user";
 
-      let nickname = base;
-      let suffix = 1;
-      while (await prisma.user.findUnique({ where: { nickname } })) {
-        nickname = `${base}_${suffix++}`;
-      }
+      // timestamp base36 suffix — 사실상 충돌 불가, DB 왕복 없음
+      const nickname = `${base}_${Date.now().toString(36)}`.slice(0, 28);
 
       await prisma.user.update({
         where: { id: user.id },
