@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/require-auth";
-import { ok, notFound, unauthorized, badRequest, serverError } from "@/lib/api/response";
+import { ok, notFound, unauthorized, badRequest, tooManyRequests, serverError } from "@/lib/api/response";
+import { rateLimit } from "@/lib/api/rate-limit";
 
 interface Ctx { params: Promise<{ id: string }> }
 
@@ -46,6 +47,8 @@ export async function POST(req: Request, { params }: Ctx) {
     const { id } = await params;
     const session = await getSession();
     if (!session?.user?.id) return unauthorized();
+
+    if (!rateLimit(`comment:${session.user.id}`, 10, 60_000)) return tooManyRequests();
 
     const combo = await prisma.combo.findUnique({ where: { id, status: "published" } });
     if (!combo) return notFound();

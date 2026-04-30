@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/require-auth";
-import { ok, badRequest, unauthorized, serverError } from "@/lib/api/response";
+import { ok, badRequest, unauthorized, tooManyRequests, serverError } from "@/lib/api/response";
+import { rateLimit } from "@/lib/api/rate-limit";
 import { COMBO_INCLUDE, toComboListItem } from "@/lib/combo-queries";
 import { validateGameSpecific } from "@/lib/games/registry";
 import { parseTutfile, buildInputSummary } from "@/lib/tutfile";
@@ -47,6 +48,8 @@ export async function POST(req: Request) {
     const session = await getSession();
     if (!session?.user?.id) return unauthorized();
     const userId = session.user.id;
+
+    if (!rateLimit(`upload:${userId}`, 10, 60_000)) return tooManyRequests();
 
     const body = await req.json();
 

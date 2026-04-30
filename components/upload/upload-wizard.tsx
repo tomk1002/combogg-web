@@ -32,6 +32,44 @@ interface Props {
 
 type Step = "drop" | "form" | "done";
 
+// ── Draft helpers ─────────────────────────────────────────────
+const DRAFT_KEY = "combogg_upload_draft";
+
+interface DraftData {
+  title: string;
+  description: string;
+  difficulty: Difficulty;
+  tagsInput: string;
+  character: string;
+  gameSpecific: Partial<LolGameSpecific>;
+}
+
+function saveDraft(data: DraftData) {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
+  } catch {
+    // localStorage unavailable (SSR, private mode, etc.)
+  }
+}
+
+function loadDraft(): DraftData | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as DraftData;
+  } catch {
+    return null;
+  }
+}
+
+function clearDraft() {
+  try {
+    localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 const DIFFICULTY_OPTIONS: { value: Difficulty; label: string }[] = [
   { value: "easy",   label: "쉬움" },
   { value: "medium", label: "보통" },
@@ -268,6 +306,26 @@ export default function UploadWizard({ characters, patch, items }: Props) {
     return () => { if (videoSrc) URL.revokeObjectURL(videoSrc); };
   }, [videoSrc]);
 
+  // 마운트 시 임시저장 복원
+  useEffect(() => {
+    const draft = loadDraft();
+    if (!draft) return;
+    if (draft.title)       setTitle(draft.title);
+    if (draft.description) setDescription(draft.description);
+    if (draft.difficulty)  setDifficulty(draft.difficulty);
+    if (draft.tagsInput)   setTags(draft.tagsInput);
+    if (draft.character)   setCharacterSlug(draft.character);
+    if (draft.gameSpecific && Object.keys(draft.gameSpecific).length > 0) {
+      setGameSpecific(draft.gameSpecific);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 업로드 완료 시 임시저장 삭제
+  useEffect(() => {
+    if (step === "done") clearDraft();
+  }, [step]);
+
   const resetForm = () => {
     setStep("drop"); setFile(null); setParsed(null); setError(null);
     setVideoFile(null); setIsJsonMode(false); setAiFilledFields(new Set());
@@ -289,8 +347,10 @@ export default function UploadWizard({ characters, patch, items }: Props) {
         setCharacterSlug(data.manifest.character);
         setDifficulty(data.manifest.difficulty);
         setTags(data.manifest.tags.join(", "));
-        setGameSpecific((data.manifest.game_specific as Partial<LolGameSpecific>) ?? {});
+        const parsedGs = (data.manifest.game_specific as Partial<LolGameSpecific>) ?? {};
+        setGameSpecific(parsedGs);
         setIsJsonMode(false);
+        saveDraft({ title: data.manifest.title, description, difficulty: data.manifest.difficulty, tagsInput: data.manifest.tags.join(", "), character: data.manifest.character, gameSpecific: parsedGs });
         // 영상이 있으면 blob URL 생성
         if (data.videoBuffer) {
           const blob = new Blob([data.videoBuffer.buffer as ArrayBuffer], { type: "video/mp4" });
@@ -324,6 +384,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
         setIsJsonMode(true);
         setVideoSrc(null);
         setStep("form");
+        saveDraft({ title: parsedJson.title, description, difficulty, tagsInput: parsedJson.tags.join(", "), character: parsedJson.characterSlug, gameSpecific: {} });
       } catch (e) {
         setError(e instanceof Error ? e.message : "JSON 파일을 파싱할 수 없습니다");
       }
@@ -514,20 +575,20 @@ export default function UploadWizard({ characters, patch, items }: Props) {
         {/* 제목 */}
         <label className="flex flex-col gap-1.5">
           <span className="flex items-center gap-2 text-sm font-semibold">제목 <span className="text-hard">*</span>{aiFilledFields.has("title") && <AiBadge />}</span>
-          <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="콤보 제목을 입력하세요" className={fieldCls(aiFilledFields.has("title"))} />
+          <input type="text" required value={title} onChange={(e) => { setTitle(e.target.value); saveDraft({ title: e.target.value, description, difficulty, tagsInput: tags, character: characterSlug, gameSpecific }); }} placeholder="콤보 제목을 입력하세요" className={fieldCls(aiFilledFields.has("title"))} />
         </label>
 
         {/* 설명 */}
         <label className="flex flex-col gap-1.5">
           <span className="flex items-center gap-2 text-sm font-semibold">설명{aiFilledFields.has("description") && <AiBadge />}</span>
-          <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="콤보에 대한 추가 설명 (선택)"
+          <textarea rows={3} value={description} onChange={(e) => { setDescription(e.target.value); saveDraft({ title, description: e.target.value, difficulty, tagsInput: tags, character: characterSlug, gameSpecific }); }} placeholder="콤보에 대한 추가 설명 (선택)"
             className={`px-3 py-2 rounded-lg border bg-surface-overlay text-sm resize-none focus:outline-none transition-colors ${aiFilledFields.has("description") ? "border-gold/40 focus:border-gold/60" : "border-border focus:border-[rgba(255,255,255,0.3)]"}`} />
         </label>
 
         {/* 챔피언 */}
         <div className="flex flex-col gap-1.5">
           <span className="text-sm font-semibold">챔피언 <span className="text-hard">*</span></span>
-          <ChampionPicker characters={characters} patch={patch} value={characterSlug} onChange={setCharacterSlug} />
+          <ChampionPicker characters={characters} patch={patch} value={characterSlug} onChange={(slug) => { setCharacterSlug(slug); saveDraft({ title, description, difficulty, tagsInput: tags, character: slug, gameSpecific }); }} />
         </div>
 
         {/* 난이도 */}
@@ -535,7 +596,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
           <span className="flex items-center gap-2 text-sm font-semibold">난이도{aiFilledFields.has("difficulty") && <AiBadge />}</span>
           <div className="flex gap-2">
             {DIFFICULTY_OPTIONS.map(({ value: v }) => (
-              <button key={v} type="button" onClick={() => setDifficulty(v)}
+              <button key={v} type="button" onClick={() => { setDifficulty(v); saveDraft({ title, description, difficulty: v, tagsInput: tags, character: characterSlug, gameSpecific }); }}
                 className={`flex-1 h-9 rounded-lg border text-sm font-semibold transition-colors cursor-pointer ${difficulty === v ? "bg-surface-overlay border-[rgba(255,255,255,0.24)] text-text" : "border-border text-text-secondary hover:text-text"}`}>
                 <DifficultyPips difficulty={v} className="justify-center" />
               </button>
@@ -546,7 +607,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
         {/* 태그 */}
         <label className="flex flex-col gap-1.5">
           <span className="flex items-center gap-2 text-sm font-semibold">태그{aiFilledFields.has("tags") && <AiBadge />}</span>
-          <input type="text" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="풀콤보, 라인전, 6레벨 (쉼표로 구분)" className={fieldCls(aiFilledFields.has("tags"))} />
+          <input type="text" value={tags} onChange={(e) => { setTags(e.target.value); saveDraft({ title, description, difficulty, tagsInput: e.target.value, character: characterSlug, gameSpecific }); }} placeholder="풀콤보, 라인전, 6레벨 (쉼표로 구분)" className={fieldCls(aiFilledFields.has("tags"))} />
         </label>
 
         {/* 동영상 (JSON 모드) */}
@@ -592,7 +653,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
             </div>
           )}
           <div className="bg-surface-raised">
-            <LolUploadForm value={gameSpecific} onChange={setGameSpecific} items={items} patch={patch} />
+            <LolUploadForm value={gameSpecific} onChange={(gs) => { setGameSpecific(gs); saveDraft({ title, description, difficulty, tagsInput: tags, character: characterSlug, gameSpecific: gs }); }} items={items} patch={patch} />
           </div>
         </div>
       )}

@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /settings
+Disallow: /upload
+
+Sitemap: https://combogg-web.vercel.app/sitemap.xml

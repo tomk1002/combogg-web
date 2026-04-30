@@ -24,3 +24,7 @@ export function serverError(err: unknown) {
   console.error(err);
   return NextResponse.json({ error: "서버 오류가 발생했습니다" }, { status: 500 });
 }
+
+export function tooManyRequests(msg = "요청이 너무 많습니다. 잠시 후 다시 시도하세요.") {
+  return NextResponse.json({ error: msg }, { status: 429 });
+}

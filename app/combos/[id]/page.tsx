@@ -12,6 +12,7 @@ import ComboActions from "@/components/combo/combo-actions";
 import ComboComments from "@/components/combo/combo-comments";
 import ComboCard from "@/components/combo/combo-card";
 import ComboAuthorActions from "@/components/combo/combo-author-actions";
+import ComboShareButton from "@/components/combo/combo-share-button";
 import { formatCount, formatDuration, timeAgo } from "@/lib/utils";
 import type { InputEntryDTO, CommentDTO } from "@/lib/api/types";
 import type { LolGameSpecific } from "@/lib/games/lol/schema";
@@ -123,6 +124,9 @@ export default async function ComboDetailPage({ params }: Props) {
             tutfileUrl={combo.tutfileUrl}
             isLoggedIn={!!userId}
           />
+
+          {/* Share */}
+          <ComboShareButton comboId={id} />
 
           {/* Author actions */}
           {combo.authorId === userId && (
