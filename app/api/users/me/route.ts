@@ -42,3 +42,26 @@ export async function PATCH(req: Request) {
     return serverError(err);
   }
 }
+
+export async function DELETE() {
+  try {
+    const session = await getSession();
+    if (!session?.user?.id) return unauthorized();
+
+    const userId = session.user.id;
+
+    await prisma.$transaction([
+      // Soft-delete user's combos so content remains visible (marked removed)
+      prisma.combo.updateMany({
+        where: { authorId: userId },
+        data: { status: "removed" },
+      }),
+      // Delete user — cascades: accounts, sessions, likes, comments, savedCombos
+      prisma.user.delete({ where: { id: userId } }),
+    ]);
+
+    return ok({ deleted: true });
+  } catch (err) {
+    return serverError(err);
+  }
+}

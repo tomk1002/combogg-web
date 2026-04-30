@@ -4,6 +4,8 @@ export interface AuthorDTO {
   id: string;
   nickname: string;
   avatarUrl: string | null;
+  riotGameName: string | null;
+  riotTagLine: string | null;
 }
 
 export interface GameDTO {

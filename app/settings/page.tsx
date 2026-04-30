@@ -14,6 +14,8 @@ export default async function SettingsPage() {
       nickname: true,
       avatarUrl: true,
       email: true,
+      oauthProvider: true,
+      createdAt: true,
       riotGameName: true,
       riotTagLine: true,
       riotSummonerIconId: true,

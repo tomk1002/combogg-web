@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { timeAgo } from "@/lib/utils";
+import { timeAgo, authorDisplayName } from "@/lib/utils";
 import type { CommentDTO } from "@/lib/api/types";
 
 interface Props {
@@ -112,11 +112,11 @@ export default function ComboComments({ comboId, initialComments, currentUserId 
           {comments.map((c) => (
             <div key={c.id} className="py-3 flex items-start gap-3">
               <div className="w-7 h-7 rounded-full bg-gold/20 flex items-center justify-center text-[11px] font-bold text-gold shrink-0">
-                {c.author.nickname[0]?.toUpperCase()}
+                {authorDisplayName(c.author)[0]?.toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2 mb-0.5">
-                  <span className="text-xs font-semibold">{c.author.nickname}</span>
+                  <span className="text-xs font-semibold">{authorDisplayName(c.author)}</span>
                   <span className="text-[10px] text-text-muted">{timeAgo(new Date(c.createdAt))}</span>
                 </div>
                 {editingId === c.id ? (

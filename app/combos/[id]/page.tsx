@@ -14,7 +14,7 @@ import ComboCard from "@/components/combo/combo-card";
 import ComboAuthorActions from "@/components/combo/combo-author-actions";
 import ComboShareButton from "@/components/combo/combo-share-button";
 import SaveComboButton from "@/components/combo/save-combo-button";
-import { formatCount, formatDuration, timeAgo } from "@/lib/utils";
+import { formatCount, formatDuration, timeAgo, authorDisplayName } from "@/lib/utils";
 import type { InputEntryDTO, CommentDTO } from "@/lib/api/types";
 import type { LolGameSpecific } from "@/lib/games/lol/schema";
 
@@ -191,9 +191,9 @@ export default async function ComboDetailPage({ params }: Props) {
             <div className="flex items-center gap-4 text-sm text-text-secondary">
               <span className="flex items-center gap-1.5">
                 <span className="w-6 h-6 rounded-full bg-gold/20 flex items-center justify-center text-[10px] font-bold text-gold">
-                  {(combo.author.nickname ?? "?")[0]?.toUpperCase()}
+                  {authorDisplayName(combo.author)[0]?.toUpperCase()}
                 </span>
-                {combo.author.nickname ?? "unknown"}
+                {authorDisplayName(combo.author)}
               </span>
               <span>{timeAgo(combo.createdAt)}</span>
             </div>
@@ -254,14 +254,14 @@ export default async function ComboDetailPage({ params }: Props) {
 async function CommentsSection({ comboId, currentUserId }: { comboId: string; currentUserId: string | null }) {
   const commentsRaw = await prisma.comment.findMany({
     where: { comboId },
-    include: { user: { select: { id: true, nickname: true, avatarUrl: true } } },
+    include: { user: { select: { id: true, nickname: true, avatarUrl: true, riotGameName: true, riotTagLine: true } } },
     orderBy: { createdAt: "desc" },
     take: 20,
   });
   const initialComments: CommentDTO[] = commentsRaw.map((c) => ({
     id: c.id,
     content: c.content,
-    author: { id: c.user.id, nickname: c.user.nickname ?? "", avatarUrl: c.user.avatarUrl },
+    author: { id: c.user.id, nickname: c.user.nickname ?? "", avatarUrl: c.user.avatarUrl, riotGameName: c.user.riotGameName, riotTagLine: c.user.riotTagLine },
     createdAt: c.createdAt.toISOString(),
   }));
   return (

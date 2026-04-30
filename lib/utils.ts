@@ -17,6 +17,17 @@ export function formatCount(n: number): string {
   return n.toString();
 }
 
+export function authorDisplayName(author: {
+  nickname: string | null;
+  riotGameName?: string | null;
+  riotTagLine?: string | null;
+}): string {
+  if (author.riotGameName && author.riotTagLine) {
+    return `${author.riotGameName}#${author.riotTagLine}`;
+  }
+  return author.nickname ?? "unknown";
+}
+
 export function timeAgo(date: Date | string): string {
   const d = new Date(date);
   const diff = Date.now() - d.getTime();

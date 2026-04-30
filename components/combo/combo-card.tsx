@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import DifficultyPips from "@/components/shared/difficulty-pips";
 import { KeySequence, inputToKeySequence } from "@/components/shared/keycap";
-import { formatCount, formatDuration, timeAgo } from "@/lib/utils";
+import { formatCount, formatDuration, timeAgo, authorDisplayName } from "@/lib/utils";
 import type { ComboListItemDTO } from "@/lib/api/types";
 
 interface Props {
@@ -99,9 +99,9 @@ export default function ComboCard({ combo, priority = false }: Props) {
         <div className="flex items-center justify-between mt-auto pt-2 border-t border-[rgba(255,255,255,0.06)]">
           <div className="flex items-center gap-1.5">
             <span className="w-5 h-5 rounded-full bg-gold/20 flex items-center justify-center text-[9px] font-bold text-gold">
-              {combo.author.nickname[0]?.toUpperCase()}
+              {authorDisplayName(combo.author)[0]?.toUpperCase()}
             </span>
-            <span className="text-[11px] text-text-secondary">{combo.author.nickname}</span>
+            <span className="text-[11px] text-text-secondary truncate max-w-[100px]">{authorDisplayName(combo.author)}</span>
           </div>
           <div className="flex items-center gap-2.5 text-[11px] text-text-muted">
             <span className="flex items-center gap-0.5">

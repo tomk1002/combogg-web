@@ -6,7 +6,7 @@ export const MOCK_COMBOS: ComboListItemDTO[] = [
   {
     id: "1",
     title: "Riven Q-AA-Q-AA 풀콤보 (6레벨 이후)",
-    author: { id: "u1", nickname: "ComboMaster", avatarUrl: null },
+    author: { id: "u1", nickname: "ComboMaster", avatarUrl: null, riotGameName: null, riotTagLine: null },
     game: { slug: "lol", name: "League of Legends" },
     character: {
       slug: "riven",
@@ -34,7 +34,7 @@ export const MOCK_COMBOS: ComboListItemDTO[] = [
   {
     id: "2",
     title: "Yasuo E-Q 하리케인 콤보",
-    author: { id: "u2", nickname: "SwordDancer", avatarUrl: null },
+    author: { id: "u2", nickname: "RiftKing", avatarUrl: null, riotGameName: null, riotTagLine: null },
     game: { slug: "lol", name: "League of Legends" },
     character: {
       slug: "yasuo",
@@ -60,7 +60,7 @@ export const MOCK_COMBOS: ComboListItemDTO[] = [
   {
     id: "3",
     title: "Zed W-E-Q 섀도우 암살 콤보",
-    author: { id: "u3", nickname: "ShadowKing", avatarUrl: null },
+    author: { id: "u3", nickname: "ShadowKing", avatarUrl: null, riotGameName: null, riotTagLine: null },
     game: { slug: "lol", name: "League of Legends" },
     character: {
       slug: "zed",
@@ -87,7 +87,7 @@ export const MOCK_COMBOS: ComboListItemDTO[] = [
   {
     id: "4",
     title: "Ahri E-Q-R 3단 돌진 콤보",
-    author: { id: "u4", nickname: "FoxGirl", avatarUrl: null },
+    author: { id: "u4", nickname: "FoxGirl", avatarUrl: null, riotGameName: null, riotTagLine: null },
     game: { slug: "lol", name: "League of Legends" },
     character: {
       slug: "ahri",
@@ -114,7 +114,7 @@ export const MOCK_COMBOS: ComboListItemDTO[] = [
   {
     id: "5",
     title: "Lee Sin Q-Q-R 인섹 킥 (고급)",
-    author: { id: "u5", nickname: "InSec", avatarUrl: null },
+    author: { id: "u5", nickname: "InSec", avatarUrl: null, riotGameName: null, riotTagLine: null },
     game: { slug: "lol", name: "League of Legends" },
     character: {
       slug: "leesin",
@@ -140,7 +140,7 @@ export const MOCK_COMBOS: ComboListItemDTO[] = [
   {
     id: "6",
     title: "Lux EQ 스킬샷 콤보",
-    author: { id: "u6", nickname: "LightMage", avatarUrl: null },
+    author: { id: "u6", nickname: "LightMage", avatarUrl: null, riotGameName: null, riotTagLine: null },
     game: { slug: "lol", name: "League of Legends" },
     character: {
       slug: "lux",

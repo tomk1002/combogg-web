@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 import type { ComboListItemDTO, ComboDetailDTO, InputEntryDTO } from "@/lib/api/types";
 
 export const COMBO_INCLUDE = {
-  author: { select: { id: true, nickname: true, avatarUrl: true } },
+  author: { select: { id: true, nickname: true, avatarUrl: true, riotGameName: true, riotTagLine: true } },
   game:   { select: { slug: true, name: true } },
   character: { select: { slug: true, name: true, iconUrl: true } },
 } satisfies Prisma.ComboInclude;
@@ -13,7 +13,7 @@ export function toComboListItem(c: ComboWithRelations): ComboListItemDTO {
   return {
     id: c.id,
     title: c.title,
-    author: { ...c.author, nickname: c.author.nickname ?? "" },
+    author: { ...c.author, nickname: c.author.nickname ?? "", riotGameName: c.author.riotGameName, riotTagLine: c.author.riotTagLine },
     game: c.game,
     character: c.character,
     difficulty: c.difficulty as "easy" | "medium" | "hard",
