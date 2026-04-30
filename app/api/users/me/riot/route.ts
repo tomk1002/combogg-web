@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth/require-auth";
 import { prisma } from "@/lib/db";
 import { ok, badRequest, unauthorized, serverError } from "@/lib/api/response";
 
-const RIOT_API_KEY = process.env.RIOT_API_KEY ?? "";
+const RIOT_API_KEY = (process.env.RIOT_API_KEY ?? "").trim();
 
 export async function POST(req: Request) {
   const session = await getSession();
@@ -23,7 +23,11 @@ export async function POST(req: Request) {
     );
 
     if (accountRes.status === 404) return badRequest("라이엇 계정을 찾을 수 없습니다. 게임명과 태그를 확인해주세요.");
-    if (!accountRes.ok) return badRequest(`라이엇 API 오류 (${accountRes.status})`);
+    if (!accountRes.ok) {
+      const body = await accountRes.text().catch(() => "");
+      console.error("[Riot API]", accountRes.status, body, "key_length:", RIOT_API_KEY.trim().length);
+      return badRequest(`라이엇 API 오류 (${accountRes.status})`);
+    }
 
     const account = await accountRes.json() as { puuid: string; gameName: string; tagLine: string };
 
