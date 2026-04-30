@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import DifficultyPips from "@/components/shared/difficulty-pips";
 import LolUploadForm from "@/components/games/lol/lol-upload-form";
+import InputKeyMapper, { type MappableEntry } from "@/components/upload/input-key-mapper";
 import type { Difficulty } from "@/types";
 import type { LolGameSpecific } from "@/lib/games/lol/schema";
 
@@ -12,9 +13,11 @@ interface Combo {
   id: string;
   title: string;
   description: string | null;
+  tip: string | null;
   difficulty: string;
   tags: string[];
   gameSpecific: unknown;
+  inputSummary: unknown;
   thumbnailUrl: string | null;
   videoUrl: string | null;
   game: { slug: string };
@@ -133,6 +136,10 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
 
   const [title, setTitle] = useState(combo.title);
   const [description, setDescription] = useState(combo.description ?? "");
+  const [tip, setTip] = useState(combo.tip ?? "");
+  const [inputSummary, setInputSummary] = useState<MappableEntry[]>(
+    (combo.inputSummary as MappableEntry[]) ?? []
+  );
   const [difficulty, setDifficulty] = useState<Difficulty>(
     (combo.difficulty as Difficulty) ?? "medium"
   );
@@ -209,9 +216,11 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
         body: JSON.stringify({
           title: title.trim(),
           description: description.trim() || null,
+          tip: tip.trim() || null,
           difficulty,
           tags,
           gameSpecific: combo.game.slug === "lol" ? gameSpecific : undefined,
+          inputSummary,
           ...(newThumbnailUrl && { thumbnailUrl: newThumbnailUrl }),
           ...(newVideoUrl && { videoUrl: newVideoUrl }),
         }),
@@ -337,15 +346,35 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
           />
         </label>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-semibold">설명</span>
+        <div className="flex flex-col gap-1.5">
+          <span className="flex items-center gap-2 text-sm font-semibold">
+            콤보 설명
+            <span className={`ml-auto text-[11px] font-normal ${description.length > 100 ? "text-hard" : "text-text-muted"}`}>{description.length} / 100</span>
+          </span>
           <textarea
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={4}
+            onChange={(e) => setDescription(e.target.value.slice(0, 100))}
+            rows={2}
+            maxLength={100}
+            placeholder="한 줄 요약 (최대 100자)"
             className="px-3 py-2 rounded-lg border border-border bg-surface-overlay text-sm focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors resize-none"
           />
-        </label>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <span className="flex items-center gap-2 text-sm font-semibold">
+            팁
+            <span className={`ml-auto text-[11px] font-normal ${tip.length > 200 ? "text-hard" : "text-text-muted"}`}>{tip.length} / 200</span>
+          </span>
+          <textarea
+            value={tip}
+            onChange={(e) => setTip(e.target.value.slice(0, 200))}
+            rows={3}
+            maxLength={200}
+            placeholder="상세 팁, 주의사항, 상황 설명 등 (최대 200자, 선택)"
+            className="px-3 py-2 rounded-lg border border-border bg-surface-overlay text-sm focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors resize-none"
+          />
+        </div>
 
         {/* Difficulty */}
         <div className="flex flex-col gap-2">
@@ -381,6 +410,22 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
           <p className="text-[11px] text-text-muted">쉼표(,)로 태그를 구분하세요</p>
         </label>
       </div>
+
+      {/* 슬롯 매핑 */}
+      {combo.game.slug === "lol" && inputSummary.length > 0 && (
+        <div className="bg-surface-raised rounded-xl border border-border overflow-hidden">
+          <div className="px-6 pt-5 pb-1">
+            <p className="text-xs font-bold uppercase tracking-wide text-text-secondary">슬롯 매핑</p>
+            <p className="text-[11px] text-text-muted mt-0.5">아이템 슬롯·소환사 주문을 실제 아이템으로 수정할 수 있습니다</p>
+          </div>
+          <InputKeyMapper
+            inputs={inputSummary}
+            items={items}
+            patch={patch}
+            onChange={setInputSummary}
+          />
+        </div>
+      )}
 
       {/* LoL-specific */}
       {combo.game.slug === "lol" && (

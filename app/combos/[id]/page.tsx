@@ -183,7 +183,10 @@ export default async function ComboDetailPage({ params }: Props) {
             </div>
             <h1 className="text-2xl font-black tracking-tight mb-3">{combo.title}</h1>
             {combo.description && (
-              <p className="text-text-secondary text-sm mb-3 leading-relaxed whitespace-pre-wrap">{combo.description}</p>
+              <p className="text-text-secondary text-sm mb-2 leading-relaxed">{combo.description}</p>
+            )}
+            {combo.tip && (
+              <p className="text-text-secondary text-sm mb-3 leading-relaxed whitespace-pre-wrap border-l-2 border-gold/40 pl-3">{combo.tip}</p>
             )}
             <div className="flex items-center gap-4 text-sm text-text-secondary">
               <span className="flex items-center gap-1.5">

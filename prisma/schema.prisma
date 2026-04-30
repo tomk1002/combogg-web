@@ -152,6 +152,7 @@ model Combo {
   id           String      @id @default(cuid())
   title        String
   description  String?     @db.Text
+  tip          String?     @db.Text
   authorId     String
   gameId       String
   characterId  String

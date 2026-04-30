@@ -43,6 +43,7 @@ export interface ComboListItemDTO {
 
 export interface ComboDetailDTO extends ComboListItemDTO {
   description: string | null;
+  tip: string | null;
   gameSpecific: Record<string, unknown>;
   videoUrl: string | null;
   tutfileUrl: string | null;

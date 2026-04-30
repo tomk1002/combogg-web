@@ -30,12 +30,13 @@ export function toComboListItem(c: ComboWithRelations): ComboListItemDTO {
 }
 
 export function toComboDetail(
-  c: ComboWithRelations & { description: string | null; gameSpecific: unknown; videoUrl: string | null; tutfileUrl: string | null },
+  c: ComboWithRelations & { description: string | null; tip: string | null; gameSpecific: unknown; videoUrl: string | null; tutfileUrl: string | null },
   isLiked: boolean
 ): ComboDetailDTO {
   return {
     ...toComboListItem(c),
     description: c.description,
+    tip: c.tip,
     gameSpecific: (c.gameSpecific as Record<string, unknown>) ?? {},
     videoUrl: c.videoUrl,
     tutfileUrl: c.tutfileUrl,

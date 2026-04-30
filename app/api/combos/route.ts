@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     }
 
     // ── 앱 업로드 흐름: 메타데이터 직접 전달 ──────────────────────
-    const { title, description, gameSlug, characterSlug, difficulty, tags,
+    const { title, description, tip, gameSlug, characterSlug, difficulty, tags,
             durationMs, inputSummary, gameSpecific, thumbnailUrl, videoUrl,
             tutfileUrl, patchVersion } = body;
 
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
 
     const combo = await prisma.combo.create({
       data: {
-        title, description, authorId: userId,
+        title, description, tip, authorId: userId,
         gameId: game.id, characterId: character.id,
         difficulty, tags: tags ?? [],
         durationMs,
@@ -103,11 +103,12 @@ export async function POST(req: Request) {
 
 // ── tutfile 서버 처리 ─────────────────────────────────────────
 async function handleTutfileUpload(userId: string, body: Record<string, unknown>) {
-  const { tutfilePath, title, description, characterSlug, difficulty, tags,
+  const { tutfilePath, title, description, tip, characterSlug, difficulty, tags,
           gameSpecific: gameSpecificOverride, thumbnailUrl } = body as {
     tutfilePath: string;
     title?: string;
     description?: string;
+    tip?: string;
     characterSlug?: string;
     difficulty?: string;
     tags?: string[];
@@ -179,6 +180,7 @@ async function handleTutfileUpload(userId: string, body: Record<string, unknown>
     data: {
       title:        title ?? manifest.title,
       description:  description ?? null,
+      tip:          tip ?? null,
       authorId:     userId,
       gameId:       game.id,
       characterId:  character.id,

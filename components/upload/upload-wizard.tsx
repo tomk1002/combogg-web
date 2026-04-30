@@ -3,10 +3,11 @@
 import { useState, useRef, useCallback, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { parseTutfile, parseAppComboJson, buildInputSummary, type ParsedTutfile } from "@/lib/tutfile";
+import { parseTutfile, parseAppComboJson, buildInputSummary, type ParsedTutfile, type ParsedInput } from "@/lib/tutfile";
 import { KeySequence, inputToKeySequence } from "@/components/shared/keycap";
 import DifficultyPips from "@/components/shared/difficulty-pips";
 import LolUploadForm from "@/components/games/lol/lol-upload-form";
+import InputKeyMapper from "@/components/upload/input-key-mapper";
 import type { LolGameSpecific } from "@/lib/games/lol/schema";
 import type { Difficulty } from "@/types";
 import { getChampIconUrl } from "@/lib/games/lol/ddragon";
@@ -38,6 +39,7 @@ const DRAFT_KEY = "combogg_upload_draft";
 interface DraftData {
   title: string;
   description: string;
+  tip: string;
   difficulty: Difficulty;
   tagsInput: string;
   character: string;
@@ -286,6 +288,8 @@ export default function UploadWizard({ characters, patch, items }: Props) {
   // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [tip, setTip] = useState("");
+  const [editedInputs, setEditedInputs] = useState<ParsedInput[]>([]);
   const [characterSlug, setCharacterSlug] = useState("");
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [tags, setTags] = useState("");
@@ -312,6 +316,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
     if (!draft) return;
     if (draft.title)       setTitle(draft.title);
     if (draft.description) setDescription(draft.description);
+    if (draft.tip)         setTip(draft.tip);
     if (draft.difficulty)  setDifficulty(draft.difficulty);
     if (draft.tagsInput)   setTags(draft.tagsInput);
     if (draft.character)   setCharacterSlug(draft.character);
@@ -328,7 +333,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
 
   const resetForm = () => {
     setStep("drop"); setFile(null); setParsed(null); setError(null);
-    setVideoFile(null); setIsJsonMode(false); setAiFilledFields(new Set());
+    setEditedInputs([]); setVideoFile(null); setIsJsonMode(false); setAiFilledFields(new Set());
     setThumbnailFile(null);
     if (videoSrc) { URL.revokeObjectURL(videoSrc); setVideoSrc(null); }
   };
@@ -343,6 +348,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
         const data = await parseTutfile(buffer);
         setFile(f);
         setParsed(data);
+        setEditedInputs(data.inputs);
         setTitle(data.manifest.title);
         setCharacterSlug(data.manifest.character);
         setDifficulty(data.manifest.difficulty);
@@ -350,7 +356,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
         const parsedGs = (data.manifest.game_specific as Partial<LolGameSpecific>) ?? {};
         setGameSpecific(parsedGs);
         setIsJsonMode(false);
-        saveDraft({ title: data.manifest.title, description, difficulty: data.manifest.difficulty, tagsInput: data.manifest.tags.join(", "), character: data.manifest.character, gameSpecific: parsedGs });
+        saveDraft({ title: data.manifest.title, description, tip, difficulty: data.manifest.difficulty, tagsInput: data.manifest.tags.join(", "), character: data.manifest.character, gameSpecific: parsedGs });
         // 영상이 있으면 blob URL 생성
         if (data.videoBuffer) {
           const blob = new Blob([data.videoBuffer.buffer as ArrayBuffer], { type: "video/mp4" });
@@ -377,6 +383,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
         };
         setFile(f);
         setParsed(syntheticParsed);
+        setEditedInputs(parsedJson.inputs);
         setTitle(parsedJson.title);
         setCharacterSlug(parsedJson.characterSlug);
         setTags(parsedJson.tags.join(", "));
@@ -384,7 +391,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
         setIsJsonMode(true);
         setVideoSrc(null);
         setStep("form");
-        saveDraft({ title: parsedJson.title, description, difficulty, tagsInput: parsedJson.tags.join(", "), character: parsedJson.characterSlug, gameSpecific: {} });
+        saveDraft({ title: parsedJson.title, description, tip, difficulty, tagsInput: parsedJson.tags.join(", "), character: parsedJson.characterSlug, gameSpecific: {} });
       } catch (e) {
         setError(e instanceof Error ? e.message : "JSON 파일을 파싱할 수 없습니다");
       }
@@ -450,14 +457,14 @@ export default function UploadWizard({ characters, patch, items }: Props) {
         let videoUrl: string | undefined;
         if (videoFile) { const v = await uploadFile("videos", videoFile, "video/mp4"); videoUrl = v.publicUrl; }
         const { path: jsonPath } = await uploadFile("tutfiles", file, "application/json");
-        const r = await fetch("/api/combos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: title.trim(), description: description.trim() || undefined, gameSlug: parsed.manifest.game, characterSlug, difficulty, tags: tags.split(",").map((t) => t.trim()).filter(Boolean), durationMs: parsed.manifest.duration_ms, inputSummary: buildInputSummary(parsed.inputs), gameSpecific, thumbnailUrl, videoUrl, tutfileUrl: jsonPath }) });
+        const r = await fetch("/api/combos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: title.trim(), description: description.trim() || undefined, tip: tip.trim() || undefined, gameSlug: parsed.manifest.game, characterSlug, difficulty, tags: tags.split(",").map((t) => t.trim()).filter(Boolean), durationMs: parsed.manifest.duration_ms, inputSummary: buildInputSummary(editedInputs.length ? editedInputs : parsed.inputs), gameSpecific, thumbnailUrl, videoUrl, tutfileUrl: jsonPath }) });
         if (!r.ok) throw new Error((await r.json()).error ?? "콤보 등록 실패");
         const { id } = await r.json();
         setStep("done"); setTimeout(() => router.push(`/combos/${id}`), 800);
         return;
       }
       const { path } = await uploadFile("tutfiles", file, "application/octet-stream");
-      const r = await fetch("/api/combos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tutfilePath: path, title: title.trim(), description: description.trim() || undefined, characterSlug, difficulty, tags: tags.split(",").map((t) => t.trim()).filter(Boolean), gameSpecific, thumbnailUrl }) });
+      const r = await fetch("/api/combos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tutfilePath: path, title: title.trim(), description: description.trim() || undefined, tip: tip.trim() || undefined, characterSlug, difficulty, tags: tags.split(",").map((t) => t.trim()).filter(Boolean), gameSpecific, thumbnailUrl }) });
       if (!r.ok) throw new Error((await r.json()).error ?? "콤보 등록 실패");
       const { id } = await r.json();
       setStep("done"); setTimeout(() => router.push(`/combos/${id}`), 800);
@@ -508,7 +515,8 @@ export default function UploadWizard({ characters, patch, items }: Props) {
   }
 
   // ── Step: form ────────────────────────────────────────────────
-  const keys = parsed ? inputToKeySequence(parsed.inputs.map(({ category, ref, slot }) => ({ category, ref, slot }))) : [];
+  const displayInputs = editedInputs.length ? editedInputs : (parsed?.inputs ?? []);
+  const keys = inputToKeySequence(displayInputs.map(({ category, ref, slot }) => ({ category, ref, slot })));
   const isAiFilled = aiFilledFields.size > 0;
 
   return (
@@ -525,15 +533,35 @@ export default function UploadWizard({ characters, patch, items }: Props) {
         </button>
       </div>
 
-      {/* 입력 시퀀스 미리보기 */}
+      {/* 입력 시퀀스 미리보기 + 키 매핑 편집 */}
       {keys.length > 0 && (
-        <div className="bg-surface-raised rounded-xl p-5 border border-border">
-          <p className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">파싱된 입력 시퀀스</p>
-          <KeySequence keys={keys} size="sm" maxKeys={12} />
-          {parsed && (
-            <p className="text-[11px] text-text-muted mt-2">
-              총 {parsed.inputs.length}개 입력{parsed.manifest.duration_ms ? ` · ${(parsed.manifest.duration_ms / 1000).toFixed(1)}초` : ""}
-            </p>
+        <div className="bg-surface-raised rounded-xl border border-border overflow-hidden">
+          <div className="p-5">
+            <p className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">파싱된 입력 시퀀스</p>
+            <KeySequence keys={keys} size="sm" maxKeys={12} />
+            {parsed && (
+              <p className="text-[11px] text-text-muted mt-2">
+                총 {displayInputs.length}개 입력{parsed.manifest.duration_ms ? ` · ${(parsed.manifest.duration_ms / 1000).toFixed(1)}초` : ""}
+              </p>
+            )}
+          </div>
+          {parsed?.manifest.game === "lol" && (
+            <div className="border-t border-border">
+              <div className="px-5 pt-4 pb-1">
+                <p className="text-xs font-bold uppercase tracking-wide text-text-secondary">슬롯 매핑</p>
+                <p className="text-[11px] text-text-muted mt-0.5">아이템 슬롯·소환사 주문을 실제 스킬/아이템으로 지정하세요</p>
+              </div>
+              <InputKeyMapper
+                inputs={displayInputs}
+                items={items}
+                patch={patch}
+                onChange={(updated) =>
+                  setEditedInputs((prev) =>
+                    prev.map((inp, i) => ({ ...inp, ref: updated[i]?.ref ?? inp.ref }))
+                  )
+                }
+              />
+            </div>
           )}
         </div>
       )}
@@ -575,20 +603,45 @@ export default function UploadWizard({ characters, patch, items }: Props) {
         {/* 제목 */}
         <label className="flex flex-col gap-1.5">
           <span className="flex items-center gap-2 text-sm font-semibold">제목 <span className="text-hard">*</span>{aiFilledFields.has("title") && <AiBadge />}</span>
-          <input type="text" required value={title} onChange={(e) => { setTitle(e.target.value); saveDraft({ title: e.target.value, description, difficulty, tagsInput: tags, character: characterSlug, gameSpecific }); }} placeholder="콤보 제목을 입력하세요" className={fieldCls(aiFilledFields.has("title"))} />
+          <input type="text" required value={title} onChange={(e) => { setTitle(e.target.value); saveDraft({ title: e.target.value, description, tip, difficulty, tagsInput: tags, character: characterSlug, gameSpecific }); }} placeholder="콤보 제목을 입력하세요" className={fieldCls(aiFilledFields.has("title"))} />
         </label>
 
-        {/* 설명 */}
-        <label className="flex flex-col gap-1.5">
-          <span className="flex items-center gap-2 text-sm font-semibold">설명{aiFilledFields.has("description") && <AiBadge />}</span>
-          <textarea rows={3} value={description} onChange={(e) => { setDescription(e.target.value); saveDraft({ title, description: e.target.value, difficulty, tagsInput: tags, character: characterSlug, gameSpecific }); }} placeholder="콤보에 대한 추가 설명 (선택)"
-            className={`px-3 py-2 rounded-lg border bg-surface-overlay text-sm resize-none focus:outline-none transition-colors ${aiFilledFields.has("description") ? "border-gold/40 focus:border-gold/60" : "border-border focus:border-[rgba(255,255,255,0.3)]"}`} />
-        </label>
+        {/* 콤보 설명 */}
+        <div className="flex flex-col gap-1.5">
+          <span className="flex items-center gap-2 text-sm font-semibold">
+            콤보 설명{aiFilledFields.has("description") && <AiBadge />}
+            <span className={`ml-auto text-[11px] font-normal ${description.length > 100 ? "text-hard" : "text-text-muted"}`}>{description.length} / 100</span>
+          </span>
+          <textarea
+            rows={2}
+            maxLength={100}
+            value={description}
+            onChange={(e) => { setDescription(e.target.value); saveDraft({ title, description: e.target.value, tip, difficulty, tagsInput: tags, character: characterSlug, gameSpecific }); }}
+            placeholder="한 줄 요약 (최대 100자)"
+            className={`px-3 py-2 rounded-lg border bg-surface-overlay text-sm resize-none focus:outline-none transition-colors ${aiFilledFields.has("description") ? "border-gold/40 focus:border-gold/60" : "border-border focus:border-[rgba(255,255,255,0.3)]"}`}
+          />
+        </div>
+
+        {/* 팁 */}
+        <div className="flex flex-col gap-1.5">
+          <span className="flex items-center gap-2 text-sm font-semibold">
+            팁
+            <span className={`ml-auto text-[11px] font-normal ${tip.length > 200 ? "text-hard" : "text-text-muted"}`}>{tip.length} / 200</span>
+          </span>
+          <textarea
+            rows={3}
+            maxLength={200}
+            value={tip}
+            onChange={(e) => { setTip(e.target.value); saveDraft({ title, description, tip: e.target.value, difficulty, tagsInput: tags, character: characterSlug, gameSpecific }); }}
+            placeholder="상세 팁, 주의사항, 상황 설명 등 (최대 200자, 선택)"
+            className="px-3 py-2 rounded-lg border border-border bg-surface-overlay text-sm resize-none focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors"
+          />
+        </div>
 
         {/* 챔피언 */}
         <div className="flex flex-col gap-1.5">
           <span className="text-sm font-semibold">챔피언 <span className="text-hard">*</span></span>
-          <ChampionPicker characters={characters} patch={patch} value={characterSlug} onChange={(slug) => { setCharacterSlug(slug); saveDraft({ title, description, difficulty, tagsInput: tags, character: slug, gameSpecific }); }} />
+          <ChampionPicker characters={characters} patch={patch} value={characterSlug} onChange={(slug) => { setCharacterSlug(slug); saveDraft({ title, description, tip, difficulty, tagsInput: tags, character: slug, gameSpecific }); }} />
         </div>
 
         {/* 난이도 */}
@@ -596,7 +649,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
           <span className="flex items-center gap-2 text-sm font-semibold">난이도{aiFilledFields.has("difficulty") && <AiBadge />}</span>
           <div className="flex gap-2">
             {DIFFICULTY_OPTIONS.map(({ value: v }) => (
-              <button key={v} type="button" onClick={() => { setDifficulty(v); saveDraft({ title, description, difficulty: v, tagsInput: tags, character: characterSlug, gameSpecific }); }}
+              <button key={v} type="button" onClick={() => { setDifficulty(v); saveDraft({ title, description, tip, difficulty: v, tagsInput: tags, character: characterSlug, gameSpecific }); }}
                 className={`flex-1 h-9 rounded-lg border text-sm font-semibold transition-colors cursor-pointer ${difficulty === v ? "bg-surface-overlay border-[rgba(255,255,255,0.24)] text-text" : "border-border text-text-secondary hover:text-text"}`}>
                 <DifficultyPips difficulty={v} className="justify-center" />
               </button>
@@ -607,7 +660,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
         {/* 태그 */}
         <label className="flex flex-col gap-1.5">
           <span className="flex items-center gap-2 text-sm font-semibold">태그{aiFilledFields.has("tags") && <AiBadge />}</span>
-          <input type="text" value={tags} onChange={(e) => { setTags(e.target.value); saveDraft({ title, description, difficulty, tagsInput: e.target.value, character: characterSlug, gameSpecific }); }} placeholder="풀콤보, 라인전, 6레벨 (쉼표로 구분)" className={fieldCls(aiFilledFields.has("tags"))} />
+          <input type="text" value={tags} onChange={(e) => { setTags(e.target.value); saveDraft({ title, description, tip, difficulty, tagsInput: e.target.value, character: characterSlug, gameSpecific }); }} placeholder="풀콤보, 라인전, 6레벨 (쉼표로 구분)" className={fieldCls(aiFilledFields.has("tags"))} />
         </label>
 
         {/* 동영상 (JSON 모드) */}
@@ -653,7 +706,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
             </div>
           )}
           <div className="bg-surface-raised">
-            <LolUploadForm value={gameSpecific} onChange={(gs) => { setGameSpecific(gs); saveDraft({ title, description, difficulty, tagsInput: tags, character: characterSlug, gameSpecific: gs }); }} items={items} patch={patch} />
+            <LolUploadForm value={gameSpecific} onChange={(gs) => { setGameSpecific(gs); saveDraft({ title, description, tip, difficulty, tagsInput: tags, character: characterSlug, gameSpecific: gs }); }} items={items} patch={patch} />
           </div>
         </div>
       )}
