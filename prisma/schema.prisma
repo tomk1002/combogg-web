@@ -57,10 +57,11 @@ model User {
   riotLP              Int?
   riotTopMasteries    Json?
 
-  combos    Combo[]
-  likes     Like[]
-  comments  Comment[]
-  downloads Download[]
+  combos      Combo[]
+  likes       Like[]
+  comments    Comment[]
+  downloads   Download[]
+  savedCombos SavedCombo[]
 
   // Auth.js relations
   accounts Account[]
@@ -177,6 +178,7 @@ model Combo {
   likes     Like[]
   comments  Comment[]
   downloads Download[]
+  savedBy   SavedCombo[]
 
   @@index([gameId, characterId])
   @@index([status, createdAt(sort: Desc)])
@@ -226,4 +228,18 @@ model Download {
   combo Combo  @relation(fields: [comboId], references: [id], onDelete: Cascade)
 
   @@map("downloads")
+}
+
+model SavedCombo {
+  id      String   @id @default(cuid())
+  userId  String
+  comboId String
+  savedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  combo Combo @relation(fields: [comboId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, comboId])
+  @@index([userId, savedAt(sort: Desc)])
+  @@map("saved_combos")
 }

@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import ComboCard from "@/components/combo/combo-card";
 import { prisma } from "@/lib/db";
+import { auth } from "@/lib/auth";
 
 export const revalidate = 30;
 import { COMBO_INCLUDE, toComboListItem } from "@/lib/combo-queries";
@@ -38,8 +39,12 @@ export default async function UserProfilePage({ params, searchParams }: Props) {
   const { tab } = await searchParams;
 
   const isLikesTab = tab === "likes";
+  const isSavedTab = tab === "saved";
 
-  const [user, combos, likedCombos] = await Promise.all([
+  const session = await auth();
+  const isOwnProfile = session?.user?.id === id;
+
+  const [user, combos, likedCombos, savedCombos] = await Promise.all([
     prisma.user.findUnique({
       where: { id },
       select: {
@@ -68,6 +73,14 @@ export default async function UserProfilePage({ params, searchParams }: Props) {
           take: 18,
         })
       : Promise.resolve([]),
+    isSavedTab && isOwnProfile
+      ? prisma.savedCombo.findMany({
+          where: { userId: id },
+          include: { combo: { include: COMBO_INCLUDE } },
+          orderBy: { savedAt: "desc" },
+          take: 18,
+        })
+      : Promise.resolve([]),
   ]);
 
   if (!user) notFound();
@@ -76,8 +89,11 @@ export default async function UserProfilePage({ params, searchParams }: Props) {
   const likedItems = likedCombos
     .filter((l) => l.combo.status === "published")
     .map((l) => toComboListItem(l.combo));
+  const savedItems = savedCombos
+    .filter((s) => s.combo.status === "published")
+    .map((s) => toComboListItem(s.combo));
 
-  const displayItems = isLikesTab ? likedItems : items;
+  const displayItems = isSavedTab ? savedItems : isLikesTab ? likedItems : items;
 
   return (
     <main className="flex-1 max-w-[var(--width-content)] mx-auto px-4 sm:px-8 py-10 w-full">
@@ -159,7 +175,7 @@ export default async function UserProfilePage({ params, searchParams }: Props) {
         <Link
           href={`/users/${id}`}
           className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${
-            !isLikesTab
+            !isLikesTab && !isSavedTab
               ? "border-gold text-text"
               : "border-transparent text-text-secondary hover:text-text"
           }`}
@@ -177,6 +193,18 @@ export default async function UserProfilePage({ params, searchParams }: Props) {
         >
           좋아요
         </Link>
+        {isOwnProfile && (
+          <Link
+            href={`/users/${id}?tab=saved`}
+            className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${
+              isSavedTab
+                ? "border-gold text-text"
+                : "border-transparent text-text-secondary hover:text-text"
+            }`}
+          >
+            저장한 콤보
+          </Link>
+        )}
       </div>
 
       {/* Combo grid */}
@@ -188,7 +216,9 @@ export default async function UserProfilePage({ params, searchParams }: Props) {
         </div>
       ) : (
         <p className="text-center text-text-secondary py-20">
-          {isLikesTab
+          {isSavedTab
+            ? "저장한 콤보가 없습니다."
+            : isLikesTab
             ? "아직 좋아요한 콤보가 없습니다."
             : "아직 게시한 콤보가 없습니다."}
         </p>

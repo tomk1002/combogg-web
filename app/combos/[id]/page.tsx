@@ -13,6 +13,7 @@ import ComboComments from "@/components/combo/combo-comments";
 import ComboCard from "@/components/combo/combo-card";
 import ComboAuthorActions from "@/components/combo/combo-author-actions";
 import ComboShareButton from "@/components/combo/combo-share-button";
+import SaveComboButton from "@/components/combo/save-combo-button";
 import { formatCount, formatDuration, timeAgo } from "@/lib/utils";
 import type { InputEntryDTO, CommentDTO } from "@/lib/api/types";
 import type { LolGameSpecific } from "@/lib/games/lol/schema";
@@ -60,10 +61,15 @@ export default async function ComboDetailPage({ params }: Props) {
   const combo = await getCombo(id);
   if (!combo) notFound();
 
-  // 좋아요 여부만 여기서 확인 (댓글·관련 콤보는 Suspense로 스트리밍)
-  const isLikedRecord = userId
-    ? await prisma.like.findUnique({ where: { userId_comboId: { userId, comboId: id } } })
-    : null;
+  // 좋아요·저장 여부 병렬 조회 (댓글·관련 콤보는 Suspense로 스트리밍)
+  const [isLikedRecord, isSavedRecord] = await Promise.all([
+    userId
+      ? prisma.like.findUnique({ where: { userId_comboId: { userId, comboId: id } } })
+      : null,
+    userId
+      ? prisma.savedCombo.findUnique({ where: { userId_comboId: { userId, comboId: id } } })
+      : null,
+  ]);
 
   // 조회수 +1 (fire-and-forget)
   prisma.combo.update({ where: { id }, data: { viewCount: { increment: 1 } } }).catch(() => {});
@@ -72,6 +78,7 @@ export default async function ComboDetailPage({ params }: Props) {
   const keys = inputToKeySequence(inputSummary);
   const gameSpecific = (combo.gameSpecific as unknown as Partial<LolGameSpecific>) ?? {};
   const isLiked = !!isLikedRecord;
+  const isSaved = !!isSavedRecord;
 
   return (
     <main className="flex-1 max-w-[var(--width-content)] mx-auto px-4 sm:px-8 py-6 sm:py-10 w-full">
@@ -124,6 +131,9 @@ export default async function ComboDetailPage({ params }: Props) {
             tutfileUrl={combo.tutfileUrl}
             isLoggedIn={!!userId}
           />
+
+          {/* Save to my library */}
+          <SaveComboButton comboId={id} initialIsSaved={isSaved} isLoggedIn={!!userId} />
 
           {/* Share */}
           <ComboShareButton comboId={id} />
