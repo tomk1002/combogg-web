@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { parseTutfile, parseAppComboJson, buildInputSummary, type ParsedTutfile, type ParsedInput } from "@/lib/tutfile";
 import { KeySequence, inputToKeySequence } from "@/components/shared/keycap";
 import DifficultyPips from "@/components/shared/difficulty-pips";
@@ -483,6 +484,22 @@ export default function UploadWizard({ characters, patch, items }: Props) {
           <h1 className="text-2xl font-black tracking-tight mb-1">콤보 업로드</h1>
           <p className="text-text-secondary text-sm">데스크톱 앱에서 녹화한 .tutfile 또는 .json 파일을 업로드하세요</p>
         </div>
+
+        {/* Guide callout */}
+        <div className="flex items-start gap-3 px-4 py-3.5 rounded-xl bg-gold/8 border border-gold/20">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-gold mt-0.5">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8"/>
+            <path d="M12 8v4m0 4h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+          </svg>
+          <div className="text-sm leading-relaxed">
+            <span className="font-semibold text-text">.tutfile이 없다면?</span>
+            <span className="text-text-secondary"> combo.gg 앱으로 게임에서 콤보를 녹화하면 자동으로 생성됩니다.</span>
+            <Link href="/download" className="ml-1.5 text-gold font-semibold hover:underline whitespace-nowrap">
+              앱 다운로드 →
+            </Link>
+          </div>
+        </div>
+
         <button type="button"
           className={`w-full border-2 border-dashed rounded-2xl p-16 flex flex-col items-center gap-4 transition-colors cursor-pointer ${isDragging ? "border-gold bg-gold/5" : "border-border hover:border-[rgba(255,255,255,0.24)] bg-surface-raised"}`}
           onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}

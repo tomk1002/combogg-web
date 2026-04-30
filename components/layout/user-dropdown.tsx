@@ -80,16 +80,6 @@ export default function UserDropdown() {
               내 프로필
             </Link>
             <Link
-              href="/upload"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-text hover:bg-surface-overlay transition-colors"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="shrink-0 text-text-secondary">
-                <path d="M12 20V4m0 0L6 10m6-6 6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              콤보 업로드
-            </Link>
-            <Link
               href="/settings"
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-text hover:bg-surface-overlay transition-colors"

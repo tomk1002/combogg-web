@@ -12,12 +12,15 @@ export default function DownloadPage() {
         <p className="text-text-secondary text-lg mb-8 max-w-md mx-auto">
           인게임 오버레이로 콤보를 실시간 연습하세요
         </p>
-        <button
-          disabled
-          className="inline-flex items-center gap-2 px-8 h-12 rounded-xl bg-gold text-white font-bold text-sm shadow-[0_2px_8px_rgba(184,134,11,0.32)] opacity-60 cursor-not-allowed mb-3"
-        >
-          Windows 다운로드 — 준비 중
-        </button>
+        <div className="inline-flex flex-col items-center gap-2 mb-3">
+          <span className="inline-flex items-center gap-2.5 px-8 h-12 rounded-xl bg-gold text-white font-bold text-sm shadow-[0_4px_16px_var(--color-gold-muted)] cursor-default select-none">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M12 16V4m0 12L8 9m4 7 4-7M3 20h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Windows 다운로드
+            <span className="text-[10px] font-semibold bg-white/20 px-1.5 py-0.5 rounded-full">출시 예정</span>
+          </span>
+        </div>
         <p className="text-xs text-text-muted">Windows 10 / 11 · Overwolf 필요</p>
       </section>
 
@@ -79,12 +82,10 @@ export default function DownloadPage() {
               <p className="text-sm text-text-secondary mb-2">
                 Overwolf 설치 후 combo.gg 앱을 설치합니다.
               </p>
-              <button
-                disabled
-                className="text-sm text-text-muted opacity-60 cursor-not-allowed"
-              >
-                준비 중
-              </button>
+              <span className="inline-flex items-center gap-1.5 text-sm text-text-muted">
+                <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
+                출시 예정
+              </span>
             </div>
           </div>
         </div>
