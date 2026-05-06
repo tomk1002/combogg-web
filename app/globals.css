@@ -97,7 +97,11 @@ html[data-theme="light"] {
 
 body {
   background-color: var(--color-surface);
-  background-image: radial-gradient(ellipse 120% 45% at 50% -5%, rgba(200, 155, 60, 0.08) 0%, transparent 55%);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse 120% 45% at 50% -5%, rgba(200, 155, 60, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 55% at -5% 100%, rgba(30, 55, 150, 0.20) 0%, transparent 60%),
+    radial-gradient(ellipse 45% 40% at 105% 5%, rgba(80, 40, 150, 0.12) 0%, transparent 55%);
   background-attachment: fixed;
   color: var(--color-text);
   font-family: var(--font-sans);
