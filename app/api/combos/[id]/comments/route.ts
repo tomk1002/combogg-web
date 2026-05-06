@@ -55,6 +55,7 @@ export async function POST(req: Request, { params }: Ctx) {
 
     const { content } = await req.json();
     if (!content?.trim()) return badRequest("댓글 내용을 입력해주세요");
+    if (content.trim().length > 500) return badRequest("댓글은 500자 이하로 입력해주세요");
 
     const comment = await prisma.comment.create({
       data: { comboId: id, userId: session.user.id, content: content.trim() },

@@ -5,6 +5,12 @@ import { verifyDesktopToken } from "@/lib/desktop-token";
 
 const ALLOWED_BUCKETS = Object.values(BUCKETS);
 
+const ALLOWED_EXTENSIONS: Record<string, string[]> = {
+  tutfiles: ["tutfile"],
+  videos: ["mp4", "webm", "mov"],
+  thumbnails: ["jpg", "jpeg", "png", "webp"],
+};
+
 async function resolveUserId(req: Request): Promise<string | null> {
   const auth = req.headers.get("Authorization");
   if (auth?.startsWith("Bearer ")) {
@@ -23,7 +29,10 @@ export async function POST(req: Request) {
     if (!bucket || !filename) return badRequest("bucket과 filename이 필요합니다");
     if (!ALLOWED_BUCKETS.includes(bucket)) return badRequest("허용되지 않는 버킷입니다");
 
-    const ext = filename.split(".").pop();
+    const ext = String(filename).split(".").pop()?.toLowerCase() ?? "";
+    const allowed = ALLOWED_EXTENSIONS[bucket as keyof typeof ALLOWED_EXTENSIONS];
+    if (!allowed || !allowed.includes(ext)) return badRequest("허용되지 않는 파일 형식입니다");
+
     const path = `${userId}/${Date.now()}.${ext}`;
 
     const supabaseAdmin = getSupabaseAdmin();

@@ -7,7 +7,8 @@ interface Props {
 
 export default async function LoginPage({ searchParams }: Props) {
   const { callbackUrl = "/" } = await searchParams;
-  const safeCallback = callbackUrl.startsWith("/") ? callbackUrl : "/";
+  // Block protocol-relative URLs (//evil.com) which pass startsWith("/") check
+  const safeCallback = callbackUrl.startsWith("/") && !callbackUrl.startsWith("//") ? callbackUrl : "/";
   const googleAction = signInWithGoogle.bind(null, safeCallback);
   const discordAction = signInWithDiscord.bind(null, safeCallback);
 

@@ -66,6 +66,9 @@ export async function POST(req: Request) {
     if (!title || !gameSlug || !characterSlug || !difficulty) {
       return badRequest("필수 필드가 누락되었습니다");
     }
+    if (typeof title === "string" && title.length > 100) return badRequest("제목은 100자 이하로 입력해주세요");
+    if (typeof description === "string" && description.length > 2000) return badRequest("설명은 2000자 이하로 입력해주세요");
+    if (Array.isArray(tags) && tags.length > 10) return badRequest("태그는 최대 10개까지 입력 가능합니다");
 
     let validatedGameSpecific: unknown;
     try {

@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { getSession } from "@/lib/auth/require-auth";
-import { badRequest, unauthorized, serverError } from "@/lib/api/response";
+import { badRequest, unauthorized, serverError, tooManyRequests } from "@/lib/api/response";
+import { rateLimit } from "@/lib/api/rate-limit";
 import { NextResponse } from "next/server";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -16,6 +17,8 @@ export async function POST(req: Request) {
   const session = await getSession();
   if (!session?.user?.id) return unauthorized();
 
+  if (!rateLimit(`ai:${session.user.id}`, 10, 60_000)) return tooManyRequests();
+
   const body = await req.json().catch(() => null);
   if (!body) return badRequest("요청 본문이 없습니다");
 
@@ -27,6 +30,8 @@ export async function POST(req: Request) {
   };
 
   if (!character) return badRequest("챔피언은 필수입니다");
+  if (typeof character !== "string" || character.length > 50) return badRequest("챔피언 이름이 올바르지 않습니다");
+  if (!Array.isArray(inputs) || inputs.length > 200) return badRequest("inputs가 올바르지 않습니다");
 
   const inputCount = inputs.length;
   const hasCancelPattern = inputs.some((i) => i.category === "attack_cancel");
@@ -46,19 +51,20 @@ export async function POST(req: Request) {
 
   const durationSec = durationMs ? (durationMs / 1000).toFixed(1) : null;
 
+  // Delimiters prevent user-supplied values from escaping their context in the prompt
   const prompt = `당신은 리그 오브 레전드 콤보 공유 플랫폼의 AI 보조입니다.
 아래 콤보 정보를 분석해서 JSON으로만 응답하세요. 설명이나 마크다운 없이 순수 JSON만 출력.
 
 ## 입력 정보
-- 챔피언: ${character}
-- 입력 시퀀스: ${inputDesc || "(없음)"}
+- 챔피언: [${character.slice(0, 50)}]
+- 입력 시퀀스: [${inputDesc.slice(0, 500) || "(없음)"}]
 - 총 입력 수: ${inputCount}개 (AA/평캔: ${aaCount}개)
 - 콤보 시간: ${durationSec ? `${durationSec}초` : "알 수 없음"}
 - 사용된 스킬: ${skills.join(", ") || "없음"}
 - 평캔 포함: ${hasCancelPattern ? "예" : "아니오"}
 - 플래시 사용: ${hasFlash ? "예" : "아니오"}
 - 궁극기 사용: ${hasUlt ? "예" : "아니오"}
-${patch ? `- 패치: ${patch}` : ""}
+${patch ? `- 패치: [${String(patch).slice(0, 20)}]` : ""}
 
 ## 응답 JSON 형식
 {
