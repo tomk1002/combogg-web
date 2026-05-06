@@ -13,7 +13,7 @@ const VARIANT_STYLES: Record<KeyVariant, string> = {
 
 const SIZE_STYLES: Record<KeySize, { outer: string; inner: string; text: string }> = {
   sm: { outer: "w-6 h-6 rounded-[4px]",    inner: "rounded-[3px] text-[9px]",  text: "text-[9px]"  },
-  md: { outer: "w-8 h-8 rounded-[6px]",    inner: "rounded-[4px] text-[11px]", text: "text-[11px]" },
+  md: { outer: "w-8 h-8 rounded-[6px]",    inner: "rounded-[4px] text-xs", text: "text-xs" },
   lg: { outer: "w-10 h-10 rounded-[7px]",  inner: "rounded-[5px] text-[13px]", text: "text-[13px]" },
 };
 
@@ -69,7 +69,7 @@ export function KeySequence({ keys, size = "sm", maxKeys = 8, className }: KeySe
         <KeyCap key={i} label={k.label} variant={k.variant} size={size} />
       ))}
       {overflow > 0 && (
-        <span className="text-[10px] text-text-muted font-semibold">+{overflow}</span>
+        <span className="text-xs text-text-muted font-semibold">+{overflow}</span>
       )}
     </div>
   );

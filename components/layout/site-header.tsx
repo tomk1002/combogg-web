@@ -9,10 +9,10 @@ export default function SiteHeader() {
     <header className="sticky top-0 z-50 bg-surface/90 backdrop-blur-md border-b border-border">
       <div className="max-w-[var(--width-content)] mx-auto px-4 sm:px-8 py-3.5 flex items-center gap-6">
         <Link href="/" className="inline-flex items-center gap-2 shrink-0">
-          <span className="w-[34px] h-[34px] rounded-[8px] bg-surface-raised border border-border flex items-center justify-center text-[11px] font-black font-mono">
+          <span className="w-[34px] h-[34px] rounded-[8px] bg-surface-raised border border-border flex items-center justify-center text-xs font-black font-mono">
             ⌥▷
           </span>
-          <span className="hidden sm:inline text-[22px] tracking-wide font-display">
+          <span className="hidden sm:inline text-xl font-black tracking-tight">
             COMBO<span className="text-gold">.GG</span>
           </span>
         </Link>

@@ -85,7 +85,7 @@ export default async function Home() {
         <div className="max-w-[var(--width-content)] mx-auto px-4 sm:px-8 py-8 sm:py-12 grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-10 items-center">
           {/* Left */}
           <div>
-            <h1 className="text-3xl lg:text-5xl font-black tracking-wide leading-tight mb-4 font-display">
+            <h1 className="text-3xl lg:text-5xl font-black tracking-tight leading-tight mb-4">
               {t.hero_title1}<br />
               <span className="text-gold">{t.hero_title2}</span>
             </h1>
@@ -111,7 +111,7 @@ export default async function Home() {
               href={`/combos/${featuredCombo.id}`}
               className="hidden lg:block group relative rounded-xl overflow-hidden border border-border bg-surface-raised hover:-translate-y-0.5 transition-transform"
             >
-              <div className="absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gold text-bg text-[13px] font-display tracking-widest">
+              <div className="absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gold text-bg text-xs font-black tracking-widest">
                 <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor">
                   <path d="M5 0l1.4 3.2L10 4 7 6.4 8 10 5 8 2 10l1-3.6L0 4l3.6-.8L5 0z"/>
                 </svg>
@@ -136,7 +136,7 @@ export default async function Home() {
                   </div>
                 </div>
                 {featuredCombo.durationMs && (
-                  <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded bg-black/70 text-white text-[11px] font-mono font-bold">
+                  <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded bg-black/70 text-white text-xs font-mono font-bold">
                     {Math.floor(featuredCombo.durationMs / 60000)}:{String(Math.floor((featuredCombo.durationMs % 60000) / 1000)).padStart(2, "0")}
                   </div>
                 )}
@@ -148,7 +148,7 @@ export default async function Home() {
                     <Image src={featuredCombo.character.iconUrl} alt={featuredCombo.character.name} width={20} height={20} className="rounded" />
                   )}
                   <span className="text-xs font-bold">{featuredCombo.character.name}</span>
-                  <span className="text-[11px] text-text-muted font-mono ml-auto">↓ {featuredCombo.downloadCount.toLocaleString()}</span>
+                  <span className="text-xs text-text-muted font-mono ml-auto">↓ {featuredCombo.downloadCount.toLocaleString()}</span>
                 </div>
                 <h3 className="text-base font-bold tracking-tight">{featuredCombo.title}</h3>
               </div>

@@ -267,7 +267,7 @@ export default function LolUploadForm({ value, onChange, items, patch }: Props) 
                       sizes="28px"
                       className="rounded-sm"
                     />
-                    <span className={`text-[10px] font-semibold leading-none ${active ? "text-gold" : "text-text-secondary"}`}>
+                    <span className={`text-xs font-semibold leading-none ${active ? "text-gold" : "text-text-secondary"}`}>
                       {spell.label}
                     </span>
                   </button>
@@ -331,7 +331,7 @@ export default function LolUploadForm({ value, onChange, items, patch }: Props) 
                 );
               })}
             </div>
-            <p className="text-[10px] text-text-muted">콤보에 필요한 최소 스킬 레벨. 예: R Lv.1 = 6레벨 이상</p>
+            <p className="text-xs text-text-muted">콤보에 필요한 최소 스킬 레벨. 예: R Lv.1 = 6레벨 이상</p>
           </div>
         </div>
       )}

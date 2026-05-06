@@ -130,7 +130,7 @@ export default function OnboardingWizard({ currentNickname, currentEmail }: Prop
             }`}
           />
         ))}
-        <span className="text-[11px] text-text-muted ml-2">{step} / 2</span>
+        <span className="text-xs text-text-muted ml-2">{step} / 2</span>
       </div>
 
       {/* Card */}
@@ -208,7 +208,7 @@ function Step1({ nickname, setNickname, nickCheck, nickError, saving, canProceed
         <div className="flex items-center justify-between">
           <p className="text-xs">{checkMessage}</p>
           {nickError && <p className="text-xs text-hard">{nickError}</p>}
-          <span className="text-[11px] text-text-muted ml-auto">{nickname.length}/24</span>
+          <span className="text-xs text-text-muted ml-auto">{nickname.length}/24</span>
         </div>
       </div>
 

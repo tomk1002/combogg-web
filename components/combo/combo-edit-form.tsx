@@ -98,7 +98,7 @@ function VideoThumbnailPicker({ videoSrc, onCapture }: {
     <div className="flex flex-col gap-2 mt-2">
       <video ref={videoRef} className="hidden" muted playsInline preload="auto" crossOrigin="anonymous" />
       <canvas ref={canvasRef} className="hidden" />
-      <p className="text-[11px] text-text-muted">타임라인을 드래그해서 원하는 프레임을 선택하세요</p>
+      <p className="text-xs text-text-muted">타임라인을 드래그해서 원하는 프레임을 선택하세요</p>
       <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-border bg-surface-overlay">
         {preview ? (
           <Image src={preview} alt="추출 프레임" fill sizes="672px" className="object-cover" />
@@ -110,7 +110,7 @@ function VideoThumbnailPicker({ videoSrc, onCapture }: {
       </div>
       {ready && duration > 0 && (
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-mono text-text-muted w-8 shrink-0">{fmt(currentTime)}</span>
+          <span className="text-xs font-mono text-text-muted w-8 shrink-0">{fmt(currentTime)}</span>
           <input
             type="range" min={0} max={duration} step={0.05} value={currentTime}
             onChange={(e) => {
@@ -122,7 +122,7 @@ function VideoThumbnailPicker({ videoSrc, onCapture }: {
             onTouchEnd={captureFrame}
             className="flex-1 h-1.5 accent-gold cursor-pointer"
           />
-          <span className="text-[10px] font-mono text-text-muted w-8 text-right">{fmt(duration)}</span>
+          <span className="text-xs font-mono text-text-muted w-8 text-right">{fmt(duration)}</span>
         </div>
       )}
     </div>
@@ -277,7 +277,7 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
             <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-border bg-surface-overlay">
               <Image src={thumbnailPreview} alt="썸네일" fill sizes="672px" className="object-cover" />
               {newThumbnailFile && (
-                <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/70 text-[10px] font-semibold text-white">변경됨</div>
+                <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/70 text-xs font-semibold text-white">변경됨</div>
               )}
             </div>
           ) : (
@@ -325,7 +325,7 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
             )}
           </div>
           {newVideoFile && (
-            <p className="text-[11px] text-text-muted">영상을 교체하면 위에서 새 썸네일도 추출할 수 있습니다.</p>
+            <p className="text-xs text-text-muted">영상을 교체하면 위에서 새 썸네일도 추출할 수 있습니다.</p>
           )}
         </div>
       </div>
@@ -349,7 +349,7 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
         <div className="flex flex-col gap-1.5">
           <span className="flex items-center gap-2 text-sm font-semibold">
             콤보 설명
-            <span className={`ml-auto text-[11px] font-normal ${description.length > 100 ? "text-hard" : "text-text-muted"}`}>{description.length} / 100</span>
+            <span className={`ml-auto text-xs font-normal ${description.length > 100 ? "text-hard" : "text-text-muted"}`}>{description.length} / 100</span>
           </span>
           <textarea
             value={description}
@@ -364,7 +364,7 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
         <div className="flex flex-col gap-1.5">
           <span className="flex items-center gap-2 text-sm font-semibold">
             팁
-            <span className={`ml-auto text-[11px] font-normal ${tip.length > 200 ? "text-hard" : "text-text-muted"}`}>{tip.length} / 200</span>
+            <span className={`ml-auto text-xs font-normal ${tip.length > 200 ? "text-hard" : "text-text-muted"}`}>{tip.length} / 200</span>
           </span>
           <textarea
             value={tip}
@@ -407,7 +407,7 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
             placeholder="쉼표로 구분 (예: 풀콤보, 라인전)"
             className="h-10 px-3 rounded-lg border border-border bg-surface-overlay text-sm focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors"
           />
-          <p className="text-[11px] text-text-muted">쉼표(,)로 태그를 구분하세요</p>
+          <p className="text-xs text-text-muted">쉼표(,)로 태그를 구분하세요</p>
         </label>
       </div>
 
@@ -416,7 +416,7 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
         <div className="bg-surface-raised rounded-xl border border-border overflow-hidden">
           <div className="px-6 pt-5 pb-1">
             <p className="text-xs font-bold uppercase tracking-wide text-text-secondary">슬롯 매핑</p>
-            <p className="text-[11px] text-text-muted mt-0.5">아이템 슬롯·소환사 주문을 실제 아이템으로 수정할 수 있습니다</p>
+            <p className="text-xs text-text-muted mt-0.5">아이템 슬롯·소환사 주문을 실제 아이템으로 수정할 수 있습니다</p>
           </div>
           <InputKeyMapper
             inputs={inputSummary}

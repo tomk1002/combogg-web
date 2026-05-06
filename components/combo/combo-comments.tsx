@@ -115,13 +115,13 @@ export default function ComboComments({ comboId, initialComments, currentUserId 
         <div className="flex flex-col divide-y divide-border">
           {comments.map((c) => (
             <div key={c.id} className="py-3 flex items-start gap-3">
-              <div className="w-7 h-7 rounded-full bg-gold/20 flex items-center justify-center text-[11px] font-bold text-gold shrink-0">
+              <div className="w-7 h-7 rounded-full bg-gold/20 flex items-center justify-center text-xs font-bold text-gold shrink-0">
                 {authorDisplayName(c.author)[0]?.toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2 mb-0.5">
                   <span className="text-xs font-semibold">{authorDisplayName(c.author)}</span>
-                  <span className="text-[10px] text-text-muted">{timeAgo(new Date(c.createdAt))}</span>
+                  <span className="text-xs text-text-muted">{timeAgo(new Date(c.createdAt))}</span>
                 </div>
                 {editingId === c.id ? (
                   <div className="flex gap-2 mt-1">
@@ -133,8 +133,8 @@ export default function ComboComments({ comboId, initialComments, currentUserId 
                       autoFocus
                       className="flex-1 h-8 px-2 rounded-md border border-border bg-surface-overlay text-sm focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors"
                     />
-                    <button type="button" onClick={() => handleEdit(c.id)} className="text-[10px] text-gold hover:text-gold-light font-semibold transition-colors cursor-pointer">{t.comment_save}</button>
-                    <button type="button" onClick={cancelEdit} className="text-[10px] text-text-muted hover:text-text transition-colors cursor-pointer">{t.comment_cancel}</button>
+                    <button type="button" onClick={() => handleEdit(c.id)} className="text-xs text-gold hover:text-gold-light font-semibold transition-colors cursor-pointer">{t.comment_save}</button>
+                    <button type="button" onClick={cancelEdit} className="text-xs text-text-muted hover:text-text transition-colors cursor-pointer">{t.comment_cancel}</button>
                   </div>
                 ) : (
                   <p className="text-sm text-text-secondary break-words">{c.content}</p>
@@ -142,10 +142,10 @@ export default function ComboComments({ comboId, initialComments, currentUserId 
               </div>
               {currentUserId === c.author.id && editingId !== c.id && (
                 <div className="flex gap-2 shrink-0">
-                  <button type="button" onClick={() => startEdit(c)} className="text-[10px] text-text-muted hover:text-text transition-colors cursor-pointer">
+                  <button type="button" onClick={() => startEdit(c)} className="text-xs text-text-muted hover:text-text transition-colors cursor-pointer">
                     {t.comment_edit}
                   </button>
-                  <button type="button" onClick={() => handleDelete(c.id)} className="text-[10px] text-text-muted hover:text-hard transition-colors cursor-pointer">
+                  <button type="button" onClick={() => handleDelete(c.id)} className="text-xs text-text-muted hover:text-hard transition-colors cursor-pointer">
                     {t.comment_delete}
                   </button>
                 </div>

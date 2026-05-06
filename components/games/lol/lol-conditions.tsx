@@ -51,19 +51,19 @@ export default async function LolConditions({ gameSpecific, patch = "16.8.1" }: 
             {required_level && (
               <div className="bg-surface-overlay rounded-lg p-3 text-center">
                 <p className="text-lg font-black">{required_level}</p>
-                <p className="text-[10px] text-text-muted mt-0.5">최소 레벨</p>
+                <p className="text-xs text-text-muted mt-0.5">최소 레벨</p>
               </div>
             )}
             {ability_haste_min && (
               <div className="bg-surface-overlay rounded-lg p-3 text-center">
                 <p className="text-lg font-black">{ability_haste_min}</p>
-                <p className="text-[10px] text-text-muted mt-0.5">스킬 가속</p>
+                <p className="text-xs text-text-muted mt-0.5">스킬 가속</p>
               </div>
             )}
             {attack_speed_min && (
               <div className="bg-surface-overlay rounded-lg p-3 text-center">
                 <p className="text-lg font-black">{attack_speed_min}</p>
-                <p className="text-[10px] text-text-muted mt-0.5">공격 속도</p>
+                <p className="text-xs text-text-muted mt-0.5">공격 속도</p>
               </div>
             )}
           </div>
@@ -71,7 +71,7 @@ export default async function LolConditions({ gameSpecific, patch = "16.8.1" }: 
 
         {hasSpells && (
           <div>
-            <p className="text-[10px] font-semibold text-text-muted mb-2">소환사 주문</p>
+            <p className="text-xs font-semibold text-text-muted mb-2">소환사 주문</p>
             <div className="flex gap-2 flex-wrap">
               {summoner_spells!.map((spell) => (
                 <div key={spell} className="flex items-center gap-1.5 bg-surface-overlay rounded-lg px-2.5 py-1.5">
@@ -91,7 +91,7 @@ export default async function LolConditions({ gameSpecific, patch = "16.8.1" }: 
 
         {hasItems && (
           <div>
-            <p className="text-[10px] font-semibold text-text-muted mb-2">필요 아이템</p>
+            <p className="text-xs font-semibold text-text-muted mb-2">필요 아이템</p>
             <div className="flex gap-2 flex-wrap">
               {required_items!.map((itemId) => (
                 <div key={itemId} className="flex items-center gap-1.5 bg-surface-overlay rounded-lg px-2.5 py-1.5">
@@ -111,7 +111,7 @@ export default async function LolConditions({ gameSpecific, patch = "16.8.1" }: 
 
         {hasSkills && (
           <div>
-            <p className="text-[10px] font-semibold text-text-muted mb-2">필요 스킬 레벨</p>
+            <p className="text-xs font-semibold text-text-muted mb-2">필요 스킬 레벨</p>
             <div className="flex gap-2 flex-wrap">
               {Object.entries(required_skills!).map(([skill, level]) => (
                 <div key={skill} className="flex items-center gap-1 bg-surface-overlay rounded-lg px-2.5 py-1.5">

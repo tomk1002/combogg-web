@@ -121,7 +121,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
             <div>
               <div className="flex items-center gap-3">
                 <span className="inline-block w-1 h-7 bg-gold rounded-full" />
-                <h2 className="text-2xl font-extrabold tracking-wide text-gold font-display">
+                <h2 className="text-2xl font-extrabold tracking-tight text-gold">
                   {selectedChamp
                     ? t.filtered_for(characters.find((c) => c.slug === selectedChamp)?.name ?? selectedChamp)
                     : t.trending_kicker}
@@ -164,7 +164,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
             <div className="mb-4">
               <div className="flex items-center gap-3 mb-1.5">
                 <span className="inline-block w-1 h-7 bg-[#4a90e2] rounded-full" />
-                <h2 className="text-2xl font-extrabold tracking-wide text-[#4a90e2] font-display">{t.champ_kicker}</h2>
+                <h2 className="text-2xl font-extrabold tracking-tight text-[#4a90e2]">{t.champ_kicker}</h2>
               </div>
               <p className="text-sm text-text-secondary">{t.champ_subtitle}</p>
             </div>
@@ -182,7 +182,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
                       {c.name[0]}
                     </div>
                   )}
-                  <span className="text-[11px] font-medium text-center leading-tight text-text-secondary">
+                  <span className="text-xs font-medium text-center leading-tight text-text-secondary">
                     {c.name} <span className="text-text-muted">({c.comboCount})</span>
                   </span>
                 </Link>
@@ -199,7 +199,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
             <div>
               <div className="flex items-center gap-3">
                 <span className="inline-block w-1 h-7 bg-easy rounded-full" />
-                <h2 className="text-2xl font-extrabold tracking-wide text-easy font-display">{t.diff_kicker}</h2>
+                <h2 className="text-2xl font-extrabold tracking-tight text-easy">{t.diff_kicker}</h2>
               </div>
             </div>
             <div className="flex items-center gap-1 shrink-0 pb-1">
@@ -236,7 +236,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
                 >
                   <DifficultyPips difficulty={d} />
                   <span>{meta.label}</span>
-                  <span className={`text-[11px] font-mono ${active ? "opacity-70" : "text-text-muted"}`}>{count}</span>
+                  <span className={`text-xs font-mono ${active ? "opacity-70" : "text-text-muted"}`}>{count}</span>
                 </button>
               );
             })}
@@ -267,7 +267,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
               <div>
                 <div className="flex items-center gap-3">
                   <span className="inline-block w-1 h-7 bg-[#9c6fe4] rounded-full" />
-                  <h2 className="text-2xl font-extrabold tracking-wide text-[#9c6fe4] font-display">{t.newest_kicker}</h2>
+                  <h2 className="text-2xl font-extrabold tracking-tight text-[#9c6fe4]">{t.newest_kicker}</h2>
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0 pb-1">
@@ -296,7 +296,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
         <section className="py-10">
           <div className="rounded-xl border border-border bg-surface-raised p-8 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 items-center">
             <div>
-              <div className="text-[10px] font-black tracking-widest text-gold mb-3">{t.cta_kicker}</div>
+              <div className="text-xs font-black tracking-widest text-gold mb-3">{t.cta_kicker}</div>
               <h3 className="text-2xl lg:text-3xl font-extrabold tracking-tight leading-tight mb-3 whitespace-pre-line">
                 {t.cta_title}
               </h3>

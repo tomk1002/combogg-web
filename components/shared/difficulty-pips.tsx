@@ -28,7 +28,7 @@ export default function DifficultyPips({ difficulty, className, forceDark }: Pro
           />
         ))}
       </span>
-      <span className={cn("text-[11px] font-semibold leading-none", forceDark ? "text-white/75" : "text-text-secondary")}>{label}</span>
+      <span className={cn("text-xs font-semibold leading-none", forceDark ? "text-white/75" : "text-text-secondary")}>{label}</span>
     </span>
   );
 }

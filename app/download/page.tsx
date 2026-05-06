@@ -21,7 +21,7 @@ export default async function DownloadPage() {
               <path d="M12 16V4m0 12L8 9m4 7 4-7M3 20h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             {t.dl_btn_windows}
-            <span className="text-[10px] font-semibold bg-white/20 px-1.5 py-0.5 rounded-full">{t.dl_btn_coming_soon}</span>
+            <span className="text-xs font-semibold bg-white/20 px-1.5 py-0.5 rounded-full">{t.dl_btn_coming_soon}</span>
           </span>
         </div>
         <p className="text-xs text-text-muted">{t.dl_system_req}</p>

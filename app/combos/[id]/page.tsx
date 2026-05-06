@@ -121,7 +121,7 @@ export default async function ComboDetailPage({ params }: Props) {
               ].map(({ label, value }) => (
                 <div key={label}>
                   <p className="text-lg font-black">{value}</p>
-                  <p className="text-[10px] text-text-muted">{label}</p>
+                  <p className="text-xs text-text-muted">{label}</p>
                 </div>
               ))}
             </div>
@@ -182,7 +182,7 @@ export default async function ComboDetailPage({ params }: Props) {
             <div className="flex items-center gap-3 mb-2">
               <DifficultyPips difficulty={combo.difficulty} />
               {combo.patchVersion && (
-                <span className="text-[11px] text-text-muted font-semibold">{t.lol_patch_label(combo.patchVersion)}</span>
+                <span className="text-xs text-text-muted font-semibold">{t.lol_patch_label(combo.patchVersion)}</span>
               )}
             </div>
             <h1 className="text-2xl font-black tracking-tight mb-3">{combo.title}</h1>
@@ -194,7 +194,7 @@ export default async function ComboDetailPage({ params }: Props) {
             )}
             <div className="flex items-center gap-4 text-sm text-text-secondary">
               <span className="flex items-center gap-1.5">
-                <span className="w-6 h-6 rounded-full bg-gold/20 flex items-center justify-center text-[10px] font-bold text-gold">
+                <span className="w-6 h-6 rounded-full bg-gold/20 flex items-center justify-center text-xs font-bold text-gold">
                   {authorDisplayName(combo.author)[0]?.toUpperCase()}
                 </span>
                 {authorDisplayName(combo.author)}
@@ -208,7 +208,7 @@ export default async function ComboDetailPage({ params }: Props) {
             <div className="bg-surface-raised rounded-xl p-5 border border-border">
               <h2 className="text-xs font-bold mb-4 text-text-secondary uppercase tracking-wide">{t.detail_input_seq}</h2>
               <KeySequence keys={keys} size="md" maxKeys={12} />
-              <p className="text-[11px] text-text-muted mt-2">
+              <p className="text-xs text-text-muted mt-2">
                 {t.detail_input_count(combo.inputCount)}
                 {combo.durationMs ? ` · ${formatDuration(combo.durationMs)}` : ""}
               </p>

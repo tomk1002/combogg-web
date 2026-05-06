@@ -19,7 +19,7 @@
 ────────────────────────────────────────────────────────── */
 @theme {
   --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --font-display: var(--font-display-loaded), 'Pretendard', -apple-system, sans-serif;
+  --font-display: 'Pretendard', -apple-system, sans-serif;
 
   /* Dark UI surfaces — deep navy */
   --color-surface:         #141A2A;

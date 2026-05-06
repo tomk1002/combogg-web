@@ -235,7 +235,7 @@ function ThumbnailPicker({ videoSrc, onCapture }: {
           <>
             <Image src={preview} alt="썸네일" fill sizes="(max-width: 672px) 100vw, 672px" className="object-cover" />
             {isManual && (
-              <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/70 text-[10px] font-semibold text-white">직접 선택</div>
+              <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/70 text-xs font-semibold text-white">직접 선택</div>
             )}
           </>
         ) : (
@@ -248,7 +248,7 @@ function ThumbnailPicker({ videoSrc, onCapture }: {
       {/* 타임라인 슬라이더 */}
       {videoReady && duration > 0 && (
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-mono text-text-muted w-8 shrink-0">{fmt(currentTime)}</span>
+          <span className="text-xs font-mono text-text-muted w-8 shrink-0">{fmt(currentTime)}</span>
           <input
             type="range"
             min={0}
@@ -260,7 +260,7 @@ function ThumbnailPicker({ videoSrc, onCapture }: {
             onTouchEnd={handleSliderRelease}
             className="flex-1 h-1.5 accent-gold cursor-pointer"
           />
-          <span className="text-[10px] font-mono text-text-muted w-8 shrink-0 text-right">{fmt(duration)}</span>
+          <span className="text-xs font-mono text-text-muted w-8 shrink-0 text-right">{fmt(duration)}</span>
         </div>
       )}
 
@@ -557,7 +557,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
             <p className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">파싱된 입력 시퀀스</p>
             <KeySequence keys={keys} size="sm" maxKeys={12} />
             {parsed && (
-              <p className="text-[11px] text-text-muted mt-2">
+              <p className="text-xs text-text-muted mt-2">
                 총 {displayInputs.length}개 입력{parsed.manifest.duration_ms ? ` · ${(parsed.manifest.duration_ms / 1000).toFixed(1)}초` : ""}
               </p>
             )}
@@ -566,7 +566,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
             <div className="border-t border-border">
               <div className="px-5 pt-4 pb-1">
                 <p className="text-xs font-bold uppercase tracking-wide text-text-secondary">슬롯 매핑</p>
-                <p className="text-[11px] text-text-muted mt-0.5">아이템 슬롯·소환사 주문을 실제 스킬/아이템으로 지정하세요</p>
+                <p className="text-xs text-text-muted mt-0.5">아이템 슬롯·소환사 주문을 실제 스킬/아이템으로 지정하세요</p>
               </div>
               <InputKeyMapper
                 inputs={displayInputs}
@@ -627,7 +627,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
         <div className="flex flex-col gap-1.5">
           <span className="flex items-center gap-2 text-sm font-semibold">
             콤보 설명{aiFilledFields.has("description") && <AiBadge />}
-            <span className={`ml-auto text-[11px] font-normal ${description.length > 100 ? "text-hard" : "text-text-muted"}`}>{description.length} / 100</span>
+            <span className={`ml-auto text-xs font-normal ${description.length > 100 ? "text-hard" : "text-text-muted"}`}>{description.length} / 100</span>
           </span>
           <textarea
             rows={2}
@@ -643,7 +643,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
         <div className="flex flex-col gap-1.5">
           <span className="flex items-center gap-2 text-sm font-semibold">
             팁
-            <span className={`ml-auto text-[11px] font-normal ${tip.length > 200 ? "text-hard" : "text-text-muted"}`}>{tip.length} / 200</span>
+            <span className={`ml-auto text-xs font-normal ${tip.length > 200 ? "text-hard" : "text-text-muted"}`}>{tip.length} / 200</span>
           </span>
           <textarea
             rows={3}
@@ -704,7 +704,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
         <div className="flex flex-col gap-1.5">
           <span className="text-sm font-semibold">
             썸네일
-            {videoSrc && <span className="ml-1.5 text-[10px] text-text-muted font-normal">영상에서 원하는 장면을 선택하세요</span>}
+            {videoSrc && <span className="ml-1.5 text-xs text-text-muted font-normal">영상에서 원하는 장면을 선택하세요</span>}
           </span>
           <ThumbnailPicker
             videoSrc={videoSrc}
@@ -741,7 +741,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
 // ── Helpers ───────────────────────────────────────────────────
 function AiBadge() {
   return (
-    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-gold/15 text-gold text-[10px] font-bold">
+    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-gold/15 text-gold text-xs font-bold">
       <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/></svg>
       AI
     </span>

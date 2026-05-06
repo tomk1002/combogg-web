@@ -180,7 +180,7 @@ function ProfileSection({ user }: { user: UserData }) {
           <div>
             <p className="font-bold">{user.nickname ?? "(닉네임 없음)"}</p>
             <p className="text-xs text-text-muted">{user.email}</p>
-            <p className="text-[11px] text-text-muted mt-0.5">클릭하여 아바타 변경</p>
+            <p className="text-xs text-text-muted mt-0.5">클릭하여 아바타 변경</p>
           </div>
         </div>
 
@@ -312,7 +312,7 @@ function RiotSection({ user }: { user: UserData }) {
           {/* 챔피언 숙련도 */}
           {linked.topMasteries.length > 0 && (
             <div>
-              <p className="text-[11px] text-text-muted mb-2 font-semibold uppercase tracking-wide">주요 챔피언</p>
+              <p className="text-xs text-text-muted mb-2 font-semibold uppercase tracking-wide">주요 챔피언</p>
               <div className="flex gap-2">
                 {linked.topMasteries.map((m) => (
                   <div key={m.championId} className="flex flex-col items-center gap-1">
@@ -323,8 +323,8 @@ function RiotSection({ user }: { user: UserData }) {
                         {m.championName[0]}
                       </div>
                     )}
-                    <span className="text-[10px] text-text-secondary font-semibold">{m.championName}</span>
-                    <span className="text-[10px] font-mono text-text-muted">Lv.{m.level}</span>
+                    <span className="text-xs text-text-secondary font-semibold">{m.championName}</span>
+                    <span className="text-xs font-mono text-text-muted">Lv.{m.level}</span>
                   </div>
                 ))}
               </div>
@@ -386,7 +386,7 @@ function AccountSection({ user }: { user: UserData }) {
           <p className="text-sm font-bold">{providerLabel}</p>
           {user.email && <p className="text-xs text-text-muted truncate">{user.email}</p>}
         </div>
-        <span className="text-[10px] font-semibold text-easy border border-easy/30 bg-easy/10 px-2 py-0.5 rounded-full">
+        <span className="text-xs font-semibold text-easy border border-easy/30 bg-easy/10 px-2 py-0.5 rounded-full">
           연결됨
         </span>
       </div>
