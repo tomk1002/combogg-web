@@ -82,7 +82,7 @@ export default async function Home() {
     <main className="flex-1">
       {/* ── Hero ──────────────────────────────────────────────────────── */}
       <section className="border-b border-border">
-        <div className="max-w-[var(--width-content)] mx-auto px-4 sm:px-8 py-10 sm:py-16 grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-14 items-center">
+        <div className="max-w-[var(--width-content)] mx-auto px-4 sm:px-8 py-8 sm:py-12 grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-10 items-center">
           {/* Left */}
           <div>
             <h1 className="text-3xl lg:text-5xl font-black tracking-tight leading-tight mb-4">

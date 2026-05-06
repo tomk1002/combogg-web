@@ -112,8 +112,8 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
 
       <div className="max-w-[var(--width-content)] mx-auto px-4 sm:px-8">
         {/* ── Trending ──────────────────────────────────────────────────── */}
-        <section className="pt-12 pb-4">
-          <div className="flex items-end justify-between mb-6 gap-6">
+        <section className="pt-8 pb-2">
+          <div className="flex items-end justify-between mb-4 gap-6">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="inline-block w-6 h-0.5 bg-gold rounded" />
@@ -143,12 +143,12 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
           )}
         </section>
 
-        <div className="h-px my-12 bg-gradient-to-r from-transparent via-border to-transparent" />
+        <div className="h-px my-8 bg-border" />
 
         {/* ── Browse by Champion ────────────────────────────────────────── */}
         {topChampTiles.length > 0 && (
-          <section className="pb-4">
-            <div className="mb-6">
+          <section className="pb-2">
+            <div className="mb-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className="inline-block w-6 h-0.5 bg-[#4a90e2] rounded" />
                 <span className="text-[10px] font-black tracking-widest text-[#4a90e2]">{t.champ_kicker}</span>
@@ -178,11 +178,11 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
           </section>
         )}
 
-        <div className="h-px my-12 bg-gradient-to-r from-transparent via-border to-transparent" />
+        <div className="h-px my-8 bg-border" />
 
         {/* ── Difficulty ────────────────────────────────────────────────── */}
-        <section className="pb-4">
-          <div className="flex items-end justify-between mb-6 gap-6">
+        <section className="pb-2">
+          <div className="flex items-end justify-between mb-4 gap-6">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="inline-block w-6 h-0.5 bg-easy rounded" />
@@ -196,7 +196,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
           </div>
 
           {/* 난이도 태그 */}
-          <div className="flex gap-2 mb-6">
+          <div className="flex gap-2 mb-4">
             {(["easy", "medium", "hard"] as Difficulty[]).map((d) => {
               const meta = diffMeta[d];
               const count = difficultyCounts[d] ?? 0;
@@ -236,12 +236,12 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
           )}
         </section>
 
-        <div className="h-px my-12 bg-gradient-to-r from-transparent via-border to-transparent" />
+        <div className="h-px my-8 bg-border" />
 
         {/* ── Newest ────────────────────────────────────────────────────── */}
         {newestCombos.length > 0 && (
-          <section className="pb-4">
-            <div className="flex items-end justify-between mb-6 gap-6">
+          <section className="pb-2">
+            <div className="flex items-end justify-between mb-4 gap-6">
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="inline-block w-6 h-0.5 bg-[#9c6fe4] rounded" />
@@ -262,8 +262,8 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
         )}
 
         {/* ── CTA Strip ─────────────────────────────────────────────────── */}
-        <section className="py-16">
-          <div className="rounded-2xl border border-border bg-surface-raised p-12 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 items-center">
+        <section className="py-10">
+          <div className="rounded-xl border border-border bg-surface-raised p-8 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 items-center">
             <div>
               <div className="text-[10px] font-black tracking-widest text-gold mb-3">{t.cta_kicker}</div>
               <h3 className="text-2xl lg:text-3xl font-extrabold tracking-tight leading-tight mb-3 whitespace-pre-line">

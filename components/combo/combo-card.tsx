@@ -81,20 +81,6 @@ export default function ComboCard({ combo, priority = false }: Props) {
           <KeySequence keys={keys} size="sm" maxKeys={7} />
         )}
 
-        {/* Tags */}
-        {combo.tags.length > 0 && (
-          <div className="flex gap-1 flex-wrap">
-            {combo.tags.slice(0, 3).map((tag) => (
-              <span
-                key={tag}
-                className="px-2 py-0.5 rounded-full bg-surface-overlay text-[10px] font-semibold text-text-secondary"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
         {/* Footer */}
         <div className="flex items-center justify-between mt-auto pt-2 border-t border-border-subtle">
           <div className="flex items-center gap-1.5">
