@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useRef } from "react";
 import DifficultyPips from "@/components/shared/difficulty-pips";
 import { KeySequence, inputToKeySequence } from "@/components/shared/keycap";
 import { formatCount, authorDisplayName } from "@/lib/utils";
@@ -12,13 +15,38 @@ interface Props {
 
 export default function ComboCard({ combo, priority = false }: Props) {
   const keys = inputToKeySequence(combo.inputSummary);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const onEnter = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    // preload="none" 이므로 play() 호출 시점에 네트워크 요청 시작
+    v.play()
+      .then(() => { v.style.opacity = "1"; })
+      .catch(() => {});
+  };
+
+  const onLeave = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.style.opacity = "0";
+    // fade-out 완료 후 정지·되감기 (0.35s transition과 맞춤)
+    setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.currentTime = 0;
+      }
+    }, 350);
+  };
 
   return (
     <Link
       href={`/combos/${combo.id}`}
+      onMouseEnter={combo.videoUrl ? onEnter : undefined}
+      onMouseLeave={combo.videoUrl ? onLeave : undefined}
       className="group flex flex-col bg-surface-raised border border-border rounded-xl overflow-hidden hover:border-gold/50 hover:-translate-y-1 hover:shadow-[0_8px_28px_rgba(200,155,60,0.22),0_2px_8px_rgba(0,0,0,0.3)] transition-all duration-200"
     >
-      {/* Thumbnail */}
+      {/* Thumbnail + video overlay */}
       <div className="relative aspect-video bg-surface-overlay overflow-hidden">
         {combo.thumbnailUrl ? (
           <Image
@@ -41,8 +69,23 @@ export default function ComboCard({ combo, priority = false }: Props) {
           </div>
         ) : null}
 
-        {/* Difficulty */}
-        <span className="absolute top-2 left-2 inline-flex items-center px-2 py-0.5 rounded-full bg-black/55 backdrop-blur-sm">
+        {/* hover 시 페이드인되는 비디오 오버레이 */}
+        {combo.videoUrl && (
+          <video
+            ref={videoRef}
+            src={combo.videoUrl}
+            muted
+            loop
+            playsInline
+            preload="none"
+            // style로 직접 제어 — React 리렌더 없이 opacity 트랜지션
+            style={{ opacity: 0, transition: "opacity 0.35s ease" }}
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          />
+        )}
+
+        {/* Difficulty badge */}
+        <span className="absolute top-2 left-2 z-10 inline-flex items-center px-2 py-0.5 rounded-full bg-black/55 backdrop-blur-sm">
           <DifficultyPips difficulty={combo.difficulty} forceDark />
         </span>
       </div>

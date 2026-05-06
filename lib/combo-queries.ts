@@ -21,6 +21,7 @@ export function toComboListItem(c: ComboWithRelations): ComboListItemDTO {
     durationMs: c.durationMs,
     inputSummary: (c.inputSummary as unknown as InputEntryDTO[]) ?? [],
     thumbnailUrl: c.thumbnailUrl,
+    videoUrl: c.videoUrl,
     likeCount: c.likeCount,
     downloadCount: c.downloadCount,
     viewCount: c.viewCount,

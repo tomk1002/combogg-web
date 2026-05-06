@@ -36,6 +36,7 @@ export interface ComboListItemDTO {
   durationMs: number | null;
   inputSummary: InputEntryDTO[];
   thumbnailUrl: string | null;
+  videoUrl: string | null;
   likeCount: number;
   downloadCount: number;
   viewCount: number;
