@@ -42,7 +42,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
     if (combo.authorId !== session.user.id) return forbidden();
 
     const body = await req.json();
-    const { title, description, tip, difficulty, tags, gameSpecific, inputSummary, thumbnailUrl, videoUrl } = body;
+    const { title, description, tip, difficulty, tags, gameSpecific, inputSummary, steps, thumbnailUrl, videoUrl } = body;
 
     const updated = await prisma.combo.update({
       where: { id },
@@ -57,6 +57,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
           inputSummary,
           inputCount: (inputSummary as unknown[])?.length ?? 0,
         }),
+        ...(steps !== undefined && { steps }),
         ...(thumbnailUrl !== undefined && { thumbnailUrl }),
         ...(videoUrl !== undefined && { videoUrl }),
       },

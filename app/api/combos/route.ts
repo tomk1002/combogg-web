@@ -104,7 +104,7 @@ export async function POST(req: Request) {
 // ── tutfile 서버 처리 ─────────────────────────────────────────
 async function handleTutfileUpload(userId: string, body: Record<string, unknown>) {
   const { tutfilePath, title, description, tip, characterSlug, difficulty, tags,
-          gameSpecific: gameSpecificOverride, thumbnailUrl } = body as {
+          gameSpecific: gameSpecificOverride, thumbnailUrl, videoUrl: videoUrlOverride } = body as {
     tutfilePath: string;
     title?: string;
     description?: string;
@@ -114,6 +114,7 @@ async function handleTutfileUpload(userId: string, body: Record<string, unknown>
     tags?: string[];
     gameSpecific?: Record<string, unknown>;
     thumbnailUrl?: string;
+    videoUrl?: string;
   };
 
   const supabaseAdmin = getSupabaseAdmin();
@@ -156,9 +157,9 @@ async function handleTutfileUpload(userId: string, body: Record<string, unknown>
   });
   if (!character) return badRequest(`존재하지 않는 캐릭터: ${charSlug}`);
 
-  // 5. video.mp4 업로드
-  let videoUrl: string | null = null;
-  if (videoBuffer) {
+  // 5. video — use client-provided URL if given, otherwise upload from tutfile
+  let videoUrl: string | null = videoUrlOverride ?? null;
+  if (!videoUrl && videoBuffer) {
     const videoPath = `${userId}/${Date.now()}.mp4`;
     const { error: vidErr } = await supabaseAdmin.storage
       .from(BUCKETS.videos)

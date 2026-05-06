@@ -162,6 +162,7 @@ model Combo {
   durationMs   Int?
   inputCount   Int         @default(0)
   inputSummary Json        @default("[]")
+  steps        Json        @default("[]")
   gameSpecific Json        @default("{}")
   thumbnailUrl String?
   videoUrl     String?

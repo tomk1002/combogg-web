@@ -27,6 +27,7 @@ export default async function ComboEditPage({ params }: Props) {
       tags: true,
       gameSpecific: true,
       inputSummary: true,
+      steps: true,
       thumbnailUrl: true,
       videoUrl: true,
       durationMs: true,

@@ -9,6 +9,7 @@ import { KeySequence, inputToKeySequence } from "@/components/shared/keycap";
 import DifficultyPips from "@/components/shared/difficulty-pips";
 import LolUploadForm from "@/components/games/lol/lol-upload-form";
 import InputKeyMapper from "@/components/upload/input-key-mapper";
+import VideoEditor from "@/components/combo/video-editor";
 import type { LolGameSpecific } from "@/lib/games/lol/schema";
 import type { Difficulty } from "@/types";
 import { getChampIconUrl } from "@/lib/games/lol/ddragon";
@@ -299,6 +300,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const [isJsonMode, setIsJsonMode] = useState(false);
+  const [showVideoEditor, setShowVideoEditor] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [champPickerOpen, setChampPickerOpen] = useState(false);
@@ -408,6 +410,15 @@ export default function UploadWizard({ characters, patch, items }: Props) {
     setVideoFile(f);
     if (videoSrc) URL.revokeObjectURL(videoSrc);
     setVideoSrc(URL.createObjectURL(f));
+    setShowVideoEditor(true);
+  };
+
+  const handleVideoDone = (blob: Blob, ext: string) => {
+    if (videoSrc) URL.revokeObjectURL(videoSrc);
+    const processed = new File([blob], `video.${ext}`, { type: blob.type });
+    setVideoFile(processed);
+    setVideoSrc(URL.createObjectURL(processed));
+    setShowVideoEditor(false);
   };
 
   // ── AI 자동 완성 ──────────────────────────────────────────────
@@ -421,17 +432,31 @@ export default function UploadWizard({ characters, patch, items }: Props) {
         body: JSON.stringify({ character: characterSlug, inputs: parsed.inputs, durationMs: parsed.manifest.duration_ms, patch: parsed.manifest.patch_version }),
       });
       if (!res.ok) { const d = await res.json().catch(() => ({})); setAiError(d.error ?? "AI 자동 완성 실패"); return; }
-      const data = await res.json() as { title: string; description: string; difficulty: Difficulty; tags: string[]; required_level: number | null };
+      const data = await res.json() as {
+        title: string; description: string; difficulty: Difficulty; tags: string[];
+        required_level: number | null; ability_haste_min: number | null; attack_speed_min: number | null;
+        detected_items: string[]; detected_spells: string[];
+      };
       const filled = new Set<string>();
-      if (data.title) { setTitle(data.title); filled.add("title"); }
-      if (data.description) { setDescription(data.description); filled.add("description"); }
-      if (data.difficulty) { setDifficulty(data.difficulty); filled.add("difficulty"); }
-      if (data.tags?.length) { setTags(data.tags.join(", ")); filled.add("tags"); }
+      if (data.title)       { setTitle(data.title);                   filled.add("title"); }
+      if (data.description) { setDescription(data.description);       filled.add("description"); }
+      if (data.difficulty)  { setDifficulty(data.difficulty);         filled.add("difficulty"); }
+      if (data.tags?.length){ setTags(data.tags.join(", "));          filled.add("tags"); }
       if (parsed.manifest.game === "lol") {
-        const reqItems = [...new Set(parsed.inputs.filter((i) => i.category === "item" && i.ref).map((i) => i.ref as string))];
-        const sumSpells = [...new Set(parsed.inputs.filter((i) => i.category === "summoner_spell" && i.ref).map((i) => i.ref as string))];
-        setGameSpecific((prev) => ({ ...prev, ...(reqItems.length && { required_items: reqItems }), ...(sumSpells.length && { summoner_spells: sumSpells }), ...(data.required_level && { required_level: data.required_level }) }));
-        if (reqItems.length || sumSpells.length || data.required_level) filled.add("lol_conditions");
+        const reqItems  = data.detected_items?.length  ? data.detected_items  : [...new Set(parsed.inputs.filter((i) => i.category === "item" && i.ref).map((i) => i.ref as string))];
+        const sumSpells = data.detected_spells?.length ? data.detected_spells : [...new Set(parsed.inputs.filter((i) => i.category === "summoner_spell" && i.ref).map((i) => i.ref as string))];
+        const hasConditions = data.required_level || data.ability_haste_min || data.attack_speed_min || reqItems.length || sumSpells.length;
+        if (hasConditions) {
+          setGameSpecific((prev) => ({
+            ...prev,
+            ...(data.required_level    && { required_level:    data.required_level! }),
+            ...(data.ability_haste_min && { ability_haste_min: data.ability_haste_min! }),
+            ...(data.attack_speed_min  && { attack_speed_min:  data.attack_speed_min! }),
+            ...(reqItems.length        && { required_items:    reqItems }),
+            ...(sumSpells.length       && { summoner_spells:   sumSpells }),
+          }));
+          filled.add("lol_conditions");
+        }
       }
       setAiFilledFields(filled);
     });
@@ -467,7 +492,12 @@ export default function UploadWizard({ characters, patch, items }: Props) {
         return;
       }
       const { path } = await uploadFile("tutfiles", file, "application/octet-stream");
-      const r = await fetch("/api/combos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tutfilePath: path, title: title.trim(), description: description.trim() || undefined, tip: tip.trim() || undefined, characterSlug, difficulty, tags: tags.split(",").map((t) => t.trim()).filter(Boolean), gameSpecific, thumbnailUrl }) });
+      let extraVideoUrl: string | undefined;
+      if (videoFile) {
+        const v = await uploadFile("videos", videoFile, videoFile.type || "video/mp4");
+        extraVideoUrl = v.publicUrl;
+      }
+      const r = await fetch("/api/combos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tutfilePath: path, title: title.trim(), description: description.trim() || undefined, tip: tip.trim() || undefined, characterSlug, difficulty, tags: tags.split(",").map((t) => t.trim()).filter(Boolean), gameSpecific, thumbnailUrl, ...(extraVideoUrl && { videoUrl: extraVideoUrl }) }) });
       if (!r.ok) throw new Error((await r.json()).error ?? "콤보 등록 실패");
       const { id } = await r.json();
       setStep("done"); setTimeout(() => router.push(`/combos/${id}`), 800);
@@ -703,25 +733,36 @@ export default function UploadWizard({ characters, patch, items }: Props) {
           <input type="text" value={tags} onChange={(e) => { setTags(e.target.value); saveDraft({ title, description, tip, difficulty, tagsInput: e.target.value, character: characterSlug, gameSpecific }); }} placeholder="풀콤보, 라인전, 6레벨 (쉼표로 구분)" className={fieldCls(aiFilledFields.has("tags"))} />
         </label>
 
-        {/* 동영상 (JSON 모드) */}
-        {isJsonMode && (
-          <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-semibold">동영상 <span className="text-text-muted font-normal">(선택)</span></span>
-            <label className="cursor-pointer">
-              {videoFile ? (
-                <div className="w-full h-12 rounded-lg border border-border bg-surface-overlay flex items-center justify-between px-3 hover:border-[rgba(255,255,255,0.24)] transition-colors">
-                  <span className="text-sm text-text truncate">{videoFile.name}</span>
-                  <span className="text-xs text-text-muted shrink-0">클릭해서 변경</span>
-                </div>
-              ) : (
-                <div className="w-full h-12 rounded-lg border border-dashed border-border bg-surface-overlay flex items-center justify-center text-sm text-text-muted hover:border-[rgba(255,255,255,0.24)] hover:text-text transition-colors">
-                  + mp4 동영상 선택
-                </div>
-              )}
-              <input type="file" accept="video/mp4,video/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleVideoSelect(e.target.files[0])} />
-            </label>
+        {/* 동영상 (모든 모드) */}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold">
+              동영상 <span className="text-text-muted font-normal text-xs">(선택, mp4/webm)</span>
+            </span>
+            {videoFile && !showVideoEditor && (
+              <button type="button" onClick={() => setShowVideoEditor(true)}
+                className="text-xs font-semibold text-gold hover:text-gold-light transition-colors">
+                편집 (Trim/Crop)
+              </button>
+            )}
           </div>
-        )}
+          <label className="cursor-pointer">
+            {videoFile ? (
+              <div className="w-full h-12 rounded-lg border border-border bg-surface-overlay flex items-center justify-between px-3 hover:border-[rgba(255,255,255,0.24)] transition-colors">
+                <span className="text-sm text-text truncate">{videoFile.name}</span>
+                <span className="text-xs text-text-muted shrink-0">클릭해서 변경</span>
+              </div>
+            ) : (
+              <div className="w-full h-12 rounded-lg border border-dashed border-border bg-surface-overlay flex items-center justify-center text-sm text-text-muted hover:border-[rgba(255,255,255,0.24)] hover:text-text transition-colors">
+                + 동영상 선택
+              </div>
+            )}
+            <input type="file" accept="video/mp4,video/webm,video/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleVideoSelect(e.target.files[0])} />
+          </label>
+          {showVideoEditor && videoSrc && (
+            <VideoEditor src={videoSrc} onDone={handleVideoDone} onCancel={() => setShowVideoEditor(false)} />
+          )}
+        </div>
 
         {/* 썸네일 — 영상 프레임 선택기 */}
         <div className="flex flex-col gap-1.5">
