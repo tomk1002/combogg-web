@@ -49,8 +49,8 @@ export default function ComboCard({ combo, priority = false }: Props) {
         )}
 
         {/* Difficulty */}
-        <span className="absolute top-2 left-2">
-          <DifficultyPips difficulty={combo.difficulty} />
+        <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/55 backdrop-blur-sm">
+          <DifficultyPips difficulty={combo.difficulty} forceDark />
         </span>
       </div>
 
@@ -72,7 +72,7 @@ export default function ComboCard({ combo, priority = false }: Props) {
             <p className="font-bold text-sm leading-snug line-clamp-2 text-text group-hover:text-gold transition-colors duration-200">
               {combo.title}
             </p>
-            <p className="text-[11px] text-text-secondary mt-0.5">{combo.character.name}</p>
+            <p className="text-[10px] font-mono tracking-wider uppercase text-text-muted mt-0.5">{combo.character.name}</p>
           </div>
         </div>
 
@@ -96,14 +96,14 @@ export default function ComboCard({ combo, priority = false }: Props) {
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between mt-auto pt-2 border-t border-[rgba(255,255,255,0.06)]">
+        <div className="flex items-center justify-between mt-auto pt-2 border-t border-border-subtle">
           <div className="flex items-center gap-1.5">
             <span className="w-5 h-5 rounded-full bg-gold/20 flex items-center justify-center text-[9px] font-bold text-gold">
               {authorDisplayName(combo.author)[0]?.toUpperCase()}
             </span>
             <span className="text-[11px] text-text-secondary truncate max-w-[100px]">{authorDisplayName(combo.author)}</span>
           </div>
-          <div className="flex items-center gap-2.5 text-[11px] text-text-muted">
+          <div className="flex items-center gap-2.5 text-[11px] text-text-muted tabular-nums">
             <span className="flex items-center gap-0.5">
               <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
                 <path d="M8 2C4.5 2 2 5 2 8s2.5 6 6 6 6-3 6-6-2.5-6-6-6z" stroke="currentColor" strokeWidth="1.4"/>

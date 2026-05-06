@@ -60,7 +60,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
   return (
     <>
       {/* ── Champion Rail ─────────────────────────────────────────────── */}
-      <div className="sticky top-[69px] z-30 bg-[rgba(15,17,21,0.92)] backdrop-blur-md border-b border-border">
+      <div className="sticky top-[69px] z-30 bg-surface/[0.92] backdrop-blur-md border-b border-border">
         <div className="max-w-[var(--width-content)] mx-auto px-4 sm:px-8 py-3 flex items-center gap-3">
           <span className="text-[10px] font-black tracking-widest text-text-muted shrink-0">{t.rail_label}</span>
 
@@ -70,7 +70,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
               value={champSearch}
               onChange={(e) => setChampSearch(e.target.value)}
               placeholder={t.rail_search}
-              className="h-7 pl-7 pr-3 rounded-full border border-border bg-surface-overlay text-xs focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors w-24 sm:w-36"
+              className="h-7 pl-7 pr-3 rounded-full border border-border bg-surface-overlay text-xs text-text placeholder:text-text-muted focus:outline-none focus:border-gold/40 transition-colors w-24 sm:w-36"
             />
             <svg className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" width="12" height="12" viewBox="0 0 24 24" fill="none">
               <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2"/>
@@ -82,7 +82,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
             <button
               onClick={() => { setSelectedChamp(null); setChampSearch(""); }}
               className={`h-7 px-3 rounded-full text-xs font-semibold shrink-0 border transition-colors cursor-pointer ${
-                !selectedChamp ? "bg-gold text-bg border-gold" : "border-border text-text-secondary hover:text-text hover:border-[rgba(255,255,255,0.2)]"
+                !selectedChamp ? "bg-gold text-bg border-gold" : "border-border text-text-secondary hover:text-text hover:border-gold/30"
               }`}
             >
               {t.rail_all}
@@ -94,7 +94,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
                 className={`h-7 pl-1.5 pr-3 rounded-full text-xs font-semibold shrink-0 border flex items-center gap-1.5 transition-colors cursor-pointer ${
                   selectedChamp === c.slug
                     ? "bg-gold text-bg border-gold"
-                    : "border-border text-text-secondary hover:text-text hover:border-[rgba(255,255,255,0.2)]"
+                    : "border-border text-text-secondary hover:text-text hover:border-gold/30"
                 }`}
               >
                 {c.iconUrl && (

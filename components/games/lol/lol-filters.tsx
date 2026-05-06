@@ -50,7 +50,7 @@ export default function LolFilters({ characters }: Props) {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="콤보 제목 검색..."
-          className="flex-1 h-9 px-3 rounded-lg border border-border bg-surface-raised text-sm focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors"
+          className="flex-1 h-9 px-3 rounded-lg border border-border bg-surface-raised text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-gold/40 transition-colors"
         />
         <button
           type="submit"
@@ -66,7 +66,7 @@ export default function LolFilters({ characters }: Props) {
         <select
           value={sp.get("character") ?? ""}
           onChange={(e) => setParam("character", e.target.value)}
-          className="h-9 px-3 rounded-lg border border-border bg-surface-raised text-sm focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors cursor-pointer"
+          className="h-9 px-3 rounded-lg border border-border bg-surface-raised text-sm text-text focus:outline-none focus:border-gold/40 transition-colors cursor-pointer"
         >
           <option value="">전체 챔피언</option>
           {characters.map((c) => (
@@ -78,7 +78,7 @@ export default function LolFilters({ characters }: Props) {
         <select
           value={sp.get("difficulty") ?? ""}
           onChange={(e) => setParam("difficulty", e.target.value)}
-          className="h-9 px-3 rounded-lg border border-border bg-surface-raised text-sm focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors cursor-pointer"
+          className="h-9 px-3 rounded-lg border border-border bg-surface-raised text-sm text-text focus:outline-none focus:border-gold/40 transition-colors cursor-pointer"
         >
           {DIFFICULTY_OPTIONS.map(({ label, value }) => (
             <option key={value} value={value}>{label}</option>

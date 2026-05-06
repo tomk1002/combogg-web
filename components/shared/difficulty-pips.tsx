@@ -10,9 +10,10 @@ const CONFIG: Record<Difficulty, { color: string; label: string; filled: number 
 interface Props {
   difficulty: Difficulty;
   className?: string;
+  forceDark?: boolean;
 }
 
-export default function DifficultyPips({ difficulty, className }: Props) {
+export default function DifficultyPips({ difficulty, className, forceDark }: Props) {
   const { color, label, filled } = CONFIG[difficulty];
   return (
     <span className={cn("inline-flex items-center gap-1.5", className)}>
@@ -22,12 +23,12 @@ export default function DifficultyPips({ difficulty, className }: Props) {
             key={i}
             className={cn(
               "w-[5px] h-[5px] rounded-full",
-              i <= filled ? color : "bg-[rgba(255,255,255,0.16)]"
+              i <= filled ? color : forceDark ? "bg-white/20" : "bg-text-muted"
             )}
           />
         ))}
       </span>
-      <span className="text-[11px] font-semibold text-text-secondary">{label}</span>
+      <span className={cn("text-[11px] font-semibold", forceDark ? "text-white/75" : "text-text-secondary")}>{label}</span>
     </span>
   );
 }
