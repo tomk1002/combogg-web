@@ -57,9 +57,9 @@ html[data-theme="light"] {
   --color-border:          #D4D7E3;
   --color-border-subtle:   rgba(0, 0, 0, 0.08);
 
-  --color-gold:       #96720D;
-  --color-gold-light: #B8920F;
-  --color-gold-muted: rgba(150, 114, 13, 0.14);
+  --color-gold:       #B8860B;
+  --color-gold-light: #DAA520;
+  --color-gold-muted: rgba(184, 134, 11, 0.14);
 
   --color-text:           #12151C;
   --color-text-secondary: rgba(18, 21, 28, 0.60);
@@ -138,7 +138,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 html[data-theme="light"] .text-gradient-gold {
-  background: linear-gradient(135deg, #7A5C0A 0%, #B8920F 50%, #96720D 100%);
+  background: linear-gradient(135deg, #B8860B 0%, #E8C030 50%, #C8980E 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
