@@ -7,6 +7,7 @@ export const revalidate = 60;
 import ComboCard from "@/components/combo/combo-card";
 import { prisma } from "@/lib/db";
 import { COMBO_INCLUDE, toComboListItem } from "@/lib/combo-queries";
+import { getServerT } from "@/lib/i18n-server";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -46,17 +47,18 @@ export default async function ChampionPage({ params, searchParams }: Props) {
     prisma.combo.count({ where }),
   ]);
 
+  const t = await getServerT();
   const items = combos.map(toComboListItem);
 
   const sortOptions = [
-    { v: "popular", l: "인기순" },
-    { v: "latest", l: "최신순" },
+    { v: "popular", l: t.lol_sort_popular },
+    { v: "latest", l: t.lol_sort_latest },
   ] as const;
 
   const difficultyOptions = [
-    { v: "easy", l: "쉬움" },
-    { v: "medium", l: "보통" },
-    { v: "hard", l: "어려움" },
+    { v: "easy", l: t.easy },
+    { v: "medium", l: t.medium },
+    { v: "hard", l: t.hard },
   ] as const;
 
   const activeSort = sort === "latest" ? "latest" : "popular";
@@ -88,13 +90,13 @@ export default async function ChampionPage({ params, searchParams }: Props) {
               LEAGUE OF LEGENDS
             </p>
             <h1 className="text-3xl font-black tracking-tight">{character.name}</h1>
-            <p className="text-text-secondary text-sm mt-1">{total}개 콤보</p>
+            <p className="text-text-secondary text-sm mt-1">{t.lol_combo_count(total)}</p>
           </div>
           <Link
             href="/games/lol"
             className="ml-auto text-sm text-text-secondary hover:text-text transition-colors"
           >
-            ← LoL 전체 보기
+            {t.champ_back_to_lol}
           </Link>
         </div>
 
@@ -148,7 +150,7 @@ export default async function ChampionPage({ params, searchParams }: Props) {
         </div>
       ) : (
         <p className="text-center text-text-secondary py-20">
-          아직 등록된 콤보가 없습니다.
+          {t.empty_combos}
         </p>
       )}
     </main>

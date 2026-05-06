@@ -7,6 +7,7 @@ import ComboCard from "@/components/combo/combo-card";
 import LolFilters from "@/components/games/lol/lol-filters";
 import { prisma } from "@/lib/db";
 import { COMBO_INCLUDE, toComboListItem } from "@/lib/combo-queries";
+import { getServerT } from "@/lib/i18n-server";
 import type { Prisma } from "@prisma/client";
 
 export const metadata: Metadata = {
@@ -53,6 +54,8 @@ export default async function LolPage({ searchParams }: Props) {
     sort === "downloads" ? { downloadCount: "desc" } :
                            { createdAt: "desc" };
 
+  const t = await getServerT();
+
   const [combos, total, characters] = await Promise.all([
     prisma.combo.findMany({ where, include: COMBO_INCLUDE, orderBy, skip: (page - 1) * limit, take: limit }),
     prisma.combo.count({ where }),
@@ -97,15 +100,16 @@ export default async function LolPage({ searchParams }: Props) {
         <div>
           <h1 className="text-2xl font-black tracking-tight">League of Legends</h1>
           <p className="text-text-secondary text-sm mt-1">
-            {total}개 콤보{game?.currentPatch ? ` · 패치 ${game.currentPatch}` : ""}
-            {q && ` · "${q}" 검색 결과`}
+            {t.lol_combo_count(total)}
+            {game?.currentPatch ? ` · ${t.lol_patch_label(game.currentPatch)}` : ""}
+            {q ? ` · ${t.lol_search_result_label(q)}` : ""}
           </p>
         </div>
         <Link
           href="/upload"
           className="ml-auto h-9 px-4 rounded-lg bg-gold text-white text-sm font-bold hover:bg-gold-light transition-colors flex items-center"
         >
-          업로드
+          {t.nav_upload}
         </Link>
       </div>
 
@@ -126,12 +130,12 @@ export default async function LolPage({ searchParams }: Props) {
       ) : (
         <div className="text-center py-24 text-text-secondary">
           <p className="text-lg font-semibold mb-2">
-            {q ? `"${q}"에 해당하는 콤보가 없습니다` : "아직 등록된 콤보가 없습니다"}
+            {q ? t.lol_no_results_query(q) : t.empty_combos}
           </p>
           {q ? (
-            <Link href="/games/lol" className="text-sm text-gold hover:underline">전체 보기 →</Link>
+            <Link href="/games/lol" className="text-sm text-gold hover:underline">{t.view_all}</Link>
           ) : (
-            <Link href="/upload" className="text-sm text-gold hover:underline">첫 번째 콤보를 업로드해보세요 →</Link>
+            <Link href="/upload" className="text-sm text-gold hover:underline">{t.upload_first}</Link>
           )}
         </div>
       )}
@@ -141,10 +145,10 @@ export default async function LolPage({ searchParams }: Props) {
         <div className="flex items-center justify-center gap-2 mt-10">
           {page > 1 ? (
             <Link href={buildHref({ page: String(page - 1) })} className="h-9 px-4 rounded-lg border border-border text-sm font-semibold text-text-secondary hover:bg-surface-overlay hover:text-text transition-colors">
-              ← 이전
+              {t.page_prev}
             </Link>
           ) : (
-            <span className="h-9 px-4 rounded-lg border border-border text-sm font-semibold text-text-muted opacity-40 flex items-center">← 이전</span>
+            <span className="h-9 px-4 rounded-lg border border-border text-sm font-semibold text-text-muted opacity-40 flex items-center">{t.page_prev}</span>
           )}
 
           <div className="flex gap-1">
@@ -169,10 +173,10 @@ export default async function LolPage({ searchParams }: Props) {
 
           {page < totalPages ? (
             <Link href={buildHref({ page: String(page + 1) })} className="h-9 px-4 rounded-lg border border-border text-sm font-semibold text-text-secondary hover:bg-surface-overlay hover:text-text transition-colors">
-              다음 →
+              {t.page_next}
             </Link>
           ) : (
-            <span className="h-9 px-4 rounded-lg border border-border text-sm font-semibold text-text-muted opacity-40 flex items-center">다음 →</span>
+            <span className="h-9 px-4 rounded-lg border border-border text-sm font-semibold text-text-muted opacity-40 flex items-center">{t.page_next}</span>
           )}
         </div>
       )}

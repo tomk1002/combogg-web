@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 
 export const revalidate = 30;
 import { COMBO_INCLUDE, toComboListItem } from "@/lib/combo-queries";
+import { getServerT } from "@/lib/i18n-server";
 
 interface MasteryEntry {
   championId: number;
@@ -43,6 +44,8 @@ export default async function UserProfilePage({ params, searchParams }: Props) {
 
   const session = await auth();
   const isOwnProfile = session?.user?.id === id;
+
+  const t = await getServerT();
 
   const [user, combos, likedCombos, savedCombos] = await Promise.all([
     prisma.user.findUnique({
@@ -117,7 +120,7 @@ export default async function UserProfilePage({ params, searchParams }: Props) {
             {user.nickname ?? "unknown"}
           </h1>
           <div className="flex flex-wrap items-center gap-3 mt-1">
-            <p className="text-text-secondary text-sm">{items.length}개 콤보 게시</p>
+            <p className="text-text-secondary text-sm">{t.profile_combos_count(items.length)}</p>
             {user.riotGameName && (
               <span className="flex items-center gap-1.5 text-xs text-text-muted">
                 {user.riotSummonerIconId && (
@@ -180,7 +183,7 @@ export default async function UserProfilePage({ params, searchParams }: Props) {
               : "border-transparent text-text-secondary hover:text-text"
           }`}
         >
-          게시한 콤보{" "}
+          {t.profile_tab_combos}{" "}
           <span className="ml-1.5 text-xs text-text-muted">{items.length}</span>
         </Link>
         <Link
@@ -191,7 +194,7 @@ export default async function UserProfilePage({ params, searchParams }: Props) {
               : "border-transparent text-text-secondary hover:text-text"
           }`}
         >
-          좋아요
+          {t.profile_tab_likes}
         </Link>
         {isOwnProfile && (
           <Link
@@ -202,7 +205,7 @@ export default async function UserProfilePage({ params, searchParams }: Props) {
                 : "border-transparent text-text-secondary hover:text-text"
             }`}
           >
-            저장한 콤보
+            {t.profile_tab_saved}
           </Link>
         )}
       </div>
@@ -217,10 +220,10 @@ export default async function UserProfilePage({ params, searchParams }: Props) {
       ) : (
         <p className="text-center text-text-secondary py-20">
           {isSavedTab
-            ? "저장한 콤보가 없습니다."
+            ? t.profile_empty_saved
             : isLikesTab
-            ? "아직 좋아요한 콤보가 없습니다."
-            : "아직 게시한 콤보가 없습니다."}
+            ? t.profile_empty_likes
+            : t.profile_empty_combos}
         </p>
       )}
     </main>

@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
+import { useLang } from "@/lib/i18n-client";
 
 interface Character { slug: string; name: string; }
 
@@ -9,23 +10,24 @@ interface Props {
   characters: Character[];
 }
 
-const DIFFICULTY_OPTIONS = [
-  { label: "전체 난이도", value: "" },
-  { label: "쉬움",       value: "easy" },
-  { label: "보통",       value: "medium" },
-  { label: "어려움",     value: "hard" },
-];
-
-const SORT_OPTIONS = [
-  { label: "최신순",      value: "latest" },
-  { label: "인기순",      value: "popular" },
-  { label: "다운로드순",  value: "downloads" },
-];
-
 export default function LolFilters({ characters }: Props) {
   const router = useRouter();
   const sp = useSearchParams();
+  const { t } = useLang();
   const [q, setQ] = useState(sp.get("q") ?? "");
+
+  const difficultyOptions = [
+    { label: t.lol_filter_difficulty_all, value: "" },
+    { label: t.easy,                      value: "easy" },
+    { label: t.medium,                    value: "medium" },
+    { label: t.hard,                      value: "hard" },
+  ];
+
+  const sortOptions = [
+    { label: t.lol_sort_latest,    value: "latest" },
+    { label: t.lol_sort_popular,   value: "popular" },
+    { label: t.lol_sort_downloads, value: "downloads" },
+  ];
 
   const setParam = useCallback((key: string, value: string) => {
     const params = new URLSearchParams(sp.toString());
@@ -43,51 +45,46 @@ export default function LolFilters({ characters }: Props) {
 
   return (
     <div className="flex flex-col gap-3">
-      {/* 검색 */}
       <form onSubmit={handleSearch} className="flex gap-2">
         <input
           type="text"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="콤보 제목 검색..."
+          placeholder={t.lol_search_placeholder}
           className="flex-1 h-9 px-3 rounded-lg border border-border bg-surface-raised text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-gold/40 transition-colors"
         />
         <button
           type="submit"
           className="h-9 px-4 rounded-lg border border-border bg-surface-overlay text-sm font-semibold hover:bg-surface-raised transition-colors cursor-pointer"
         >
-          검색
+          {t.lol_search_btn}
         </button>
       </form>
 
-      {/* 필터 + 정렬 */}
       <div className="flex gap-2 flex-wrap items-center">
-        {/* 챔피언 */}
         <select
           value={sp.get("character") ?? ""}
           onChange={(e) => setParam("character", e.target.value)}
           className="h-9 px-3 rounded-lg border border-border bg-surface-raised text-sm text-text focus:outline-none focus:border-gold/40 transition-colors cursor-pointer"
         >
-          <option value="">전체 챔피언</option>
+          <option value="">{t.lol_filter_champ_all}</option>
           {characters.map((c) => (
             <option key={c.slug} value={c.slug}>{c.name}</option>
           ))}
         </select>
 
-        {/* 난이도 */}
         <select
           value={sp.get("difficulty") ?? ""}
           onChange={(e) => setParam("difficulty", e.target.value)}
           className="h-9 px-3 rounded-lg border border-border bg-surface-raised text-sm text-text focus:outline-none focus:border-gold/40 transition-colors cursor-pointer"
         >
-          {DIFFICULTY_OPTIONS.map(({ label, value }) => (
+          {difficultyOptions.map(({ label, value }) => (
             <option key={value} value={value}>{label}</option>
           ))}
         </select>
 
-        {/* 정렬 */}
         <div className="flex rounded-lg border border-border overflow-hidden ml-auto">
-          {SORT_OPTIONS.map(({ label, value }) => {
+          {sortOptions.map(({ label, value }) => {
             const active = currentSort === value;
             return (
               <button

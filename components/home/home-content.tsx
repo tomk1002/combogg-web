@@ -121,7 +121,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
             <div>
               <div className="flex items-center gap-3">
                 <span className="inline-block w-1 h-7 bg-gold rounded-full" />
-                <h2 className="text-2xl font-extrabold tracking-tight text-gold font-display">
+                <h2 className="text-2xl font-extrabold tracking-wide text-gold font-display">
                   {selectedChamp
                     ? t.filtered_for(characters.find((c) => c.slug === selectedChamp)?.name ?? selectedChamp)
                     : t.trending_kicker}
@@ -164,7 +164,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
             <div className="mb-4">
               <div className="flex items-center gap-3 mb-1.5">
                 <span className="inline-block w-1 h-7 bg-[#4a90e2] rounded-full" />
-                <h2 className="text-2xl font-extrabold tracking-tight text-[#4a90e2] font-display">{t.champ_kicker}</h2>
+                <h2 className="text-2xl font-extrabold tracking-wide text-[#4a90e2] font-display">{t.champ_kicker}</h2>
               </div>
               <p className="text-sm text-text-secondary">{t.champ_subtitle}</p>
             </div>
@@ -199,7 +199,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
             <div>
               <div className="flex items-center gap-3">
                 <span className="inline-block w-1 h-7 bg-easy rounded-full" />
-                <h2 className="text-2xl font-extrabold tracking-tight text-easy font-display">{t.diff_kicker}</h2>
+                <h2 className="text-2xl font-extrabold tracking-wide text-easy font-display">{t.diff_kicker}</h2>
               </div>
             </div>
             <div className="flex items-center gap-1 shrink-0 pb-1">
@@ -253,7 +253,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
             </div>
           ) : (
             <div className="text-center py-16 text-text-muted border border-dashed border-border rounded-xl">
-              <p className="text-sm">{diffMeta[selectedDifficulty].label} 콤보가 아직 없습니다.</p>
+              <p className="text-sm">{t.diff_empty(diffMeta[selectedDifficulty].label)}</p>
             </div>
           )}
         </section>
@@ -267,7 +267,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
               <div>
                 <div className="flex items-center gap-3">
                   <span className="inline-block w-1 h-7 bg-[#9c6fe4] rounded-full" />
-                  <h2 className="text-2xl font-extrabold tracking-tight text-[#9c6fe4] font-display">{t.newest_kicker}</h2>
+                  <h2 className="text-2xl font-extrabold tracking-wide text-[#9c6fe4] font-display">{t.newest_kicker}</h2>
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0 pb-1">

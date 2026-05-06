@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { timeAgo, authorDisplayName } from "@/lib/utils";
+import { useLang } from "@/lib/i18n-client";
 import type { CommentDTO } from "@/lib/api/types";
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
 
 export default function ComboComments({ comboId, initialComments, currentUserId }: Props) {
   const router = useRouter();
+  const { t } = useLang();
   const [comments, setComments] = useState<CommentDTO[]>(initialComments);
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,7 +40,7 @@ export default function ComboComments({ comboId, initialComments, currentUserId 
       setComments((prev) => [comment, ...prev]);
       setContent("");
     } catch {
-      setError("댓글 등록에 실패했습니다.");
+      setError(t.comment_error_post);
     } finally {
       setIsSubmitting(false);
     }
@@ -77,20 +79,22 @@ export default function ComboComments({ comboId, initialComments, currentUserId 
       setComments((prev) => prev.map((c) => c.id === commentId ? { ...c, content: newContent } : c));
       cancelEdit();
     } catch {
-      setError("댓글 수정에 실패했습니다.");
+      setError(t.comment_error_edit);
     }
   };
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-sm font-bold">댓글 {comments.length > 0 ? `(${comments.length})` : ""}</h2>
+      <h2 className="text-sm font-bold">
+        {t.comment_title}{comments.length > 0 ? ` (${comments.length})` : ""}
+      </h2>
 
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input
           type="text"
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder={currentUserId ? "댓글을 입력하세요..." : "로그인 후 댓글을 달 수 있습니다"}
+          placeholder={currentUserId ? t.comment_placeholder_loggedin : t.comment_placeholder_loggedout}
           disabled={isSubmitting}
           className="flex-1 h-10 px-3 rounded-lg border border-border bg-surface-raised text-sm focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors disabled:opacity-50"
         />
@@ -99,14 +103,14 @@ export default function ComboComments({ comboId, initialComments, currentUserId 
           disabled={isSubmitting || !content.trim()}
           className="h-10 px-4 rounded-lg bg-surface-overlay border border-border text-sm font-semibold hover:bg-surface-raised disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
         >
-          등록
+          {t.comment_submit}
         </button>
       </form>
 
       {error && <p className="text-xs text-hard">{error}</p>}
 
       {comments.length === 0 ? (
-        <p className="text-sm text-text-muted py-4 text-center">첫 댓글을 남겨보세요</p>
+        <p className="text-sm text-text-muted py-4 text-center">{t.comment_empty}</p>
       ) : (
         <div className="flex flex-col divide-y divide-border">
           {comments.map((c) => (
@@ -129,8 +133,8 @@ export default function ComboComments({ comboId, initialComments, currentUserId 
                       autoFocus
                       className="flex-1 h-8 px-2 rounded-md border border-border bg-surface-overlay text-sm focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors"
                     />
-                    <button type="button" onClick={() => handleEdit(c.id)} className="text-[10px] text-gold hover:text-gold-light font-semibold transition-colors cursor-pointer">저장</button>
-                    <button type="button" onClick={cancelEdit} className="text-[10px] text-text-muted hover:text-text transition-colors cursor-pointer">취소</button>
+                    <button type="button" onClick={() => handleEdit(c.id)} className="text-[10px] text-gold hover:text-gold-light font-semibold transition-colors cursor-pointer">{t.comment_save}</button>
+                    <button type="button" onClick={cancelEdit} className="text-[10px] text-text-muted hover:text-text transition-colors cursor-pointer">{t.comment_cancel}</button>
                   </div>
                 ) : (
                   <p className="text-sm text-text-secondary break-words">{c.content}</p>
@@ -138,19 +142,11 @@ export default function ComboComments({ comboId, initialComments, currentUserId 
               </div>
               {currentUserId === c.author.id && editingId !== c.id && (
                 <div className="flex gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => startEdit(c)}
-                    className="text-[10px] text-text-muted hover:text-text transition-colors cursor-pointer"
-                  >
-                    수정
+                  <button type="button" onClick={() => startEdit(c)} className="text-[10px] text-text-muted hover:text-text transition-colors cursor-pointer">
+                    {t.comment_edit}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(c.id)}
-                    className="text-[10px] text-text-muted hover:text-hard transition-colors cursor-pointer"
-                  >
-                    삭제
+                  <button type="button" onClick={() => handleDelete(c.id)} className="text-[10px] text-text-muted hover:text-hard transition-colors cursor-pointer">
+                    {t.comment_delete}
                   </button>
                 </div>
               )}

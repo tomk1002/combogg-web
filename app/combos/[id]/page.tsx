@@ -17,6 +17,8 @@ import SaveComboButton from "@/components/combo/save-combo-button";
 import { formatCount, formatDuration, timeAgo, authorDisplayName } from "@/lib/utils";
 import type { InputEntryDTO, CommentDTO } from "@/lib/api/types";
 import type { LolGameSpecific } from "@/lib/games/lol/schema";
+import { getServerT } from "@/lib/i18n-server";
+import type { T } from "@/lib/i18n";
 
 export const revalidate = 30;
 
@@ -74,6 +76,8 @@ export default async function ComboDetailPage({ params }: Props) {
   // 조회수 +1 (fire-and-forget)
   prisma.combo.update({ where: { id }, data: { viewCount: { increment: 1 } } }).catch(() => {});
 
+  const t = await getServerT();
+
   const inputSummary = (combo.inputSummary as unknown as InputEntryDTO[]) ?? [];
   const keys = inputToKeySequence(inputSummary);
   const gameSpecific = (combo.gameSpecific as unknown as Partial<LolGameSpecific>) ?? {};
@@ -89,7 +93,7 @@ export default async function ComboDetailPage({ params }: Props) {
 
           {/* Champion */}
           <div className="bg-surface-raised rounded-xl p-5 border border-border">
-            <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">챔피언</h2>
+            <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">{t.detail_champion}</h2>
             <div className="flex items-center gap-3">
               {combo.character.iconUrl && (
                 <Image src={combo.character.iconUrl} alt={combo.character.name} width={48} height={48} className="rounded-lg" />
@@ -108,12 +112,12 @@ export default async function ComboDetailPage({ params }: Props) {
 
           {/* Stats */}
           <div className="bg-surface-raised rounded-xl p-5 border border-border">
-            <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">통계</h2>
+            <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">{t.detail_stats}</h2>
             <div className="grid grid-cols-3 gap-3 text-center">
               {[
-                { label: "좋아요",   value: formatCount(combo.likeCount) },
-                { label: "다운로드", value: formatCount(combo.downloadCount) },
-                { label: "조회",     value: formatCount(combo.viewCount) },
+                { label: t.detail_stat_likes,     value: formatCount(combo.likeCount) },
+                { label: t.detail_stat_downloads, value: formatCount(combo.downloadCount) },
+                { label: t.detail_stat_views,     value: formatCount(combo.viewCount) },
               ].map(({ label, value }) => (
                 <div key={label}>
                   <p className="text-lg font-black">{value}</p>
@@ -178,7 +182,7 @@ export default async function ComboDetailPage({ params }: Props) {
             <div className="flex items-center gap-3 mb-2">
               <DifficultyPips difficulty={combo.difficulty} />
               {combo.patchVersion && (
-                <span className="text-[11px] text-text-muted font-semibold">패치 {combo.patchVersion}</span>
+                <span className="text-[11px] text-text-muted font-semibold">{t.lol_patch_label(combo.patchVersion)}</span>
               )}
             </div>
             <h1 className="text-2xl font-black tracking-tight mb-3">{combo.title}</h1>
@@ -202,10 +206,10 @@ export default async function ComboDetailPage({ params }: Props) {
           {/* Input sequence */}
           {keys.length > 0 && (
             <div className="bg-surface-raised rounded-xl p-5 border border-border">
-              <h2 className="text-xs font-bold mb-4 text-text-secondary uppercase tracking-wide">입력 시퀀스</h2>
+              <h2 className="text-xs font-bold mb-4 text-text-secondary uppercase tracking-wide">{t.detail_input_seq}</h2>
               <KeySequence keys={keys} size="md" maxKeys={12} />
               <p className="text-[11px] text-text-muted mt-2">
-                총 {combo.inputCount}개 입력
+                {t.detail_input_count(combo.inputCount)}
                 {combo.durationMs ? ` · ${formatDuration(combo.durationMs)}` : ""}
               </p>
             </div>
@@ -240,6 +244,7 @@ export default async function ComboDetailPage({ params }: Props) {
               characterId={combo.characterId}
               comboId={id}
               characterName={combo.character.name}
+              t={t}
             />
           </Suspense>
         </div>
@@ -271,10 +276,11 @@ async function CommentsSection({ comboId, currentUserId }: { comboId: string; cu
   );
 }
 
-async function RelatedCombosSection({ characterId, comboId, characterName }: {
+async function RelatedCombosSection({ characterId, comboId, characterName, t }: {
   characterId: string;
   comboId: string;
   characterName: string;
+  t: T;
 }) {
   const relatedRaw = await prisma.combo.findMany({
     where: { characterId, status: "published", id: { not: comboId } },
@@ -287,7 +293,7 @@ async function RelatedCombosSection({ characterId, comboId, characterName }: {
   return (
     <div>
       <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">
-        {characterName} 다른 콤보
+        {t.detail_related(characterName)}
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {items.map((c) => <ComboCard key={c.id} combo={c} />)}

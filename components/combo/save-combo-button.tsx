@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLang } from "@/lib/i18n-client";
 
 interface Props {
   comboId: string;
@@ -11,6 +12,7 @@ interface Props {
 
 export default function SaveComboButton({ comboId, initialIsSaved, isLoggedIn }: Props) {
   const router = useRouter();
+  const { t } = useLang();
   const [isSaved, setIsSaved] = useState(initialIsSaved);
   const [isPending, setIsPending] = useState(false);
 
@@ -52,14 +54,14 @@ export default function SaveComboButton({ comboId, initialIsSaved, isLoggedIn }:
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
           </svg>
-          저장됨
+          {t.save_saved}
         </>
       ) : (
         <>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
           </svg>
-          내 콤보에 추가
+          {t.save_add}
         </>
       )}
     </button>
