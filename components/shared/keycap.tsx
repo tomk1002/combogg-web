@@ -8,7 +8,7 @@ const VARIANT_STYLES: Record<KeyVariant, string> = {
   spell:    "bg-[#1A2540] text-[#7EB8F7] border-[#2A3A60] shadow-[0_3px_0_#0F1830]",
   ult:      "bg-[#2A1F00] text-[#C9A227] border-[#4A3800] shadow-[0_3px_0_#1A1000]",
   summoner: "bg-[#0A2020] text-[#4DB8B8] border-[#1A4040] shadow-[0_3px_0_#051010]",
-  dark:     "bg-[#2C313D] text-text-secondary border-border shadow-[0_3px_0_#0F1115]",
+  dark:     "bg-[#2C313D] text-white/70 border-[#3A4155] shadow-[0_3px_0_#0F1115]",
 };
 
 const SIZE_STYLES: Record<KeySize, { outer: string; inner: string; text: string }> = {
