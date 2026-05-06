@@ -50,7 +50,7 @@ export default function ComboCard({ combo, priority = false }: Props) {
       {/* Body */}
       <div className="flex flex-col gap-3 p-4 flex-1">
         {/* Champion + title */}
-        <div className="flex items-start gap-2.5">
+        <div className="flex items-center gap-2.5">
           {combo.character.iconUrl && (
             <Image
               src={combo.character.iconUrl}
@@ -58,14 +58,12 @@ export default function ComboCard({ combo, priority = false }: Props) {
               width={32}
               height={32}
               sizes="32px"
-              className="rounded-md shrink-0 mt-0.5"
+              className="rounded-md shrink-0"
             />
           )}
-          <div className="min-w-0">
-            <p className="font-bold text-sm leading-snug line-clamp-2 text-text group-hover:text-gold transition-colors duration-200">
-              {combo.title}
-            </p>
-          </div>
+          <p className="font-bold text-sm leading-snug line-clamp-2 text-text group-hover:text-gold transition-colors duration-200 min-w-0">
+            {combo.title}
+          </p>
         </div>
 
         {/* Key sequence preview */}

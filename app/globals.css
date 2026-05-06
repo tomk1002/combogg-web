@@ -21,11 +21,11 @@
   --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 
   /* Dark UI surfaces */
-  --color-surface:         #111318;
-  --color-surface-raised:  #1C1D24;
-  --color-surface-overlay: #25262F;
-  --color-border:          #313239;
-  --color-border-subtle:   rgba(255, 255, 255, 0.07);
+  --color-surface:         #1F2028;
+  --color-surface-raised:  #282A35;
+  --color-surface-overlay: #30323F;
+  --color-border:          #3D3F4E;
+  --color-border-subtle:   rgba(255, 255, 255, 0.08);
 
   /* Blue accent (luminescent) */
   --color-gold:       #60AFFF;

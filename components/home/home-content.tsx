@@ -177,17 +177,18 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
                 <Link
                   key={c.slug}
                   href={`/games/lol/champions/${c.slug}`}
-                  className="group flex flex-col items-center gap-2 p-3 rounded-xl border border-border bg-surface-raised hover:border-[rgba(255,255,255,0.2)] hover:bg-surface-overlay transition-colors"
+                  className="group flex flex-col items-center gap-1.5 p-2.5 rounded-lg border border-border bg-surface-raised hover:border-gold/30 hover:bg-surface-overlay transition-colors"
                 >
                   {c.iconUrl ? (
-                    <Image src={c.iconUrl} alt={c.name} width={48} height={48} className="rounded-lg" />
+                    <Image src={c.iconUrl} alt={c.name} width={36} height={36} className="rounded-md" />
                   ) : (
-                    <div className="w-12 h-12 rounded-lg bg-surface-overlay flex items-center justify-center text-lg font-black text-text-muted">
+                    <div className="w-9 h-9 rounded-md bg-surface-overlay flex items-center justify-center text-base font-black text-text-muted">
                       {c.name[0]}
                     </div>
                   )}
-                  <span className="text-xs font-semibold text-center leading-tight">{c.name}</span>
-                  <span className="text-[10px] text-text-muted font-mono">{c.comboCount}</span>
+                  <span className="text-[11px] font-medium text-center leading-tight text-text-secondary">
+                    {c.name} <span className="text-text-muted">({c.comboCount})</span>
+                  </span>
                 </Link>
               ))}
             </div>
