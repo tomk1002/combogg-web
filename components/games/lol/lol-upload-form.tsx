@@ -155,8 +155,6 @@ function ItemPicker({ items, selected, onAdd, onRemove }: ItemPickerProps) {
 
 // ── LolUploadForm ─────────────────────────────────────────────
 export default function LolUploadForm({ value, onChange, items, patch }: Props) {
-  const [isOpen, setIsOpen] = useState(false);
-
   const set = <K extends keyof LolGameSpecific>(key: K, v: LolGameSpecific[K] | undefined) =>
     onChange({ ...value, [key]: v });
 
@@ -180,29 +178,15 @@ export default function LolUploadForm({ value, onChange, items, patch }: Props) 
 
   return (
     <div className="flex flex-col">
-      {/* Collapsible header */}
-      <button
-        type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
-        className="w-full flex items-center justify-between px-6 py-4 text-left cursor-pointer hover:bg-surface-overlay/50 transition-colors"
-      >
+      {/* Header (항상 펼쳐짐) */}
+      <div className="px-6 pt-5 pb-3">
         <span className="text-xs font-bold uppercase tracking-wide text-text-secondary">
           LoL 조건 <span className="font-normal normal-case text-text-muted">(선택)</span>
         </span>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          className={`text-text-muted transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-        >
-          <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
+      </div>
 
-      {/* Collapsible content */}
-      {isOpen && (
-        <div className="flex flex-col gap-5 px-6 pb-6">
+      {/* Content */}
+      <div className="flex flex-col gap-5 px-6 pb-6">
           {/* 레벨 */}
           <div className="grid grid-cols-3 gap-4">
             <label className="flex flex-col gap-1.5">
@@ -333,8 +317,7 @@ export default function LolUploadForm({ value, onChange, items, patch }: Props) 
             </div>
             <p className="text-xs text-text-muted">콤보에 필요한 최소 스킬 레벨. 예: R Lv.1 = 6레벨 이상</p>
           </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

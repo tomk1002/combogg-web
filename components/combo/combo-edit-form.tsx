@@ -7,7 +7,6 @@ import Link from "next/link";
 import DifficultyPips from "@/components/shared/difficulty-pips";
 import LolUploadForm from "@/components/games/lol/lol-upload-form";
 import InputKeyMapper, { type MappableEntry } from "@/components/upload/input-key-mapper";
-import { KeyCap, inputToKeySequence } from "@/components/shared/keycap";
 import { getSummonerSpellIconUrl } from "@/lib/games/lol/ddragon";
 import VideoEditor from "@/components/combo/video-editor";
 import type { Difficulty } from "@/types";
@@ -113,25 +112,6 @@ type SeqEntry = MappableEntry & {
 
 function isStepMarker(e: SeqEntry): boolean {
   return e.category === STEP_MARKER;
-}
-
-function isAdjacentDuplicate(a: SeqEntry, b: SeqEntry): boolean {
-  // step_marker 는 중복 판정에서 제외
-  if (isStepMarker(a) || isStepMarker(b)) return false;
-  return a.category === b.category
-    && (a.ref ?? null) === (b.ref ?? null)
-    && (a.slot ?? null) === (b.slot ?? null);
-}
-
-function dedupeAdjacent(inputs: SeqEntry[]): SeqEntry[] {
-  if (inputs.length <= 1) return inputs;
-  const out: SeqEntry[] = [inputs[0]];
-  for (let i = 1; i < inputs.length; i++) {
-    if (!isAdjacentDuplicate(inputs[i - 1], inputs[i])) {
-      out.push(inputs[i]);
-    }
-  }
-  return out;
 }
 
 function chipVariantClass(category: string): string {
@@ -656,48 +636,6 @@ function SequenceEditor({ inputs, onChange, characterSlug, items, patch, require
 
   const onDragEnd = () => { setDragIdx(null); setDragOverIdx(null); };
 
-  // ── bulk actions ─────────────────────────────────────────────
-  const handleDedupe = () => {
-    const deduped = dedupeAdjacent(inputs);
-    if (deduped.length !== inputs.length) {
-      onChange(deduped);
-      setOpenIdx(null);
-    }
-  };
-
-  const handleSortByT = () => {
-    // step_marker 는 정렬에서 제외 — 위치를 보존
-    const hasT = inputs.some((i) => !isStepMarker(i) && typeof i.t === "number");
-    if (!hasT) return;
-    // 마커 위치 유지를 위해, 마커는 그대로 두고 마커 사이 입력만 t 로 정렬
-    const groups: { markerBefore: SeqEntry | null; bucket: SeqEntry[] }[] = [];
-    let bucket: SeqEntry[] = [];
-    let markerBefore: SeqEntry | null = null;
-    for (const e of inputs) {
-      if (isStepMarker(e)) {
-        groups.push({ markerBefore, bucket });
-        markerBefore = e;
-        bucket = [];
-      } else {
-        bucket.push(e);
-      }
-    }
-    groups.push({ markerBefore, bucket });
-    const result: SeqEntry[] = [];
-    for (const { markerBefore: m, bucket: b } of groups) {
-      if (m) result.push(m);
-      result.push(...[...b].sort((a, b2) => (a.t ?? 0) - (b2.t ?? 0)));
-    }
-    onChange(result);
-    setOpenIdx(null);
-  };
-
-  const dedupeRemovedCount = inputs.length - dedupeAdjacent(inputs).length;
-  const hasT = inputs.some((i) => !isStepMarker(i) && typeof i.t === "number");
-
-  // KeyCap 미리보기는 step_marker 제외
-  const inputOnly = inputs.filter((i) => !isStepMarker(i));
-
   // step number 계산: 각 marker 의 순번 (1-indexed)
   let stepCounter = 0;
   const stepNumbers = inputs.map((e) => {
@@ -710,30 +648,15 @@ function SequenceEditor({ inputs, onChange, characterSlug, items, patch, require
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Bulk actions */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <button
-          type="button"
-          onClick={handleDedupe}
-          disabled={dedupeRemovedCount === 0}
-          className="h-7 px-2.5 rounded-md border border-border bg-surface-overlay text-[11px] font-semibold text-text-secondary hover:text-text hover:border-[rgba(255,255,255,0.24)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          title="연속해서 같은 입력이 반복되면 첫 입력만 남깁니다"
-        >
-          인접 중복 제거{dedupeRemovedCount > 0 ? ` (-${dedupeRemovedCount})` : ""}
-        </button>
-        <button
-          type="button"
-          onClick={handleSortByT}
-          disabled={!hasT}
-          className="h-7 px-2.5 rounded-md border border-border bg-surface-overlay text-[11px] font-semibold text-text-secondary hover:text-text hover:border-[rgba(255,255,255,0.24)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          title={hasT ? "타이밍(t) 기준으로 재정렬합니다 (구간 marker 위치는 보존)" : "이 콤보는 입력별 타이밍 정보가 없어 시간순 정렬을 할 수 없습니다"}
-        >
-          정렬 (시간순)
-        </button>
-        <span className="text-[11px] text-text-muted ml-auto">
-          드래그해서 순서 변경 · 클릭해서 편집 · 우클릭으로 삭제
-        </span>
-      </div>
+      {/* 팔레트 — 클릭으로 추가 (시퀀스 위) */}
+      <Palette
+        characterSlug={characterSlug}
+        items={items}
+        patch={patch}
+        requiredItems={requiredItems}
+        summonerSpells={summonerSpells}
+        onAdd={addToSequence}
+      />
 
       {/* Chip flow (입력 + step marker 통합) */}
       {inputs.length === 0 ? (
@@ -853,32 +776,17 @@ function SequenceEditor({ inputs, onChange, characterSlug, items, patch, require
         </div>
       )}
 
-      {/* KeyCap preview (입력만 — step_marker 제외) */}
-      {inputOnly.length > 0 && (
-        <div className="flex items-center gap-1 flex-wrap pt-1">
-          {inputToKeySequence(inputOnly.map(({ category, ref, slot }) => ({ category, ref, slot }))).map((k, i) => (
-            <KeyCap key={i} label={k.label} variant={k.variant} size="sm" />
-          ))}
-        </div>
-      )}
-
-      {/* 팔레트 — 클릭으로 추가 */}
-      <Palette
-        characterSlug={characterSlug}
-        items={items}
-        patch={patch}
-        requiredItems={requiredItems}
-        summonerSpells={summonerSpells}
-        onAdd={addToSequence}
-      />
+      {/* 하단 힌트 */}
+      <p className="text-[11px] text-text-muted pt-1">
+        드래그해서 순서 변경 · 클릭해서 편집 · 우클릭으로 삭제
+      </p>
 
       {/* 아이템·소환사 주문 슬롯 매핑 (세부 ref 조정용) */}
-      <div className="border-t border-border pt-3">
-        <InputKeyMapper inputs={inputs} items={items} patch={patch} onChange={onChange} />
-        {inputs.filter(i => i.category === "item" || i.category === "summoner_spell").length === 0 && (
-          <p className="text-xs text-text-muted px-1">아이템·소환사 주문 입력이 없습니다. 위 팔레트에서 추가하면 여기서 세부 설정이 가능합니다.</p>
-        )}
-      </div>
+      {inputs.filter(i => i.category === "item" || i.category === "summoner_spell").length > 0 && (
+        <div className="border-t border-border pt-3">
+          <InputKeyMapper inputs={inputs} items={items} patch={patch} onChange={onChange} />
+        </div>
+      )}
     </div>
   );
 }
@@ -1049,10 +957,8 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
     setShowVideoEditor(false);
   }, [videoSrc]);
 
-  // 입력 통계 (헤더용)
+  // AI autofill 활성화 조건 검사용 — step_marker 제외한 입력만
   const inputOnly = sequence.filter((e) => !isStepMarker(e));
-  const stepCount = sequence.filter(isStepMarker).length;
-  const durationSec = combo.durationMs ? combo.durationMs / 1000 : 0;
 
   // ── AI autofill ─────────────────────────────────────────────
   const handleAiAutofill = () => {
@@ -1228,95 +1134,8 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
 
-      {/* ── 입력 시퀀스 ──────────────────────────────── */}
-      <div className="bg-surface-raised rounded-xl border border-border overflow-hidden">
-        <div className="px-5 pt-5 pb-3">
-          <p className="text-xs font-bold uppercase tracking-wide text-text-secondary">입력 시퀀스</p>
-          <p className="text-xs text-text-muted mt-0.5">
-            총 {inputOnly.length}개 입력
-            {stepCount > 0 ? ` · ${stepCount}개 구간` : ""}
-            {combo.durationMs ? ` · ${durationSec.toFixed(1)}초` : ""}
-          </p>
-        </div>
-
-        <div className="px-5 pb-5">
-          <SequenceEditor
-            inputs={sequence}
-            onChange={setSequence}
-            characterSlug={combo.character?.slug ?? ""}
-            items={items}
-            patch={patch}
-            requiredItems={gameSpecific.required_items ?? []}
-            summonerSpells={gameSpecific.summoner_spells ?? []}
-          />
-        </div>
-      </div>
-
-      {/* ── AI 자동 완성 ──────────────────────────────── */}
-      {combo.character && inputOnly.length > 0 && (
-        <div className={`rounded-xl border p-4 flex items-center justify-between gap-4 transition-colors ${isAiFilled ? "border-gold/40 bg-gold/5" : "border-border bg-surface-raised"}`}>
-          <div className="flex items-center gap-3 min-w-0">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isAiFilled ? "bg-gold/20" : "bg-surface-overlay"}`}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className={isAiFilled ? "text-gold" : "text-text-muted"}>
-                <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3zm7 10l.75 2.25L22 16l-2.25.75L19 19l-.75-2.25L16 16l2.25-.75L19 13zM5 17l.5 1.5L7 19l-1.5.5L5 21l-.5-1.5L3 19l1.5-.5L5 17z"/>
-              </svg>
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold">{isAiFilled ? "AI 자동 완성됨" : "AI 자동 완성"}</p>
-              <p className="text-xs text-text-muted truncate">
-                {isAiFilled
-                  ? `제목·설명·난이도·태그·LoL 조건 자동 입력 — 수정 후 저장하세요`
-                  : `${combo.character.name} 콤보를 분석해 제목·설명·난이도·태그·스킬가속·조건을 자동으로 채워줍니다`}
-              </p>
-            </div>
-          </div>
-          <button type="button" onClick={handleAiAutofill} disabled={aiPending}
-            className={`shrink-0 h-9 px-4 rounded-lg text-sm font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap ${isAiFilled ? "border border-gold/40 text-gold hover:bg-gold/10" : "bg-gold text-white hover:bg-gold-light"}`}>
-            {aiPending ? (
-              <span className="flex items-center gap-1.5">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="animate-spin"><path d="M12 3v3m0 12v3M3 12h3m12 0h3" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/></svg>
-                분석 중...
-              </span>
-            ) : isAiFilled ? "다시 생성" : "자동 완성"}
-          </button>
-        </div>
-      )}
-      {aiError && <p className="text-xs text-hard -mt-3">{aiError}</p>}
-
-      {/* ── 미디어 ────────────────────────────────────── */}
+      {/* ── 1. 미디어 (영상 미리보기) — 최상단 ─────────────── */}
       <div className="bg-surface-raised rounded-xl p-5 border border-border flex flex-col gap-5">
-        <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary">미디어</h2>
-
-        {/* Thumbnail */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold">썸네일</span>
-            <button type="button" onClick={() => thumbnailInputRef.current?.click()}
-              className="text-xs font-semibold text-text-secondary hover:text-text transition-colors">
-              이미지 선택
-            </button>
-          </div>
-          <input ref={thumbnailInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
-            onChange={(e) => e.target.files?.[0] && handleThumbnailFile(e.target.files[0])} />
-          {thumbnailPreview ? (
-            <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-border bg-surface-overlay cursor-pointer"
-              onClick={() => thumbnailInputRef.current?.click()}>
-              <Image src={thumbnailPreview} alt="썸네일" fill sizes="672px" className="object-cover" />
-              {newThumbnailFile && (
-                <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/70 text-xs font-semibold text-white">변경됨</div>
-              )}
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                <span className="text-xs font-semibold text-white">클릭해서 변경</span>
-              </div>
-            </div>
-          ) : (
-            <button type="button" onClick={() => thumbnailInputRef.current?.click()}
-              className="w-full h-20 rounded-lg border border-dashed border-border bg-surface-overlay flex items-center justify-center text-sm text-text-muted hover:border-[rgba(255,255,255,0.24)] hover:text-text transition-colors">
-              + 썸네일 이미지 선택
-            </button>
-          )}
-        </div>
-
         {/* Video */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
@@ -1378,12 +1197,86 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
             />
           )}
         </div>
+
+        {/* Thumbnail */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold">썸네일</span>
+            <button type="button" onClick={() => thumbnailInputRef.current?.click()}
+              className="text-xs font-semibold text-text-secondary hover:text-text transition-colors">
+              이미지 선택
+            </button>
+          </div>
+          <input ref={thumbnailInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+            onChange={(e) => e.target.files?.[0] && handleThumbnailFile(e.target.files[0])} />
+          {thumbnailPreview ? (
+            <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-border bg-surface-overlay cursor-pointer"
+              onClick={() => thumbnailInputRef.current?.click()}>
+              <Image src={thumbnailPreview} alt="썸네일" fill sizes="672px" className="object-cover" />
+              {newThumbnailFile && (
+                <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/70 text-xs font-semibold text-white">변경됨</div>
+              )}
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                <span className="text-xs font-semibold text-white">클릭해서 변경</span>
+              </div>
+            </div>
+          ) : (
+            <button type="button" onClick={() => thumbnailInputRef.current?.click()}
+              className="w-full h-20 rounded-lg border border-dashed border-border bg-surface-overlay flex items-center justify-center text-sm text-text-muted hover:border-[rgba(255,255,255,0.24)] hover:text-text transition-colors">
+              + 썸네일 이미지 선택
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* ── 기본 정보 ─────────────────────────────────── */}
-      <div className="bg-surface-raised rounded-xl p-5 border border-border flex flex-col gap-4">
-        <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary">기본 정보</h2>
+      {/* ── 2. 입력 시퀀스 — 영상 바로 아래 ───────────────── */}
+      <div className="bg-surface-raised rounded-xl border border-border overflow-hidden">
+        <div className="px-5 py-4">
+          <SequenceEditor
+            inputs={sequence}
+            onChange={setSequence}
+            characterSlug={combo.character?.slug ?? ""}
+            items={items}
+            patch={patch}
+            requiredItems={gameSpecific.required_items ?? []}
+            summonerSpells={gameSpecific.summoner_spells ?? []}
+          />
+        </div>
+      </div>
 
+      {/* ── AI 자동 완성 ──────────────────────────────── */}
+      {combo.character && inputOnly.length > 0 && (
+        <div className={`rounded-xl border p-4 flex items-center justify-between gap-4 transition-colors ${isAiFilled ? "border-gold/40 bg-gold/5" : "border-border bg-surface-raised"}`}>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isAiFilled ? "bg-gold/20" : "bg-surface-overlay"}`}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className={isAiFilled ? "text-gold" : "text-text-muted"}>
+                <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3zm7 10l.75 2.25L22 16l-2.25.75L19 19l-.75-2.25L16 16l2.25-.75L19 13zM5 17l.5 1.5L7 19l-1.5.5L5 21l-.5-1.5L3 19l1.5-.5L5 17z"/>
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold">{isAiFilled ? "AI 자동 완성됨" : "AI 자동 완성"}</p>
+              <p className="text-xs text-text-muted truncate">
+                {isAiFilled
+                  ? `제목·설명·난이도·태그·LoL 조건 자동 입력 — 수정 후 저장하세요`
+                  : `${combo.character.name} 콤보를 분석해 제목·설명·난이도·태그·스킬가속·조건을 자동으로 채워줍니다`}
+              </p>
+            </div>
+          </div>
+          <button type="button" onClick={handleAiAutofill} disabled={aiPending}
+            className={`shrink-0 h-9 px-4 rounded-lg text-sm font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap ${isAiFilled ? "border border-gold/40 text-gold hover:bg-gold/10" : "bg-gold text-white hover:bg-gold-light"}`}>
+            {aiPending ? (
+              <span className="flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="animate-spin"><path d="M12 3v3m0 12v3M3 12h3m12 0h3" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/></svg>
+                분석 중...
+              </span>
+            ) : isAiFilled ? "다시 생성" : "자동 완성"}
+          </button>
+        </div>
+      )}
+      {aiError && <p className="text-xs text-hard -mt-3">{aiError}</p>}
+
+      {/* ── 3. 제목 ───────────────────────────────────── */}
+      <div className="bg-surface-raised rounded-xl p-5 border border-border flex flex-col gap-4">
         <label className="flex flex-col gap-1.5">
           <span className="flex items-center gap-2 text-sm font-semibold">
             제목 <span className="text-hard">*</span>{aiFilledFields.has("title") && <AiBadge />}
@@ -1392,6 +1285,7 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
             required maxLength={100} className={fieldCls(aiFilledFields.has("title"))} />
         </label>
 
+        {/* ── 4. 콤보 설명 ──────────────────────────────── */}
         <div className="flex flex-col gap-1.5">
           <span className="flex items-center gap-2 text-sm font-semibold">
             콤보 설명 {aiFilledFields.has("description") && <AiBadge />}
@@ -1413,6 +1307,7 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
             className="px-3 py-2 rounded-lg border border-border bg-surface-overlay text-sm focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors resize-none" />
         </div>
 
+        {/* ── 5. 난이도 + 태그 ──────────────────────────── */}
         <div className="flex flex-col gap-2">
           <span className="flex items-center gap-2 text-sm font-semibold">
             난이도 {aiFilledFields.has("difficulty") && <AiBadge />}
@@ -1442,7 +1337,7 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
         </label>
       </div>
 
-      {/* ── LoL 조건 ──────────────────────────────────── */}
+      {/* ── 6. LoL 조건 (항상 펼쳐짐) ────────────────── */}
       {combo.game.slug === "lol" && (
         <div className={`rounded-xl border overflow-hidden transition-colors ${aiFilledFields.has("lol_conditions") ? "border-gold/40" : "border-border"}`}>
           {aiFilledFields.has("lol_conditions") && (
