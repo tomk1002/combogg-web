@@ -93,7 +93,7 @@ export default async function Home() {
               {t.hero_subtitle}
             </p>
             <div className="flex gap-3">
-              <Link href="/upload" className="inline-flex items-center gap-2 h-11 px-6 rounded-[8px] bg-gold text-white font-bold text-sm hover:bg-gold-light transition-colors">
+              <Link href="/upload" className="inline-flex items-center gap-2 h-11 px-6 rounded-[8px] bg-gold text-white font-bold text-sm hover:bg-gold-light hover:shadow-[0_0_20px_rgba(200,155,60,0.50)] transition-all">
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                   <path d="M7 11V3m0 0L4 6m3-3 3 3M2 12h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>

@@ -107,7 +107,7 @@ export default async function LolPage({ searchParams }: Props) {
         </div>
         <Link
           href="/upload"
-          className="ml-auto h-9 px-4 rounded-lg bg-gold text-white text-sm font-bold hover:bg-gold-light transition-colors flex items-center"
+          className="ml-auto h-9 px-4 rounded-lg bg-gold text-white text-sm font-bold hover:bg-gold-light hover:shadow-[0_0_16px_rgba(200,155,60,0.50)] transition-all flex items-center"
         >
           {t.nav_upload}
         </Link>

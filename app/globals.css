@@ -112,6 +112,21 @@ html[data-theme="light"] body {
 a { color: inherit; text-decoration: none; }
 
 /* ──────────────────────────────────────────────────────────
+   INTERACTIVE GLOW UTILITIES
+────────────────────────────────────────────────────────── */
+
+/* Primary gold button glow — add this class to any bg-gold button */
+.btn-gold {
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+.btn-gold:hover {
+  box-shadow: 0 0 18px rgba(200, 155, 60, 0.50), 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+.btn-gold:active {
+  transform: scale(0.97);
+}
+
+/* ──────────────────────────────────────────────────────────
    GRADIENT UTILITIES
 ────────────────────────────────────────────────────────── */
 .text-gradient-gold {

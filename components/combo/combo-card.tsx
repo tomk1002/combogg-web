@@ -16,7 +16,7 @@ export default function ComboCard({ combo, priority = false }: Props) {
   return (
     <Link
       href={`/combos/${combo.id}`}
-      className="group flex flex-col bg-surface-raised border border-border rounded-xl overflow-hidden hover:border-border-subtle hover:shadow-[0_4px_16px_rgba(0,0,0,0.18)] transition-all duration-200"
+      className="group flex flex-col bg-surface-raised border border-border rounded-xl overflow-hidden hover:border-gold/50 hover:-translate-y-1 hover:shadow-[0_8px_28px_rgba(200,155,60,0.22),0_2px_8px_rgba(0,0,0,0.3)] transition-all duration-200"
     >
       {/* Thumbnail */}
       <div className="relative aspect-video bg-surface-overlay overflow-hidden">

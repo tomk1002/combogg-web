@@ -304,7 +304,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
             </div>
             <Link
               href="/upload"
-              className="inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-gold text-white font-bold text-sm hover:bg-gold-light transition-colors shrink-0"
+              className="inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-gold text-white font-bold text-sm hover:bg-gold-light hover:shadow-[0_0_20px_rgba(200,155,60,0.50)] transition-all shrink-0"
             >
               {t.cta_button}
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
