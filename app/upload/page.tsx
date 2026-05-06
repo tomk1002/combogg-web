@@ -6,7 +6,7 @@ import UploadWizard from "@/components/upload/upload-wizard";
 
 export default async function UploadPage() {
   const session = await auth();
-  if (!session?.user) redirect("/login");
+  if (!session?.user) redirect("/login?callbackUrl=/upload");
 
   const game = await prisma.game.findUnique({ where: { slug: "lol" } });
   const [characters, patch] = await Promise.all([

@@ -1,11 +1,17 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
+import type { Session } from "next-auth";
 import { LangProvider } from "@/lib/i18n-client";
 
-export default function Providers({ children }: { children: React.ReactNode }) {
+interface Props {
+  children: React.ReactNode;
+  session: Session | null;
+}
+
+export default function Providers({ children, session }: Props) {
   return (
-    <SessionProvider>
+    <SessionProvider session={session} refetchInterval={5 * 60} refetchOnWindowFocus={true}>
       <LangProvider>{children}</LangProvider>
     </SessionProvider>
   );

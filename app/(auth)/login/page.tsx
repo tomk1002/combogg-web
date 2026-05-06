@@ -1,7 +1,16 @@
 import Link from "next/link";
 import { signInWithGoogle, signInWithDiscord } from "@/lib/actions/auth";
 
-export default function LoginPage() {
+interface Props {
+  searchParams: Promise<{ callbackUrl?: string }>;
+}
+
+export default async function LoginPage({ searchParams }: Props) {
+  const { callbackUrl = "/" } = await searchParams;
+  const safeCallback = callbackUrl.startsWith("/") ? callbackUrl : "/";
+  const googleAction = signInWithGoogle.bind(null, safeCallback);
+  const discordAction = signInWithDiscord.bind(null, safeCallback);
+
   return (
     <main className="min-h-screen flex items-center justify-center p-8">
       <div className="w-full max-w-sm">
@@ -23,7 +32,7 @@ export default function LoginPage() {
           </p>
 
           <div className="flex flex-col gap-3">
-            <form action={signInWithGoogle}>
+            <form action={googleAction}>
               <button
                 type="submit"
                 className="w-full h-11 rounded-[7px] bg-white text-[#212121] border border-[#E0E0E0] flex items-center justify-center gap-2.5 text-sm font-bold cursor-pointer hover:bg-[#F5F5F5] transition-colors"
@@ -33,7 +42,7 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <form action={signInWithDiscord}>
+            <form action={discordAction}>
               <button
                 type="submit"
                 className="w-full h-11 rounded-[7px] bg-[#5865F2] text-white flex items-center justify-center gap-2.5 text-sm font-bold cursor-pointer hover:bg-[#4752c4] transition-colors"

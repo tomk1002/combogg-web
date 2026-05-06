@@ -13,7 +13,7 @@ export default async function ComboEditPage({ params }: Props) {
   const session = await auth();
 
   if (!session?.user?.id) {
-    redirect("/login");
+    redirect(`/login?callbackUrl=/combos/${id}/edit`);
   }
 
   const combo = await prisma.combo.findUnique({
