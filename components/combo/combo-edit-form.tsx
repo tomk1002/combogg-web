@@ -82,6 +82,87 @@ function fmt(s: number) {
   return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 }
 
+// ── 인라인 아이템 픽커 (시퀀스 편집 시 슬롯별 아이템 선택) ────
+function InlineItemPicker({ items, current, onSelect }: {
+  items: ItemMeta[];
+  current?: string;
+  onSelect: (id: string | undefined) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen]   = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const currentItem = items.find((i) => i.id === current);
+  const filtered = query.trim().length >= 1
+    ? items.filter((i) =>
+        i.name.toLowerCase().includes(query.toLowerCase()) ||
+        i.id.includes(query)
+      ).slice(0, 6)
+    : [];
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative w-44 shrink-0">
+      {currentItem ? (
+        <div className="flex items-center gap-1.5 h-7 px-1.5 rounded-md border border-border bg-surface-raised">
+          <Image src={currentItem.iconUrl} alt={currentItem.name} width={18} height={18} sizes="18px" className="rounded-sm shrink-0" />
+          <span className="text-[11px] font-semibold truncate flex-1">{currentItem.name}</span>
+          <button
+            type="button"
+            onClick={() => { onSelect(undefined); setQuery(""); }}
+            className="text-text-muted hover:text-text text-xs shrink-0 cursor-pointer"
+          >×</button>
+        </div>
+      ) : (
+        <input
+          type="text"
+          value={query}
+          placeholder="아이템 선택..."
+          onChange={(e) => { setQuery(e.target.value); setOpen(e.target.value.trim().length >= 1); }}
+          onFocus={() => query.trim().length >= 1 && setOpen(true)}
+          className="w-full h-7 px-2 rounded-md border border-border bg-surface-raised text-[11px] focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors"
+        />
+      )}
+      {open && filtered.length > 0 && (
+        <ul className="absolute z-30 mt-1 w-64 rounded-lg border border-border bg-surface-overlay shadow-lg overflow-hidden">
+          {filtered.map((item) => (
+            <li key={item.id}>
+              <button
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); onSelect(item.id); setQuery(""); setOpen(false); }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-surface-raised transition-colors cursor-pointer"
+              >
+                <Image src={item.iconUrl} alt={item.name} width={20} height={20} sizes="20px" className="rounded-sm shrink-0" />
+                <span className="truncate">{item.name}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// 입력이 "아이템 슬롯" 으로 다뤄져야 하는지 판정.
+//  - category === "item"               → 명시적 아이템
+//  - category === "key" 이고 ref 가 1~6 → 오버레이 녹화 시 매핑되지 않은 숫자키
+function isItemSlotInput(inp: MappableEntry): { isItem: boolean; slot?: number } {
+  if (inp.category === "item") {
+    const slot = typeof inp.slot === "number" ? inp.slot : Number(inp.slot);
+    return { isItem: true, slot: Number.isFinite(slot) ? slot : undefined };
+  }
+  if (inp.category === "key" && typeof inp.ref === "string" && /^[1-6]$/.test(inp.ref)) {
+    return { isItem: true, slot: Number(inp.ref) };
+  }
+  return { isItem: false };
+}
+
 // ── SequenceEditor ────────────────────────────────────────────
 function SequenceEditor({ inputs, onChange, characterSlug, items, patch }: {
   inputs: MappableEntry[];
@@ -104,6 +185,24 @@ function SequenceEditor({ inputs, onChange, characterSlug, items, patch }: {
   };
 
   const remove = (i: number) => onChange(inputs.filter((_, idx) => idx !== i));
+
+  // 아이템 슬롯 입력의 ref 를 설정. 'key' 카테고리였다면 'item' 으로 승격.
+  const setItemRef = (i: number, slot: number | undefined, ref: string | undefined) => {
+    onChange(
+      inputs.map((inp, idx) => {
+        if (idx !== i) return inp;
+        let resolvedSlot: number | string | undefined = slot;
+        if (resolvedSlot === undefined) {
+          if (typeof inp.slot === "number" || typeof inp.slot === "string") {
+            resolvedSlot = inp.slot;
+          } else if (typeof inp.ref === "string" && /^[1-6]$/.test(inp.ref)) {
+            resolvedSlot = Number(inp.ref);
+          }
+        }
+        return { ...inp, category: "item", slot: resolvedSlot, ref };
+      }),
+    );
+  };
 
   const add = () => {
     let entry: MappableEntry;
@@ -146,21 +245,36 @@ function SequenceEditor({ inputs, onChange, characterSlug, items, patch }: {
       {inputs.length === 0 ? (
         <p className="text-xs text-text-muted py-2">시퀀스가 비어 있습니다. 아래에서 입력을 추가하세요.</p>
       ) : (
-        <div className="flex flex-col gap-1 max-h-60 overflow-y-auto">
-          {inputs.map((inp, i) => (
-            <div key={i} className="flex items-center gap-2 h-9 px-3 rounded-lg bg-surface-overlay border border-border">
-              <KeyCap label={sequenceKeys[i]?.label ?? "?"} variant={sequenceKeys[i]?.variant} size="sm" />
-              <span className="flex-1 text-xs text-text-secondary truncate">{categoryLabel(inp)}</span>
-              <div className="flex gap-1 shrink-0">
-                <button type="button" onClick={() => move(i, -1)} disabled={i === 0}
-                  className="w-5 h-5 flex items-center justify-center text-text-muted hover:text-text disabled:opacity-30 transition-colors text-xs">↑</button>
-                <button type="button" onClick={() => move(i, 1)} disabled={i === inputs.length - 1}
-                  className="w-5 h-5 flex items-center justify-center text-text-muted hover:text-text disabled:opacity-30 transition-colors text-xs">↓</button>
-                <button type="button" onClick={() => remove(i)}
-                  className="w-5 h-5 flex items-center justify-center text-text-muted hover:text-hard transition-colors text-xs">×</button>
+        <div className="flex flex-col gap-1 max-h-72 overflow-y-auto">
+          {inputs.map((inp, i) => {
+            const itemMeta = isItemSlotInput(inp);
+            return (
+              <div key={i} className="flex items-center gap-2 h-9 px-3 rounded-lg bg-surface-overlay border border-border">
+                <span className="text-[10px] font-mono text-text-muted w-6 shrink-0">#{i}</span>
+                <KeyCap label={sequenceKeys[i]?.label ?? "?"} variant={sequenceKeys[i]?.variant} size="sm" />
+                {itemMeta.isItem ? (
+                  <>
+                    <span className="text-xs text-text-secondary shrink-0">아이템 슬롯 {itemMeta.slot ?? "?"}</span>
+                    <InlineItemPicker
+                      items={items}
+                      current={typeof inp.ref === "string" ? inp.ref : undefined}
+                      onSelect={(id) => setItemRef(i, itemMeta.slot, id)}
+                    />
+                  </>
+                ) : (
+                  <span className="flex-1 text-xs text-text-secondary truncate">{categoryLabel(inp)}</span>
+                )}
+                <div className="flex gap-1 shrink-0 ml-auto">
+                  <button type="button" onClick={() => move(i, -1)} disabled={i === 0}
+                    className="w-5 h-5 flex items-center justify-center text-text-muted hover:text-text disabled:opacity-30 transition-colors text-xs">↑</button>
+                  <button type="button" onClick={() => move(i, 1)} disabled={i === inputs.length - 1}
+                    className="w-5 h-5 flex items-center justify-center text-text-muted hover:text-text disabled:opacity-30 transition-colors text-xs">↓</button>
+                  <button type="button" onClick={() => remove(i)}
+                    className="w-5 h-5 flex items-center justify-center text-text-muted hover:text-hard transition-colors text-xs">×</button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -221,29 +335,159 @@ function SequenceEditor({ inputs, onChange, characterSlug, items, patch }: {
   );
 }
 
-// ── StepsEditor ───────────────────────────────────────────────
-function StepsEditor({ steps, onChange, durationSec }: {
+// ── StepsEditor (input-index based) ───────────────────────────
+//
+// Step.start/end 는 ms 로 저장되지만 UI 는 input 인덱스 기준.
+// inputSummary 는 t 가 없으므로 durationMs 를 N 등분해 synthetic 한 t 를
+// 계산한다. 진짜 t 가 있으면 그대로 사용.
+//
+// 변환 규칙:
+//   load: ms → idx via 가장 가까운 (또는 첫 ≥) 입력
+//   save: idx → ms = inputs[idx].t (end 는 next input.t 또는 +꼬리)
+//
+// 입력이 없는 콤보(legacy)에서는 ms 모드로 폴백.
+const TAIL_MS = 200;
+
+interface MappableTimedEntry extends MappableEntry {
+  t?: number;
+}
+
+function inputTimes(inputs: MappableTimedEntry[], durationMs: number): number[] {
+  const N = inputs.length;
+  if (N === 0) return [];
+  const hasReal = inputs.some((i) => typeof i.t === "number");
+  if (hasReal) return inputs.map((i, idx) => (typeof i.t === "number" ? i.t : Math.round((idx * durationMs) / Math.max(1, N))));
+  // Synthetic 균등 분할 — durationMs 를 (N) 분할하고 각 입력은 그 시작점
+  const span = Math.max(durationMs, 100);
+  return inputs.map((_, idx) => Math.round((idx * span) / Math.max(1, N)));
+}
+
+function msToIdx(ms: number, times: number[]): number {
+  if (times.length === 0) return 0;
+  // 가장 가까운 인덱스
+  let bestIdx = 0;
+  let bestDist = Infinity;
+  for (let i = 0; i < times.length; i++) {
+    const d = Math.abs(times[i] - ms);
+    if (d < bestDist) { bestDist = d; bestIdx = i; }
+  }
+  return bestIdx;
+}
+
+function startIdxToMs(idx: number, times: number[]): number {
+  return times[idx] ?? 0;
+}
+
+function endIdxToMs(idx: number, times: number[], durationMs: number): number {
+  const cur = times[idx] ?? 0;
+  const next = times[idx + 1];
+  if (typeof next === "number") return next;
+  return Math.max(cur + TAIL_MS, durationMs);
+}
+
+function StepsEditor({ steps, onChange, inputs, durationMs }: {
   steps: Step[];
   onChange: (v: Step[]) => void;
-  durationSec: number;
+  inputs: MappableTimedEntry[];
+  durationMs: number;
 }) {
+  const hasInputs = inputs.length > 0;
+  const times = hasInputs ? inputTimes(inputs, durationMs) : [];
+  const sequenceKeys = inputToKeySequence(inputs.map(({ category, ref, slot }) => ({ category, ref, slot })));
+
   const addStep = () => {
-    const lastEnd = steps.length > 0 ? steps[steps.length - 1].end : 0;
-    const newEnd  = Math.max(lastEnd + 1, durationSec);
-    onChange([...steps, {
-      id:    Math.random().toString(36).slice(2),
-      start: lastEnd,
-      end:   newEnd,
-      title: `${steps.length + 1}단계`,
-      tip:   "",
-    }]);
+    if (hasInputs) {
+      const lastEndIdx = steps.length > 0 ? msToIdx(steps[steps.length - 1].end, times) : -1;
+      const fromIdx = Math.min(inputs.length - 1, lastEndIdx + 1);
+      const toIdx   = Math.min(inputs.length - 1, fromIdx + 2);
+      onChange([
+        ...steps,
+        {
+          id:    Math.random().toString(36).slice(2),
+          start: startIdxToMs(fromIdx, times),
+          end:   endIdxToMs(toIdx, times, durationMs),
+          title: `${steps.length + 1}단계`,
+          tip:   "",
+        },
+      ]);
+    } else {
+      // Legacy ms-only 폴백
+      const lastEnd = steps.length > 0 ? steps[steps.length - 1].end : 0;
+      onChange([
+        ...steps,
+        {
+          id:    Math.random().toString(36).slice(2),
+          start: lastEnd,
+          end:   Math.max(lastEnd + 500, durationMs),
+          title: `${steps.length + 1}단계`,
+          tip:   "",
+        },
+      ]);
+    }
   };
 
-  const update = (id: string, field: keyof Step, value: string | number) => {
+  const updateRange = (id: string, fromIdx: number, toIdx: number) => {
+    const safeFrom = Math.max(0, Math.min(inputs.length - 1, fromIdx));
+    const safeTo   = Math.max(safeFrom, Math.min(inputs.length - 1, toIdx));
+    onChange(
+      steps.map((s) =>
+        s.id === id
+          ? { ...s, start: startIdxToMs(safeFrom, times), end: endIdxToMs(safeTo, times, durationMs) }
+          : s,
+      ),
+    );
+  };
+
+  const updateField = (id: string, field: "title" | "tip", value: string) => {
     onChange(steps.map((s) => s.id === id ? { ...s, [field]: value } : s));
   };
 
   const remove = (id: string) => onChange(steps.filter((s) => s.id !== id));
+
+  if (!hasInputs) {
+    // Fallback: 시간 기반 입력이 없는 legacy 콤보 — 기존 ms 단위 UI 유지
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="text-xs text-text-muted">입력 타이밍 정보가 없어 시간(ms) 기준으로 편집합니다.</p>
+        {steps.length === 0 ? (
+          <p className="text-xs text-text-muted">구간이 없습니다.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {steps.map((step) => (
+              <div key={step.id} className="flex flex-col gap-2 p-3 rounded-lg bg-surface-overlay border border-border">
+                <div className="flex items-center gap-2">
+                  <input type="number" min={0} value={step.start}
+                    onChange={(e) => onChange(steps.map((s) => s.id === step.id ? { ...s, start: Number(e.target.value) || 0 } : s))}
+                    className="w-20 h-7 px-2 rounded border border-border bg-surface-raised text-xs text-center focus:outline-none" />
+                  <span className="text-xs text-text-muted">→</span>
+                  <input type="number" min={0} value={step.end}
+                    onChange={(e) => onChange(steps.map((s) => s.id === step.id ? { ...s, end: Number(e.target.value) || 0 } : s))}
+                    className="w-20 h-7 px-2 rounded border border-border bg-surface-raised text-xs text-center focus:outline-none" />
+                  <span className="text-xs text-text-muted">ms</span>
+                  <input type="text" value={step.title}
+                    onChange={(e) => updateField(step.id, "title", e.target.value)}
+                    placeholder="구간 이름"
+                    className="flex-1 h-7 px-2 rounded border border-border bg-surface-raised text-xs focus:outline-none" />
+                  <button type="button" onClick={() => remove(step.id)}
+                    className="w-6 h-6 flex items-center justify-center text-text-muted hover:text-hard transition-colors text-sm shrink-0">×</button>
+                </div>
+                <input type="text" value={step.tip}
+                  onChange={(e) => updateField(step.id, "tip", e.target.value)}
+                  placeholder="이 구간 팁 (선택)"
+                  className="h-7 px-2 rounded border border-border bg-surface-raised text-xs focus:outline-none" />
+              </div>
+            ))}
+          </div>
+        )}
+        <button type="button" onClick={addStep}
+          className="h-8 rounded-lg border border-dashed border-border text-xs font-semibold text-text-secondary hover:border-[rgba(255,255,255,0.24)] hover:text-text transition-colors">
+          + 구간 추가
+        </button>
+      </div>
+    );
+  }
+
+  const maxIdx = inputs.length - 1;
 
   return (
     <div className="flex flex-col gap-3">
@@ -251,34 +495,58 @@ function StepsEditor({ steps, onChange, durationSec }: {
         <p className="text-xs text-text-muted">구간이 없습니다. 추가하면 콤보를 단계별로 나눌 수 있습니다.</p>
       ) : (
         <div className="flex flex-col gap-2">
-          {steps.map((step) => (
-            <div key={step.id} className="flex flex-col gap-2 p-3 rounded-lg bg-surface-overlay border border-border">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 shrink-0">
-                  <input type="number" min={0} max={step.end - 0.1} step={0.1}
-                    value={step.start.toFixed(1)}
-                    onChange={(e) => update(step.id, "start", parseFloat(e.target.value) || 0)}
-                    className="w-16 h-7 px-2 rounded border border-border bg-surface-raised text-xs text-center focus:outline-none focus:border-[rgba(255,255,255,0.3)]" />
-                  <span className="text-xs text-text-muted">→</span>
-                  <input type="number" min={step.start + 0.1} max={durationSec || 9999} step={0.1}
-                    value={step.end.toFixed(1)}
-                    onChange={(e) => update(step.id, "end", parseFloat(e.target.value) || step.start + 1)}
-                    className="w-16 h-7 px-2 rounded border border-border bg-surface-raised text-xs text-center focus:outline-none focus:border-[rgba(255,255,255,0.3)]" />
-                  <span className="text-xs text-text-muted">초</span>
+          {steps.map((step, sIdx) => {
+            const fromIdx = msToIdx(step.start, times);
+            const toIdx   = msToIdx(Math.max(step.start, step.end - 1), times);
+            const safeTo  = Math.max(fromIdx, toIdx);
+            const previewKeys = sequenceKeys.slice(fromIdx, safeTo + 1);
+
+            return (
+              <div key={step.id} className="flex flex-col gap-2 p-3 rounded-lg bg-surface-overlay border border-border">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-bold text-gold shrink-0">Step {sIdx + 1}</span>
+                  <input type="text" value={step.title}
+                    onChange={(e) => updateField(step.id, "title", e.target.value)}
+                    placeholder="구간 이름"
+                    className="flex-1 min-w-[120px] h-7 px-2 rounded border border-border bg-surface-raised text-xs focus:outline-none focus:border-[rgba(255,255,255,0.3)]" />
+                  <button type="button" onClick={() => remove(step.id)}
+                    className="w-6 h-6 flex items-center justify-center text-text-muted hover:text-hard transition-colors text-sm shrink-0">×</button>
                 </div>
-                <input type="text" value={step.title}
-                  onChange={(e) => update(step.id, "title", e.target.value)}
-                  placeholder="구간 이름"
-                  className="flex-1 h-7 px-2 rounded border border-border bg-surface-raised text-xs focus:outline-none focus:border-[rgba(255,255,255,0.3)]" />
-                <button type="button" onClick={() => remove(step.id)}
-                  className="w-6 h-6 flex items-center justify-center text-text-muted hover:text-hard transition-colors text-sm shrink-0">×</button>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] uppercase tracking-wide text-text-muted font-bold">입력</span>
+                  <span className="text-xs text-text-muted">#</span>
+                  <input
+                    type="number" min={0} max={maxIdx} step={1} value={fromIdx}
+                    onChange={(e) => updateRange(step.id, Number(e.target.value) || 0, safeTo)}
+                    className="w-14 h-7 px-2 rounded border border-border bg-surface-raised text-xs text-center font-mono focus:outline-none focus:border-[rgba(255,255,255,0.3)]"
+                  />
+                  <span className="text-xs text-text-muted">~ #</span>
+                  <input
+                    type="number" min={fromIdx} max={maxIdx} step={1} value={safeTo}
+                    onChange={(e) => updateRange(step.id, fromIdx, Number(e.target.value) || fromIdx)}
+                    className="w-14 h-7 px-2 rounded border border-border bg-surface-raised text-xs text-center font-mono focus:outline-none focus:border-[rgba(255,255,255,0.3)]"
+                  />
+                  <span className="text-[10px] text-text-muted ml-1">
+                    ({(step.start / 1000).toFixed(2)}s → {(step.end / 1000).toFixed(2)}s)
+                  </span>
+                </div>
+
+                {previewKeys.length > 0 && (
+                  <div className="flex items-center gap-1 flex-wrap pt-1">
+                    {previewKeys.map((k, i) => (
+                      <KeyCap key={i} label={k.label} variant={k.variant} size="sm" />
+                    ))}
+                  </div>
+                )}
+
+                <input type="text" value={step.tip}
+                  onChange={(e) => updateField(step.id, "tip", e.target.value)}
+                  placeholder="이 구간 팁 (선택)"
+                  className="h-7 px-2 rounded border border-border bg-surface-raised text-xs focus:outline-none focus:border-[rgba(255,255,255,0.3)]" />
               </div>
-              <input type="text" value={step.tip}
-                onChange={(e) => update(step.id, "tip", e.target.value)}
-                placeholder="이 구간 팁 (선택)"
-                className="h-7 px-2 rounded border border-border bg-surface-raised text-xs focus:outline-none focus:border-[rgba(255,255,255,0.3)]" />
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
       <button type="button" onClick={addStep}
@@ -504,6 +772,7 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
 
   const isAiFilled = aiFilledFields.size > 0;
   const durationSec = combo.durationMs ? combo.durationMs / 1000 : 0;
+  // durationSec is still used in the input sequence header summary below
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -561,8 +830,8 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
       {/* ── 구간 (스텝) ───────────────────────────────── */}
       <div className="bg-surface-raised rounded-xl border border-border p-5">
         <p className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-1">구간 나누기 (스텝)</p>
-        <p className="text-xs text-text-muted mb-4">콤보를 단계별로 나눠 각 구간에 제목과 팁을 달 수 있습니다</p>
-        <StepsEditor steps={steps} onChange={setSteps} durationSec={durationSec} />
+        <p className="text-xs text-text-muted mb-4">입력 인덱스 범위로 구간을 지정하세요. 저장 시 자동으로 ms 로 변환됩니다.</p>
+        <StepsEditor steps={steps} onChange={setSteps} inputs={inputSummary} durationMs={combo.durationMs ?? 0} />
       </div>
 
       {/* ── AI 자동 완성 ──────────────────────────────── */}
@@ -634,37 +903,57 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold">영상 <span className="text-text-muted text-xs font-normal">(mp4 / webm)</span></span>
-            <div className="flex gap-3">
-              {videoSrc && !showVideoEditor && (
-                <button type="button" onClick={() => setShowVideoEditor(true)}
-                  className="text-xs font-semibold text-gold hover:text-gold-light transition-colors">편집 (Trim/Crop)</button>
-              )}
-              <button type="button" onClick={() => videoInputRef.current?.click()}
-                className="text-xs font-semibold text-text-secondary hover:text-text transition-colors">
-                {combo.videoUrl || newVideoFile ? "영상 교체" : "영상 업로드"}
-              </button>
-            </div>
+            {videoSrc && !showVideoEditor && (
+              <button type="button" onClick={() => setShowVideoEditor(true)}
+                className="text-xs font-semibold text-gold hover:text-gold-light transition-colors">편집 (Trim/Crop)</button>
+            )}
           </div>
           <input ref={videoInputRef} type="file" accept="video/mp4,video/webm" className="hidden"
             onChange={(e) => e.target.files?.[0] && handleVideoFile(e.target.files[0])} />
-          <div className="flex items-center gap-2 h-10 px-3 rounded-lg border border-border bg-surface-overlay text-sm text-text-secondary">
-            {newVideoFile ? (
-              <>
-                <span className="text-gold text-xs font-bold">새 파일</span>
-                <span className="flex-1 truncate">{newVideoFile.name}</span>
-                <span className="text-text-muted text-xs shrink-0">{(newVideoFile.size / 1024 / 1024).toFixed(1)} MB</span>
-              </>
-            ) : combo.videoUrl ? (
-              <>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-text-muted shrink-0">
-                  <path d="M15 10l4.553-2.277A1 1 0 0 1 21 8.723v6.554a1 1 0 0 1-1.447.9L15 14M3 8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <span className="flex-1 truncate">영상 있음</span>
-              </>
-            ) : (
-              <span className="text-text-muted">영상 없음 — 오버레이에서 녹화 후 여기서 업로드하세요</span>
-            )}
+
+          {/* 우선: 새로 선택한 파일 미리보기 → 없으면 기존 영상 → 없으면 빈 상태 */}
+          {videoSrc ? (
+            <video
+              src={videoSrc}
+              controls
+              className="w-full max-h-[400px] rounded-lg border border-border bg-black"
+            >
+              영상을 재생할 수 없습니다.
+            </video>
+          ) : combo.videoUrl ? (
+            <video
+              src={combo.videoUrl}
+              controls
+              preload="metadata"
+              className="w-full max-h-[400px] rounded-lg border border-border bg-black"
+            >
+              영상을 재생할 수 없습니다.
+            </video>
+          ) : (
+            <div className="w-full h-32 rounded-lg border border-dashed border-border bg-surface-overlay flex items-center justify-center text-sm text-text-muted">
+              영상 없음 — 오버레이에서 녹화 후 아래에서 업로드하세요
+            </div>
+          )}
+
+          {newVideoFile && (
+            <div className="flex items-center gap-2 px-3 h-8 rounded-md bg-gold/10 border border-gold/30 text-xs">
+              <span className="text-gold font-bold shrink-0">새 파일</span>
+              <span className="flex-1 truncate">{newVideoFile.name}</span>
+              <span className="text-text-muted shrink-0">{(newVideoFile.size / 1024 / 1024).toFixed(1)} MB</span>
+            </div>
+          )}
+
+          {/* 교체 / 업로드는 보조 액션 — 플레이어 아래 작은 버튼 */}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => videoInputRef.current?.click()}
+              className="text-xs font-semibold text-text-muted hover:text-text transition-colors"
+            >
+              {combo.videoUrl || newVideoFile ? "다른 영상으로 교체" : "영상 업로드"}
+            </button>
           </div>
+
           {showVideoEditor && videoSrc && (
             <VideoEditor
               src={videoSrc}
