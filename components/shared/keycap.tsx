@@ -66,14 +66,7 @@ export function KeySequence({ keys, size = "sm", maxKeys = 8, className }: KeySe
   return (
     <div className={cn("flex items-center gap-1 flex-wrap", className)}>
       {visible.map((k, i) => (
-        <span key={i} className="inline-flex items-center gap-1">
-          <KeyCap label={k.label} variant={k.variant} size={size} />
-          {i < visible.length - 1 && (
-            <svg width="8" height="8" viewBox="0 0 8 8" fill="none" className="text-text-muted shrink-0">
-              <path d="M2 4h4m0 0L4 2m2 2L4 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          )}
-        </span>
+        <KeyCap key={i} label={k.label} variant={k.variant} size={size} />
       ))}
       {overflow > 0 && (
         <span className="text-[10px] text-text-muted font-semibold">+{overflow}</span>

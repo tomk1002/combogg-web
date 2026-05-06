@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import DifficultyPips from "@/components/shared/difficulty-pips";
 import { KeySequence, inputToKeySequence } from "@/components/shared/keycap";
-import { formatCount, formatDuration, timeAgo, authorDisplayName } from "@/lib/utils";
+import { formatCount, authorDisplayName } from "@/lib/utils";
 import type { ComboListItemDTO } from "@/lib/api/types";
 
 interface Props {
@@ -41,13 +41,6 @@ export default function ComboCard({ combo, priority = false }: Props) {
           </div>
         ) : null}
 
-        {/* Duration badge */}
-        {combo.durationMs && (
-          <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/60 font-mono text-[10px] font-bold text-white">
-            {formatDuration(combo.durationMs)}
-          </span>
-        )}
-
         {/* Difficulty */}
         <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/55 backdrop-blur-sm">
           <DifficultyPips difficulty={combo.difficulty} forceDark />
@@ -72,7 +65,6 @@ export default function ComboCard({ combo, priority = false }: Props) {
             <p className="font-bold text-sm leading-snug line-clamp-2 text-text group-hover:text-gold transition-colors duration-200">
               {combo.title}
             </p>
-            <p className="text-[10px] font-mono tracking-wider uppercase text-text-muted mt-0.5">{combo.character.name}</p>
           </div>
         </div>
 

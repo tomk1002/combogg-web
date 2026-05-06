@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import ComboCard from "@/components/combo/combo-card";
@@ -50,6 +50,12 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
     () => characters.filter((c) => c.comboCount > 0).slice(0, 8),
     [characters]
   );
+
+  const trendingRef = useRef<HTMLDivElement>(null);
+  const difficultyRef = useRef<HTMLDivElement>(null);
+  const newestRef = useRef<HTMLDivElement>(null);
+  const scrollRow = (ref: React.RefObject<HTMLDivElement | null>, dir: 1 | -1) =>
+    ref.current?.scrollBy({ left: dir * 340, behavior: "smooth" });
 
   const diffMeta: Record<Difficulty, { label: string; desc: string }> = {
     easy:   { label: t.diff_easy_label,   desc: t.diff_easy_desc },
@@ -125,15 +131,25 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
                   : t.trending_title}
               </h2>
             </div>
-            <Link href={selectedChamp ? `/games/lol/champions/${selectedChamp}` : "/games/lol"} className="text-sm text-text-secondary hover:text-gold transition-colors font-semibold shrink-0 pb-1">
-              {t.view_all}
-            </Link>
+            <div className="flex items-center gap-1 shrink-0 pb-1">
+              <button type="button" onClick={() => scrollRow(trendingRef, -1)} className="hidden sm:flex w-6 h-6 items-center justify-center rounded text-text-muted hover:text-text hover:bg-surface-overlay transition-colors cursor-pointer">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8 10L4 6l4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
+              <button type="button" onClick={() => scrollRow(trendingRef, 1)} className="hidden sm:flex w-6 h-6 items-center justify-center rounded text-text-muted hover:text-text hover:bg-surface-overlay transition-colors cursor-pointer">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
+              <Link href={selectedChamp ? `/games/lol/champions/${selectedChamp}` : "/games/lol"} className="text-sm text-text-secondary hover:text-gold transition-colors font-semibold ml-1">
+                {t.view_all}
+              </Link>
+            </div>
           </div>
 
           {filteredCombos.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredCombos.slice(0, 6).map((combo, i) => (
-                <ComboCard key={combo.id} combo={combo} priority={i < 3} />
+            <div ref={trendingRef} className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 sm:-mx-8 px-4 sm:px-8 pb-2">
+              {filteredCombos.slice(0, 10).map((combo, i) => (
+                <div key={combo.id} className="shrink-0 w-[260px] sm:w-[300px] lg:w-[320px]">
+                  <ComboCard combo={combo} priority={i < 3} />
+                </div>
               ))}
             </div>
           ) : (
@@ -190,12 +206,20 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
               </div>
               <h2 className="text-2xl font-extrabold tracking-tight">{t.diff_title}</h2>
             </div>
-            <Link href={`/games/lol?difficulty=${selectedDifficulty}`} className="text-sm text-text-secondary hover:text-gold transition-colors font-semibold shrink-0 pb-1">
-              {t.view_all}
-            </Link>
+            <div className="flex items-center gap-1 shrink-0 pb-1">
+              <button type="button" onClick={() => scrollRow(difficultyRef, -1)} className="hidden sm:flex w-6 h-6 items-center justify-center rounded text-text-muted hover:text-text hover:bg-surface-overlay transition-colors cursor-pointer">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8 10L4 6l4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
+              <button type="button" onClick={() => scrollRow(difficultyRef, 1)} className="hidden sm:flex w-6 h-6 items-center justify-center rounded text-text-muted hover:text-text hover:bg-surface-overlay transition-colors cursor-pointer">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
+              <Link href={`/games/lol?difficulty=${selectedDifficulty}`} className="text-sm text-text-secondary hover:text-gold transition-colors font-semibold ml-1">
+                {t.view_all}
+              </Link>
+            </div>
           </div>
 
-          {/* 난이도 태그 */}
+          {/* 난이도 탭 */}
           <div className="flex gap-2 mb-4">
             {(["easy", "medium", "hard"] as Difficulty[]).map((d) => {
               const meta = diffMeta[d];
@@ -224,9 +248,11 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
 
           {/* 선택된 난이도 콤보 */}
           {difficultyGroups[selectedDifficulty].length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div ref={difficultyRef} className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 sm:-mx-8 px-4 sm:px-8 pb-2">
               {difficultyGroups[selectedDifficulty].map((combo) => (
-                <ComboCard key={combo.id} combo={combo} />
+                <div key={combo.id} className="shrink-0 w-[260px] sm:w-[300px] lg:w-[320px]">
+                  <ComboCard combo={combo} />
+                </div>
               ))}
             </div>
           ) : (
@@ -249,13 +275,23 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
                 </div>
                 <h2 className="text-2xl font-extrabold tracking-tight">{t.newest_title}</h2>
               </div>
-              <Link href="/games/lol?sort=latest" className="text-sm text-text-secondary hover:text-gold transition-colors font-semibold shrink-0 pb-1">
-                {t.view_all}
-              </Link>
+              <div className="flex items-center gap-1 shrink-0 pb-1">
+                <button type="button" onClick={() => scrollRow(newestRef, -1)} className="hidden sm:flex w-6 h-6 items-center justify-center rounded text-text-muted hover:text-text hover:bg-surface-overlay transition-colors cursor-pointer">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8 10L4 6l4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </button>
+                <button type="button" onClick={() => scrollRow(newestRef, 1)} className="hidden sm:flex w-6 h-6 items-center justify-center rounded text-text-muted hover:text-text hover:bg-surface-overlay transition-colors cursor-pointer">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </button>
+                <Link href="/games/lol?sort=latest" className="text-sm text-text-secondary hover:text-gold transition-colors font-semibold ml-1">
+                  {t.view_all}
+                </Link>
+              </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {newestCombos.map((combo) => (
-                <ComboCard key={combo.id} combo={combo} />
+            <div ref={newestRef} className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 sm:-mx-8 px-4 sm:px-8 pb-2">
+              {newestCombos.slice(0, 10).map((combo) => (
+                <div key={combo.id} className="shrink-0 w-[260px] sm:w-[300px] lg:w-[320px]">
+                  <ComboCard key={combo.id} combo={combo} />
+                </div>
               ))}
             </div>
           </section>
