@@ -149,63 +149,250 @@ function InlineItemPicker({ items, current, onSelect }: {
   );
 }
 
-// 입력이 "아이템 슬롯" 으로 다뤄져야 하는지 판정.
-//  - category === "item"               → 명시적 아이템
-//  - category === "key" 이고 ref 가 1~6 → 오버레이 녹화 시 매핑되지 않은 숫자키
-function isItemSlotInput(inp: MappableEntry): { isItem: boolean; slot?: number } {
-  if (inp.category === "item") {
-    const slot = typeof inp.slot === "number" ? inp.slot : Number(inp.slot);
-    return { isItem: true, slot: Number.isFinite(slot) ? slot : undefined };
-  }
-  if (inp.category === "key" && typeof inp.ref === "string" && /^[1-6]$/.test(inp.ref)) {
-    return { isItem: true, slot: Number(inp.ref) };
-  }
-  return { isItem: false };
+// ── SequenceEditor ────────────────────────────────────────────
+//
+// 가로형 chip flow 시퀀스 편집기.
+//   - 항상 편집 가능 (모드 토글 없음)
+//   - HTML5 네이티브 drag-and-drop 으로 재정렬
+//   - chip 클릭 → 인라인 popover 로 카테고리·ref·slot 편집
+//   - 우클릭(또는 chip 우상단 ×) → 삭제
+//   - bulk action: "인접 중복 제거", "정렬 (시간순)"
+//
+// MappableEntry 자체에는 `t` 가 없지만 .tutfile 파싱 결과(원본 inputs)에는
+// 있을 수 있으므로 `MappableTimedEntry` 로 다룬다 (있으면 사용, 없으면 무시).
+
+type SeqEntry = MappableEntry & { t?: number };
+
+function isAdjacentDuplicate(a: SeqEntry, b: SeqEntry): boolean {
+  // 인접 중복 판정 — category + ref + slot 모두 같으면 중복
+  return a.category === b.category
+    && (a.ref ?? null) === (b.ref ?? null)
+    && (a.slot ?? null) === (b.slot ?? null);
 }
 
-// ── SequenceEditor ────────────────────────────────────────────
+function dedupeAdjacent(inputs: SeqEntry[]): SeqEntry[] {
+  if (inputs.length <= 1) return inputs;
+  const out: SeqEntry[] = [inputs[0]];
+  for (let i = 1; i < inputs.length; i++) {
+    if (!isAdjacentDuplicate(inputs[i - 1], inputs[i])) {
+      out.push(inputs[i]);
+    }
+  }
+  return out;
+}
+
+function chipVariantClass(category: string): string {
+  switch (category) {
+    case "skill":          return "bg-blue-600/20 border-blue-500/40 text-blue-200 hover:border-blue-400/60";
+    case "attack":         return "bg-yellow-600/20 border-yellow-500/40 text-yellow-100 hover:border-yellow-400/60";
+    case "attack_cancel":  return "bg-orange-600/20 border-orange-500/40 text-orange-100 hover:border-orange-400/60";
+    case "item":           return "bg-zinc-600/30 border-zinc-500/40 text-zinc-100 hover:border-zinc-400/60";
+    case "summoner_spell": return "bg-purple-600/20 border-purple-500/40 text-purple-100 hover:border-purple-400/60";
+    case "move":           return "bg-emerald-700/20 border-emerald-500/40 text-emerald-100 hover:border-emerald-400/60";
+    case "recall":         return "bg-cyan-700/20 border-cyan-500/40 text-cyan-100 hover:border-cyan-400/60";
+    case "ward":           return "bg-green-700/20 border-green-500/40 text-green-100 hover:border-green-400/60";
+    default:               return "bg-surface-overlay border-border text-text-secondary hover:border-[rgba(255,255,255,0.24)]";
+  }
+}
+
+function chipLabel(inp: SeqEntry): string {
+  if (inp.category === "skill" && inp.ref) {
+    const m = inp.ref.match(/([QWERqwer])\d*$/);
+    return m ? m[1].toUpperCase() : "?";
+  }
+  if (inp.category === "attack")         return "AA";
+  if (inp.category === "attack_cancel")  return "AC";
+  if (inp.category === "item")           return `I${inp.slot ?? ""}`;
+  if (inp.category === "summoner_spell") return (inp.slot ?? "S").toString().toUpperCase();
+  if (inp.category === "move")           return "MV";
+  if (inp.category === "recall")         return "RC";
+  if (inp.category === "ward")           return "WD";
+  return inp.category.slice(0, 2).toUpperCase();
+}
+
+// chip 위 인라인 popover — 카테고리 / ref / slot 편집 + 아이템 검색
+function ChipPopover({
+  entry, characterSlug, items, onChange, onClose,
+}: {
+  entry: SeqEntry;
+  characterSlug: string;
+  items: ItemMeta[];
+  onChange: (next: SeqEntry) => void;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  const setCategory = (cat: string) => {
+    // 카테고리 변경 시 ref/slot 을 안전하게 재설정
+    let next: SeqEntry = { ...entry, category: cat };
+    if (cat === "skill") {
+      const champSlug = characterSlug.charAt(0).toUpperCase() + characterSlug.slice(1);
+      next = { ...next, ref: typeof entry.ref === "string" && /[QWER]/i.test(entry.ref)
+        ? entry.ref
+        : `${champSlug}Q`, slot: undefined };
+    } else if (cat === "item") {
+      const existingSlot = typeof entry.slot === "number" ? entry.slot
+        : typeof entry.slot === "string" && /^[1-6]$/.test(entry.slot) ? Number(entry.slot)
+        : 1;
+      next = { ...next, slot: existingSlot, ref: entry.category === "item" ? entry.ref : undefined };
+    } else if (cat === "summoner_spell") {
+      const existingSlot = entry.slot === "D" || entry.slot === "F" ? entry.slot : "D";
+      next = { ...next, slot: existingSlot, ref: entry.category === "summoner_spell" ? entry.ref : undefined };
+    } else {
+      next = { ...next, ref: undefined, slot: undefined };
+    }
+    onChange(next);
+  };
+
+  const skillKey = (() => {
+    if (entry.category !== "skill") return null;
+    const m = typeof entry.ref === "string" ? entry.ref.match(/([QWER])\d*$/i) : null;
+    return m ? m[1].toUpperCase() as "Q" | "W" | "E" | "R" : "Q";
+  })();
+
+  const setSkillKey = (k: "Q" | "W" | "E" | "R") => {
+    const champSlug = characterSlug.charAt(0).toUpperCase() + characterSlug.slice(1);
+    onChange({ ...entry, category: "skill", ref: `${champSlug}${k}`, slot: undefined });
+  };
+
+  return (
+    <div
+      ref={ref}
+      className="absolute z-30 top-full left-0 mt-1 w-72 p-3 rounded-lg border border-border bg-surface-overlay shadow-xl flex flex-col gap-3"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex flex-col gap-1">
+        <span className="text-[10px] uppercase tracking-wide text-text-muted font-bold">카테고리</span>
+        <select
+          value={entry.category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="h-8 px-2 rounded-md border border-border bg-surface-raised text-xs focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors"
+        >
+          {LOL_CATEGORIES.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+      </div>
+
+      {entry.category === "skill" && (
+        <div className="flex flex-col gap-1">
+          <span className="text-[10px] uppercase tracking-wide text-text-muted font-bold">스킬</span>
+          <div className="flex gap-1">
+            {(["Q", "W", "E", "R"] as const).map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setSkillKey(k)}
+                className={`w-9 h-9 rounded-md border text-xs font-bold transition-colors ${
+                  skillKey === k ? "border-gold text-gold bg-gold/10" : "border-border text-text-secondary hover:text-text"
+                }`}
+              >
+                {k}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {entry.category === "item" && (
+        <div className="flex flex-col gap-1">
+          <span className="text-[10px] uppercase tracking-wide text-text-muted font-bold">슬롯</span>
+          <div className="flex gap-1 flex-wrap">
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => onChange({ ...entry, slot: n })}
+                className={`w-9 h-9 rounded-md border text-xs font-bold transition-colors ${
+                  entry.slot === n ? "border-gold text-gold bg-gold/10" : "border-border text-text-secondary hover:text-text"
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+          <span className="text-[10px] uppercase tracking-wide text-text-muted font-bold mt-2">아이템</span>
+          <InlineItemPicker
+            items={items}
+            current={typeof entry.ref === "string" ? entry.ref : undefined}
+            onSelect={(id) => onChange({ ...entry, ref: id })}
+          />
+        </div>
+      )}
+
+      {entry.category === "summoner_spell" && (
+        <div className="flex flex-col gap-1">
+          <span className="text-[10px] uppercase tracking-wide text-text-muted font-bold">슬롯</span>
+          <div className="flex gap-1">
+            {(["D", "F"] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => onChange({ ...entry, slot: s })}
+                className={`w-9 h-9 rounded-md border text-xs font-bold transition-colors ${
+                  entry.slot === s ? "border-gold text-gold bg-gold/10" : "border-border text-text-secondary hover:text-text"
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-end pt-1 border-t border-border">
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-[11px] font-semibold text-text-muted hover:text-text transition-colors"
+        >
+          닫기
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function SequenceEditor({ inputs, onChange, characterSlug, items, patch }: {
-  inputs: MappableEntry[];
-  onChange: (v: MappableEntry[]) => void;
+  inputs: SeqEntry[];
+  onChange: (v: SeqEntry[]) => void;
   characterSlug: string;
   items: ItemMeta[];
   patch: string;
 }) {
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
   const [addCategory, setAddCategory] = useState<string>("skill");
   const [addSkill, setAddSkill]       = useState<"Q" | "W" | "E" | "R">("Q");
   const [addItemSlot, setAddItemSlot] = useState<number>(1);
   const [addSpellSlot, setAddSpellSlot] = useState<"D" | "F">("D");
 
-  const move = (i: number, dir: -1 | 1) => {
-    const next = [...inputs];
-    const j = i + dir;
-    if (j < 0 || j >= next.length) return;
-    [next[i], next[j]] = [next[j], next[i]];
-    onChange(next);
+  const remove = (i: number) => {
+    onChange(inputs.filter((_, idx) => idx !== i));
+    setOpenIdx(null);
   };
 
-  const remove = (i: number) => onChange(inputs.filter((_, idx) => idx !== i));
-
-  // 아이템 슬롯 입력의 ref 를 설정. 'key' 카테고리였다면 'item' 으로 승격.
-  const setItemRef = (i: number, slot: number | undefined, ref: string | undefined) => {
-    onChange(
-      inputs.map((inp, idx) => {
-        if (idx !== i) return inp;
-        let resolvedSlot: number | string | undefined = slot;
-        if (resolvedSlot === undefined) {
-          if (typeof inp.slot === "number" || typeof inp.slot === "string") {
-            resolvedSlot = inp.slot;
-          } else if (typeof inp.ref === "string" && /^[1-6]$/.test(inp.ref)) {
-            resolvedSlot = Number(inp.ref);
-          }
-        }
-        return { ...inp, category: "item", slot: resolvedSlot, ref };
-      }),
-    );
+  const updateAt = (i: number, next: SeqEntry) => {
+    onChange(inputs.map((inp, idx) => (idx === i ? next : inp)));
   };
 
   const add = () => {
-    let entry: MappableEntry;
+    let entry: SeqEntry;
     if (addCategory === "skill") {
       const champSlug = characterSlug.charAt(0).toUpperCase() + characterSlug.slice(1);
       entry = { category: "skill", ref: `${champSlug}${addSkill}` };
@@ -219,62 +406,155 @@ function SequenceEditor({ inputs, onChange, characterSlug, items, patch }: {
     onChange([...inputs, entry]);
   };
 
-  const sequenceKeys = inputToKeySequence(inputs.map(({ category, ref, slot }) => ({ category, ref, slot })));
-
-  const categoryLabel = (inp: MappableEntry) => {
-    if (inp.category === "skill")           return `스킬 (${inp.ref ?? ""})`;
-    if (inp.category === "attack")          return "평타 (AA)";
-    if (inp.category === "attack_cancel")   return "평캔 (AA Cancel)";
-    if (inp.category === "item")            return `아이템 슬롯 ${inp.slot ?? ""}`;
-    if (inp.category === "summoner_spell")  return `소환사 주문 ${inp.slot ?? ""}`;
-    return inp.category;
+  // ── drag-and-drop reorder (HTML5 native) ─────────────────────
+  const onDragStart = (i: number) => (e: React.DragEvent<HTMLDivElement>) => {
+    setDragIdx(i);
+    setOpenIdx(null);
+    e.dataTransfer.effectAllowed = "move";
+    // 일부 브라우저는 dataTransfer 가 비어있으면 drop 을 거부 — placeholder
+    e.dataTransfer.setData("text/plain", String(i));
   };
+
+  const onDragOver = (i: number) => (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragIdx !== null && dragIdx !== i) setDragOverIdx(i);
+  };
+
+  const onDrop = (i: number) => (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (dragIdx === null || dragIdx === i) {
+      setDragIdx(null); setDragOverIdx(null); return;
+    }
+    const next = [...inputs];
+    const [moved] = next.splice(dragIdx, 1);
+    next.splice(i, 0, moved);
+    onChange(next);
+    setDragIdx(null); setDragOverIdx(null);
+  };
+
+  const onDragEnd = () => { setDragIdx(null); setDragOverIdx(null); };
+
+  // ── bulk actions ─────────────────────────────────────────────
+  const handleDedupe = () => {
+    const deduped = dedupeAdjacent(inputs);
+    if (deduped.length !== inputs.length) {
+      onChange(deduped);
+      setOpenIdx(null);
+    }
+  };
+
+  const handleSortByT = () => {
+    const hasT = inputs.some((i) => typeof i.t === "number");
+    if (!hasT) return;
+    const sorted = [...inputs].sort((a, b) => (a.t ?? 0) - (b.t ?? 0));
+    onChange(sorted);
+    setOpenIdx(null);
+  };
+
+  const dedupeRemovedCount = inputs.length - dedupeAdjacent(inputs).length;
+  const hasT = inputs.some((i) => typeof i.t === "number");
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Current sequence preview */}
-      {sequenceKeys.length > 0 && (
-        <div className="flex items-center gap-1 flex-wrap">
-          {sequenceKeys.map((k, i) => (
-            <KeyCap key={i} label={k.label} variant={k.variant} size="sm" />
-          ))}
-        </div>
-      )}
+      {/* Bulk actions */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          type="button"
+          onClick={handleDedupe}
+          disabled={dedupeRemovedCount === 0}
+          className="h-7 px-2.5 rounded-md border border-border bg-surface-overlay text-[11px] font-semibold text-text-secondary hover:text-text hover:border-[rgba(255,255,255,0.24)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          title="연속해서 같은 입력이 반복되면 첫 입력만 남깁니다"
+        >
+          인접 중복 제거{dedupeRemovedCount > 0 ? ` (-${dedupeRemovedCount})` : ""}
+        </button>
+        <button
+          type="button"
+          onClick={handleSortByT}
+          disabled={!hasT}
+          className="h-7 px-2.5 rounded-md border border-border bg-surface-overlay text-[11px] font-semibold text-text-secondary hover:text-text hover:border-[rgba(255,255,255,0.24)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          title={hasT ? "타이밍(t) 기준으로 재정렬합니다" : "이 콤보는 입력별 타이밍 정보가 없어 시간순 정렬을 할 수 없습니다"}
+        >
+          정렬 (시간순)
+        </button>
+        <span className="text-[11px] text-text-muted ml-auto">
+          드래그해서 순서 변경 · 클릭해서 편집 · 우클릭으로 삭제
+        </span>
+      </div>
 
-      {/* Input list */}
+      {/* Chip flow */}
       {inputs.length === 0 ? (
-        <p className="text-xs text-text-muted py-2">시퀀스가 비어 있습니다. 아래에서 입력을 추가하세요.</p>
+        <div className="rounded-lg border border-dashed border-border bg-surface-overlay px-4 py-6 text-center">
+          <p className="text-xs text-text-muted">시퀀스가 비어 있습니다. 아래에서 입력을 추가하세요.</p>
+        </div>
       ) : (
-        <div className="flex flex-col gap-1 max-h-72 overflow-y-auto">
+        <div className="flex items-start gap-1.5 flex-wrap rounded-lg border border-border bg-surface-overlay p-2.5">
           {inputs.map((inp, i) => {
-            const itemMeta = isItemSlotInput(inp);
+            const isDragging  = dragIdx === i;
+            const isDropOver  = dragOverIdx === i && dragIdx !== null && dragIdx !== i;
+            const isOpen      = openIdx === i;
+            const variantCls  = chipVariantClass(inp.category);
+            const label       = chipLabel(inp);
+
             return (
-              <div key={i} className="flex items-center gap-2 h-9 px-3 rounded-lg bg-surface-overlay border border-border">
-                <span className="text-[10px] font-mono text-text-muted w-6 shrink-0">#{i}</span>
-                <KeyCap label={sequenceKeys[i]?.label ?? "?"} variant={sequenceKeys[i]?.variant} size="sm" />
-                {itemMeta.isItem ? (
-                  <>
-                    <span className="text-xs text-text-secondary shrink-0">아이템 슬롯 {itemMeta.slot ?? "?"}</span>
-                    <InlineItemPicker
-                      items={items}
-                      current={typeof inp.ref === "string" ? inp.ref : undefined}
-                      onSelect={(id) => setItemRef(i, itemMeta.slot, id)}
-                    />
-                  </>
-                ) : (
-                  <span className="flex-1 text-xs text-text-secondary truncate">{categoryLabel(inp)}</span>
+              <div key={i} className="relative">
+                {/* drop indicator (left of target chip) */}
+                {isDropOver && (
+                  <span className="absolute -left-1 top-0 bottom-0 w-0.5 bg-gold rounded-full pointer-events-none" />
                 )}
-                <div className="flex gap-1 shrink-0 ml-auto">
-                  <button type="button" onClick={() => move(i, -1)} disabled={i === 0}
-                    className="w-5 h-5 flex items-center justify-center text-text-muted hover:text-text disabled:opacity-30 transition-colors text-xs">↑</button>
-                  <button type="button" onClick={() => move(i, 1)} disabled={i === inputs.length - 1}
-                    className="w-5 h-5 flex items-center justify-center text-text-muted hover:text-text disabled:opacity-30 transition-colors text-xs">↓</button>
-                  <button type="button" onClick={() => remove(i)}
-                    className="w-5 h-5 flex items-center justify-center text-text-muted hover:text-hard transition-colors text-xs">×</button>
+                <div
+                  draggable
+                  onDragStart={onDragStart(i)}
+                  onDragOver={onDragOver(i)}
+                  onDrop={onDrop(i)}
+                  onDragEnd={onDragEnd}
+                  onClick={() => setOpenIdx(isOpen ? null : i)}
+                  onContextMenu={(e) => { e.preventDefault(); remove(i); }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpenIdx(isOpen ? null : i); }
+                    if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); remove(i); }
+                  }}
+                  className={`group inline-flex items-center gap-1 h-8 pl-1.5 pr-1 rounded-md border text-[11px] font-bold cursor-grab active:cursor-grabbing select-none transition-all ${variantCls} ${
+                    isDragging ? "opacity-40" : ""
+                  } ${isOpen ? "ring-2 ring-gold ring-offset-1 ring-offset-surface-overlay" : ""}`}
+                  title={`#${i} · ${inp.category}${inp.ref ? ` · ${inp.ref}` : ""}${inp.slot !== undefined ? ` · slot ${inp.slot}` : ""}`}
+                >
+                  {/* drag handle dots */}
+                  <span aria-hidden className="text-[8px] leading-none text-current opacity-40 group-hover:opacity-70 transition-opacity">⋮⋮</span>
+                  <span className="leading-none">{label}</span>
+                  {inp.category === "item" && typeof inp.ref === "string" && (
+                    <span className="text-[8px] opacity-70 leading-none">●</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); remove(i); }}
+                    aria-label={`#${i} 삭제`}
+                    className="ml-0.5 w-4 h-4 inline-flex items-center justify-center rounded-sm text-current opacity-50 hover:opacity-100 hover:bg-black/30 transition-opacity text-[10px] leading-none"
+                  >×</button>
                 </div>
+                {isOpen && (
+                  <ChipPopover
+                    entry={inp}
+                    characterSlug={characterSlug}
+                    items={items}
+                    onChange={(next) => updateAt(i, next)}
+                    onClose={() => setOpenIdx(null)}
+                  />
+                )}
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* KeyCap preview (read-only summary) */}
+      {inputs.length > 0 && (
+        <div className="flex items-center gap-1 flex-wrap pt-1">
+          {inputToKeySequence(inputs.map(({ category, ref, slot }) => ({ category, ref, slot }))).map((k, i) => (
+            <KeyCap key={i} label={k.label} variant={k.variant} size="sm" />
+          ))}
         </div>
       )}
 
@@ -325,6 +605,7 @@ function SequenceEditor({ inputs, onChange, characterSlug, items, patch }: {
         </div>
       </div>
 
+      {/* 아이템·소환사 주문 슬롯 매핑 */}
       <div className="border-t border-border pt-3">
         <InputKeyMapper inputs={inputs} items={items} patch={patch} onChange={onChange} />
         {inputs.filter(i => i.category === "item" || i.category === "summoner_spell").length === 0 && (
@@ -564,8 +845,8 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
   const [title,       setTitle]       = useState(combo.title);
   const [description, setDescription] = useState(combo.description ?? "");
   const [tip,         setTip]         = useState(combo.tip ?? "");
-  const [inputSummary, setInputSummary] = useState<MappableEntry[]>(
-    (combo.inputSummary as MappableEntry[]) ?? []
+  const [inputSummary, setInputSummary] = useState<SeqEntry[]>(
+    (combo.inputSummary as SeqEntry[]) ?? []
   );
   const [steps, setSteps] = useState<Step[]>(() => {
     const raw = combo.steps as Array<{ start: number; end: number; title: string; tip?: string }> | null;
@@ -586,9 +867,6 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
   const [showVideoEditor,  setShowVideoEditor]  = useState(false);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef     = useRef<HTMLInputElement>(null);
-
-  // Editing toggles
-  const [seqEditMode, setSeqEditMode] = useState(false);
 
   // AI
   const [aiPending, startAiTransition] = useTransition();
@@ -779,51 +1057,19 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
 
       {/* ── 입력 시퀀스 ──────────────────────────────── */}
       <div className="bg-surface-raised rounded-xl border border-border overflow-hidden">
-        <div className="flex items-center justify-between px-5 pt-5 pb-3">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-text-secondary">입력 시퀀스</p>
-            <p className="text-xs text-text-muted mt-0.5">총 {inputSummary.length}개 입력{combo.durationMs ? ` · ${durationSec.toFixed(1)}초` : ""}</p>
-          </div>
-          <button type="button" onClick={() => setSeqEditMode((v) => !v)}
-            className={`h-7 px-3 rounded-lg border text-xs font-semibold transition-colors ${seqEditMode ? "border-gold/40 text-gold bg-gold/10" : "border-border text-text-secondary hover:text-text"}`}>
-            {seqEditMode ? "편집 완료" : "시퀀스 편집"}
-          </button>
+        <div className="px-5 pt-5 pb-3">
+          <p className="text-xs font-bold uppercase tracking-wide text-text-secondary">입력 시퀀스</p>
+          <p className="text-xs text-text-muted mt-0.5">총 {inputSummary.length}개 입력{combo.durationMs ? ` · ${durationSec.toFixed(1)}초` : ""}</p>
         </div>
 
         <div className="px-5 pb-5">
-          {seqEditMode ? (
-            <SequenceEditor
-              inputs={inputSummary}
-              onChange={setInputSummary}
-              characterSlug={combo.character?.slug ?? ""}
-              items={items}
-              patch={patch}
-            />
-          ) : (
-            <>
-              {inputSummary.length > 0 ? (
-                <>
-                  <div className="flex items-center gap-1 flex-wrap">
-                    {inputToKeySequence(inputSummary).map((k, i) => (
-                      <KeyCap key={i} label={k.label} variant={k.variant} size="sm" />
-                    ))}
-                  </div>
-                  {combo.game.slug === "lol" && (
-                    <div className="mt-4 pt-4 border-t border-border">
-                      <p className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-1">슬롯 매핑</p>
-                      <p className="text-xs text-text-muted mb-3">아이템·소환사 주문 슬롯을 실제 아이템으로 설정하세요</p>
-                      <InputKeyMapper inputs={inputSummary} items={items} patch={patch} onChange={setInputSummary} />
-                      {inputSummary.filter(i => i.category === "item" || i.category === "summoner_spell").length === 0 && (
-                        <p className="text-xs text-text-muted">아이템·소환사 주문 입력이 없습니다. &quot;시퀀스 편집&quot;에서 추가할 수 있습니다.</p>
-                      )}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p className="text-xs text-text-muted">저장된 입력 시퀀스가 없습니다. &quot;시퀀스 편집&quot;으로 추가하세요.</p>
-              )}
-            </>
-          )}
+          <SequenceEditor
+            inputs={inputSummary}
+            onChange={setInputSummary}
+            characterSlug={combo.character?.slug ?? ""}
+            items={items}
+            patch={patch}
+          />
         </div>
       </div>
 
