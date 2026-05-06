@@ -263,10 +263,8 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
 
         {/* ── CTA Strip ─────────────────────────────────────────────────── */}
         <section className="py-16">
-          <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-surface-raised to-bg border border-border p-12 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 items-center">
-            <div aria-hidden className="absolute inset-0 opacity-30 pointer-events-none"
-              style={{ backgroundImage: "radial-gradient(rgba(232,198,121,0.08) 1px, transparent 1px)", backgroundSize: "16px 16px" }} />
-            <div className="relative">
+          <div className="rounded-2xl border border-border bg-surface-raised p-12 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 items-center">
+            <div>
               <div className="text-[10px] font-black tracking-widest text-gold mb-3">{t.cta_kicker}</div>
               <h3 className="text-2xl lg:text-3xl font-extrabold tracking-tight leading-tight mb-3 whitespace-pre-line">
                 {t.cta_title}
@@ -275,7 +273,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
             </div>
             <Link
               href="/upload"
-              className="relative inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-gold text-white font-bold text-sm shadow-[0_6px_20px_rgba(184,134,11,0.4)] hover:bg-gold-light transition-colors shrink-0"
+              className="inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-gold text-white font-bold text-sm hover:bg-gold-light transition-colors shrink-0"
             >
               {t.cta_button}
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">

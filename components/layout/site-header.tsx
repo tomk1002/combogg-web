@@ -9,7 +9,7 @@ export default function SiteHeader() {
     <header className="sticky top-0 z-50 bg-surface/90 backdrop-blur-md border-b border-border">
       <div className="max-w-[var(--width-content)] mx-auto px-4 sm:px-8 py-3.5 flex items-center gap-6">
         <Link href="/" className="inline-flex items-center gap-2 shrink-0">
-          <span className="w-[34px] h-[34px] rounded-[8px] bg-surface-raised flex items-center justify-center text-[11px] font-black font-mono shadow-[0_2px_4px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.10)]">
+          <span className="w-[34px] h-[34px] rounded-[8px] bg-surface-raised border border-border flex items-center justify-center text-[11px] font-black font-mono">
             ⌥▷
           </span>
           <span className="hidden sm:inline text-[18px] font-extrabold tracking-tight">
