@@ -120,8 +120,8 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
           <div className="flex items-end justify-between mb-4 gap-6">
             <div>
               <div className="flex items-center gap-3">
-                <span className="inline-block w-1 h-7 bg-gold rounded-full" />
-                <h2 className="text-2xl font-extrabold tracking-tight text-gold">
+                <span className="inline-block w-1 h-7 rounded-full bg-gradient-to-b from-[#F5DC74] to-[#C89B3C]" />
+                <h2 className="text-2xl font-extrabold tracking-tight text-gradient-gold">
                   {selectedChamp
                     ? t.filtered_for(characters.find((c) => c.slug === selectedChamp)?.name ?? selectedChamp)
                     : t.trending_kicker}
@@ -163,8 +163,8 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
           <section className="pb-2">
             <div className="mb-4">
               <div className="flex items-center gap-3 mb-1.5">
-                <span className="inline-block w-1 h-7 bg-[#4a90e2] rounded-full" />
-                <h2 className="text-2xl font-extrabold tracking-tight text-[#4a90e2]">{t.champ_kicker}</h2>
+                <span className="inline-block w-1 h-7 rounded-full bg-gradient-to-b from-[#F5DC74] to-[#C89B3C]" />
+                <h2 className="text-2xl font-extrabold tracking-tight text-gradient-gold">{t.champ_kicker}</h2>
               </div>
               <p className="text-sm text-text-secondary">{t.champ_subtitle}</p>
             </div>
@@ -198,8 +198,8 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
           <div className="flex items-end justify-between mb-4 gap-6">
             <div>
               <div className="flex items-center gap-3">
-                <span className="inline-block w-1 h-7 bg-easy rounded-full" />
-                <h2 className="text-2xl font-extrabold tracking-tight text-easy">{t.diff_kicker}</h2>
+                <span className="inline-block w-1 h-7 rounded-full bg-gradient-to-b from-[#F5DC74] to-[#C89B3C]" />
+                <h2 className="text-2xl font-extrabold tracking-tight text-gradient-gold">{t.diff_kicker}</h2>
               </div>
             </div>
             <div className="flex items-center gap-1 shrink-0 pb-1">
@@ -266,8 +266,8 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
             <div className="flex items-end justify-between mb-4 gap-6">
               <div>
                 <div className="flex items-center gap-3">
-                  <span className="inline-block w-1 h-7 bg-[#9c6fe4] rounded-full" />
-                  <h2 className="text-2xl font-extrabold tracking-tight text-[#9c6fe4]">{t.newest_kicker}</h2>
+                  <span className="inline-block w-1 h-7 rounded-full bg-gradient-to-b from-[#F5DC74] to-[#C89B3C]" />
+                  <h2 className="text-2xl font-extrabold tracking-tight text-gradient-gold">{t.newest_kicker}</h2>
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0 pb-1">

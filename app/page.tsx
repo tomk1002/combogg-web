@@ -87,7 +87,7 @@ export default async function Home() {
           <div>
             <h1 className="text-3xl lg:text-5xl font-black tracking-tight leading-tight mb-4">
               {t.hero_title1}<br />
-              <span className="text-gold">{t.hero_title2}</span>
+              <span className="text-gradient-gold">{t.hero_title2}</span>
             </h1>
             <p className="text-text-secondary text-base lg:text-lg mb-8 max-w-lg">
               {t.hero_subtitle}
