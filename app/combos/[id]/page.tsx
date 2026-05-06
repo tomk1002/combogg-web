@@ -127,7 +127,10 @@ export default async function ComboDetailPage({ params }: Props) {
             </div>
           </div>
 
-          {/* Actions */}
+          {/* Save to my library — primary CTA */}
+          <SaveComboButton comboId={id} initialIsSaved={isSaved} isLoggedIn={!!userId} />
+
+          {/* Like + .tutfile export (demoted) */}
           <ComboActions
             comboId={id}
             initialIsLiked={isLiked}
@@ -135,9 +138,6 @@ export default async function ComboDetailPage({ params }: Props) {
             tutfileUrl={combo.tutfileUrl}
             isLoggedIn={!!userId}
           />
-
-          {/* Save to my library */}
-          <SaveComboButton comboId={id} initialIsSaved={isSaved} isLoggedIn={!!userId} />
 
           {/* Share */}
           <ComboShareButton comboId={id} />

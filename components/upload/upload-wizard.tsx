@@ -9,6 +9,7 @@ import { KeySequence, inputToKeySequence } from "@/components/shared/keycap";
 import DifficultyPips from "@/components/shared/difficulty-pips";
 import LolUploadForm from "@/components/games/lol/lol-upload-form";
 import InputKeyMapper from "@/components/upload/input-key-mapper";
+import InputTimelineEditor from "@/components/upload/input-timeline-editor";
 import VideoEditor from "@/components/combo/video-editor";
 import type { LolGameSpecific } from "@/lib/games/lol/schema";
 import type { Difficulty } from "@/types";
@@ -497,7 +498,13 @@ export default function UploadWizard({ characters, patch, items }: Props) {
         const v = await uploadFile("videos", videoFile, videoFile.type || "video/mp4");
         extraVideoUrl = v.publicUrl;
       }
-      const r = await fetch("/api/combos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tutfilePath: path, title: title.trim(), description: description.trim() || undefined, tip: tip.trim() || undefined, characterSlug, difficulty, tags: tags.split(",").map((t) => t.trim()).filter(Boolean), gameSpecific, thumbnailUrl, ...(extraVideoUrl && { videoUrl: extraVideoUrl }) }) });
+      // editedInputs 가 원본 inputs 와 다르면 서버에서 .tutfile 의 inputs 대신 사용
+      const inputsChanged = editedInputs.length !== (parsed?.inputs.length ?? 0)
+        || editedInputs.some((inp, i) => {
+          const orig = parsed?.inputs[i];
+          return !orig || inp.t !== orig.t || inp.category !== orig.category || inp.ref !== orig.ref || inp.slot !== orig.slot;
+        });
+      const r = await fetch("/api/combos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tutfilePath: path, title: title.trim(), description: description.trim() || undefined, tip: tip.trim() || undefined, characterSlug, difficulty, tags: tags.split(",").map((t) => t.trim()).filter(Boolean), gameSpecific, thumbnailUrl, ...(extraVideoUrl && { videoUrl: extraVideoUrl }), ...(inputsChanged && { editedInputs }) }) });
       if (!r.ok) throw new Error((await r.json()).error ?? "콤보 등록 실패");
       const { id } = await r.json();
       setStep("done"); setTimeout(() => router.push(`/combos/${id}`), 800);
@@ -564,7 +571,10 @@ export default function UploadWizard({ characters, patch, items }: Props) {
   }
 
   // ── Step: form ────────────────────────────────────────────────
-  const displayInputs = editedInputs.length ? editedInputs : (parsed?.inputs ?? []);
+  // editedInputs 는 파일 로드 시점에 parsed.inputs 로 초기화되므로 여기서는
+  // 항상 신뢰할 수 있다. 삭제로 비어 있는 경우(빈 배열)도 그대로 반영해야
+  // 사용자가 본 화면과 실제 제출 결과(editedInputs)가 일치한다.
+  const displayInputs = editedInputs;
   const keys = inputToKeySequence(displayInputs.map(({ category, ref, slot }) => ({ category, ref, slot })));
   const isAiFilled = aiFilledFields.size > 0;
 
@@ -583,19 +593,19 @@ export default function UploadWizard({ characters, patch, items }: Props) {
       </div>
 
       {/* 입력 시퀀스 미리보기 + 키 매핑 편집 */}
-      {keys.length > 0 && (
+      {parsed && (
         <div className="bg-surface-raised rounded-xl border border-border overflow-hidden">
-          <div className="p-5">
-            <p className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">파싱된 입력 시퀀스</p>
-            <KeySequence keys={keys} size="sm" maxKeys={12} />
-            {parsed && (
+          {keys.length > 0 && (
+            <div className="p-5">
+              <p className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">파싱된 입력 시퀀스</p>
+              <KeySequence keys={keys} size="sm" maxKeys={12} />
               <p className="text-xs text-text-muted mt-2">
                 총 {displayInputs.length}개 입력{parsed.manifest.duration_ms ? ` · ${(parsed.manifest.duration_ms / 1000).toFixed(1)}초` : ""}
               </p>
-            )}
-          </div>
-          {parsed?.manifest.game === "lol" && (
-            <div className="border-t border-border">
+            </div>
+          )}
+          {parsed.manifest.game === "lol" && keys.length > 0 && (
+            <div className={keys.length > 0 ? "border-t border-border" : ""}>
               <div className="px-5 pt-4 pb-1">
                 <p className="text-xs font-bold uppercase tracking-wide text-text-secondary">슬롯 매핑</p>
                 <p className="text-xs text-text-muted mt-0.5">아이템 슬롯·소환사 주문을 실제 스킬/아이템으로 지정하세요</p>
@@ -612,6 +622,22 @@ export default function UploadWizard({ characters, patch, items }: Props) {
               />
             </div>
           )}
+
+          {/* 타임라인 편집 — 입력별 카테고리/타이밍/삭제·추가. 입력이 0개여도
+              빈 트랙을 클릭해 새로 추가할 수 있도록 항상 노출. */}
+          <div className={keys.length > 0 ? "border-t border-border" : ""}>
+            <div className="px-5 pt-4 pb-1">
+              <p className="text-xs font-bold uppercase tracking-wide text-text-secondary">타임라인 편집</p>
+              <p className="text-xs text-text-muted mt-0.5">개별 입력의 타이밍·카테고리를 조정하거나 삭제·추가할 수 있습니다</p>
+            </div>
+            <div className="px-5 pb-5 pt-3">
+              <InputTimelineEditor
+                inputs={displayInputs}
+                durationMs={parsed.manifest.duration_ms ?? 0}
+                onChange={(updated) => setEditedInputs(updated)}
+              />
+            </div>
+          </div>
         </div>
       )}
 

@@ -4,9 +4,11 @@ import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
+import { useLang } from "@/lib/i18n-client";
 
 export default function UserDropdown() {
   const { data: session, status } = useSession();
+  const { t } = useLang();
   const user = session?.user;
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -78,6 +80,16 @@ export default function UserDropdown() {
                 <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
               </svg>
               내 프로필
+            </Link>
+            <Link
+              href="/library"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-text hover:bg-surface-overlay transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="shrink-0 text-text-secondary">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+              </svg>
+              {t.nav_library}
             </Link>
             <Link
               href="/settings"

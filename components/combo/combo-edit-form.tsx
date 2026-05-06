@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import DifficultyPips from "@/components/shared/difficulty-pips";
 import LolUploadForm from "@/components/games/lol/lol-upload-form";
 import InputKeyMapper, { type MappableEntry } from "@/components/upload/input-key-mapper";
@@ -33,6 +34,7 @@ interface Combo {
   thumbnailUrl: string | null;
   videoUrl: string | null;
   durationMs: number | null;
+  status: "draft" | "published" | "featured" | "removed";
   game: { slug: string };
   character: { slug: string; name: string } | null;
 }
@@ -401,14 +403,17 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
   };
 
   // ── Submit ───────────────────────────────────────────────────
-  const [saving, setSaving] = useState(false);
+  type SaveAction = "save" | "publish";
+  const [savingAction, setSavingAction] = useState<SaveAction | null>(null);
   const [error,  setError]  = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const isBusy = savingAction !== null || deleting;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const persist = async (action: SaveAction) => {
     if (!title.trim()) { setError("제목을 입력해주세요."); return; }
     const tags = tagsInput.split(",").map((t) => t.trim()).filter(Boolean);
-    setSaving(true);
+    setSavingAction(action);
     setError(null);
     try {
       let newThumbnailUrl: string | undefined;
@@ -417,6 +422,16 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
       if (newVideoFile)     newVideoUrl     = await uploadFile(newVideoFile, "videos");
 
       const stepsPayload = steps.map(({ start, end, title: t, tip: tp }) => ({ start, end, title: t, tip: tp }));
+
+      // status: 'publish' 액션은 published, 'save' 액션은 현재 상태 유지
+      // (현재 draft → 그대로 draft, published/featured → 그대로 published/featured)
+      // featured 콤보는 어드민 영역이므로 사용자 PATCH로 status 보내지 않음
+      const sendStatus =
+        action === "publish"
+          ? "published"
+          : combo.status === "draft"
+          ? "draft"
+          : undefined;
 
       const res = await fetch(`/api/combos/${combo.id}`, {
         method: "PATCH",
@@ -432,19 +447,58 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
           steps: stepsPayload,
           ...(newThumbnailUrl && { thumbnailUrl: newThumbnailUrl }),
           ...(newVideoUrl     && { videoUrl: newVideoUrl }),
+          ...(sendStatus !== undefined && { status: sendStatus }),
         }),
       });
 
       if (!res.ok) {
         const json = (await res.json()) as { error?: string };
         setError(json.error ?? "저장에 실패했습니다.");
-        setSaving(false);
+        setSavingAction(null);
         return;
       }
-      router.push(`/combos/${combo.id}`);
+
+      if (action === "publish") {
+        // 공개 게시 후엔 상세 페이지로
+        router.push(`/combos/${combo.id}`);
+      } else {
+        // draft 유지 저장 — 페이지 갱신해 최신 상태 반영
+        router.refresh();
+        setSavingAction(null);
+      }
     } catch {
       setError("저장 중 오류가 발생했습니다.");
-      setSaving(false);
+      setSavingAction(null);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // 폼 기본 submit (Enter 키 등) — 기본 액션은 "저장"
+    void persist("save");
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    setDeleting(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/combos/${combo.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const json = (await res.json().catch(() => ({}))) as { error?: string };
+        setError(json.error ?? "삭제에 실패했습니다.");
+        setDeleting(false);
+        setConfirmDelete(false);
+        return;
+      }
+      router.push("/library");
+    } catch {
+      setError("삭제 중 오류가 발생했습니다.");
+      setDeleting(false);
+      setConfirmDelete(false);
     }
   };
 
@@ -701,16 +755,73 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
         <p className="text-sm text-hard bg-hard/10 border border-hard/30 rounded-lg px-4 py-3">{error}</p>
       )}
 
-      <div className="flex gap-3 justify-end">
-        <button type="button" onClick={() => router.back()}
-          className="h-10 px-5 rounded-lg border border-border text-sm font-semibold text-text-secondary hover:bg-surface-overlay hover:text-text transition-colors">
-          취소
-        </button>
-        <button type="submit" disabled={saving}
-          className="h-10 px-6 rounded-lg bg-gold text-white text-sm font-bold hover:bg-gold-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-          {saving ? "저장 중..." : "저장"}
-        </button>
+      {/* ── 액션 버튼 ─────────────────────────────────── */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {/* 좌측: 삭제 */}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={isBusy}
+            className={`h-10 px-4 rounded-lg border text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              confirmDelete
+                ? "border-hard/50 bg-hard/10 text-hard hover:bg-hard/20"
+                : "border-border text-text-secondary hover:bg-surface-overlay hover:text-text"
+            }`}
+          >
+            {deleting ? "삭제 중..." : confirmDelete ? "정말 삭제?" : "삭제"}
+          </button>
+          {confirmDelete && !deleting && (
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(false)}
+              className="h-10 px-4 rounded-lg border border-border text-sm font-semibold text-text-secondary hover:bg-surface-overlay hover:text-text transition-colors"
+            >
+              취소
+            </button>
+          )}
+        </div>
+
+        {/* 우측: 저장 / 공개 게시 */}
+        <div className="flex gap-2 justify-end">
+          <button
+            type="button"
+            onClick={() => persist("save")}
+            disabled={isBusy}
+            className="h-10 px-5 rounded-lg border border-border text-sm font-semibold text-text-secondary hover:bg-surface-overlay hover:text-text transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {savingAction === "save"
+              ? "저장 중..."
+              : combo.status === "draft"
+              ? "저장 (draft 유지)"
+              : "저장"}
+          </button>
+          <button
+            type="button"
+            onClick={() => persist("publish")}
+            disabled={isBusy}
+            className="h-10 px-6 rounded-lg bg-gold text-white text-sm font-bold hover:bg-gold-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {savingAction === "publish"
+              ? "게시 중..."
+              : combo.status === "draft"
+              ? "공개 게시"
+              : "저장 후 보기"}
+          </button>
+        </div>
       </div>
+
+      {/* 공개 페이지 링크 (published / featured 만) */}
+      {(combo.status === "published" || combo.status === "featured") && (
+        <div className="flex justify-end -mt-2">
+          <Link
+            href={`/combos/${combo.id}`}
+            className="text-xs font-semibold text-text-muted hover:text-text transition-colors"
+          >
+            공개 페이지 보기 →
+          </Link>
+        </div>
+      )}
     </form>
   );
 }

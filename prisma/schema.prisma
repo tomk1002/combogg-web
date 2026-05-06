@@ -21,6 +21,7 @@ enum Difficulty {
 enum ComboStatus {
   draft
   published
+  featured
   removed
 }
 
@@ -244,5 +245,6 @@ model SavedCombo {
 
   @@unique([userId, comboId])
   @@index([userId, savedAt(sort: Desc)])
+  @@index([comboId])
   @@map("saved_combos")
 }

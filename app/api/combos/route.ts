@@ -4,9 +4,20 @@ import { ok, badRequest, unauthorized, tooManyRequests, serverError } from "@/li
 import { rateLimit } from "@/lib/api/rate-limit";
 import { COMBO_INCLUDE, toComboListItem } from "@/lib/combo-queries";
 import { validateGameSpecific } from "@/lib/games/registry";
-import { parseTutfile, buildInputSummary } from "@/lib/tutfile";
+import { parseTutfile, buildInputSummary, type ParsedInput, type ParsedStep } from "@/lib/tutfile";
 import { getSupabaseAdmin, BUCKETS } from "@/lib/supabase";
+import { verifyDesktopToken } from "@/lib/desktop-token";
+import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
+
+async function resolveUserId(req: Request): Promise<string | null> {
+  const auth = req.headers.get("Authorization");
+  if (auth?.startsWith("Bearer ")) {
+    return verifyDesktopToken(auth.slice(7));
+  }
+  const session = await getSession();
+  return session?.user?.id ?? null;
+}
 
 export async function GET(req: Request) {
   try {
@@ -18,14 +29,26 @@ export async function GET(req: Request) {
     const sort       = searchParams.get("sort") ?? "latest";
     const page       = Math.max(1, Number(searchParams.get("page") ?? "1"));
     const limit      = Math.min(50, Math.max(1, Number(searchParams.get("limit") ?? "18")));
+    const featured   = searchParams.get("featured") === "true";
+    const savedBy    = searchParams.get("savedBy");
+
+    // 기본은 published만, featured=true 시 featured만
+    const statusFilter: Prisma.ComboWhereInput["status"] = featured ? "featured" : "published";
 
     const where: Prisma.ComboWhereInput = {
-      status: "published",
+      status: statusFilter,
       ...(game       && { game: { slug: game } }),
       ...(character  && { character: { slug: character } }),
       ...(difficulty && { difficulty }),
       ...(tags?.length && { tags: { hasSome: tags } }),
     };
+
+    // savedBy=me — 현재 사용자가 저장한 콤보만
+    if (savedBy === "me") {
+      const userId = await resolveUserId(req);
+      if (!userId) return unauthorized();
+      where.savedBy = { some: { userId } };
+    }
 
     const orderBy: Prisma.ComboOrderByWithRelationInput =
       sort === "popular"   ? { likeCount: "desc" } :
@@ -45,9 +68,8 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const session = await getSession();
-    if (!session?.user?.id) return unauthorized();
-    const userId = session.user.id;
+    const userId = await resolveUserId(req);
+    if (!userId) return unauthorized();
 
     if (!rateLimit(`upload:${userId}`, 10, 60_000)) return tooManyRequests();
 
@@ -61,7 +83,7 @@ export async function POST(req: Request) {
     // ── 앱 업로드 흐름: 메타데이터 직접 전달 ──────────────────────
     const { title, description, tip, gameSlug, characterSlug, difficulty, tags,
             durationMs, inputSummary, gameSpecific, thumbnailUrl, videoUrl,
-            tutfileUrl, patchVersion } = body;
+            tutfileUrl, patchVersion, status } = body;
 
     if (!title || !gameSlug || !characterSlug || !difficulty) {
       return badRequest("필수 필드가 누락되었습니다");
@@ -69,6 +91,12 @@ export async function POST(req: Request) {
     if (typeof title === "string" && title.length > 100) return badRequest("제목은 100자 이하로 입력해주세요");
     if (typeof description === "string" && description.length > 2000) return badRequest("설명은 2000자 이하로 입력해주세요");
     if (Array.isArray(tags) && tags.length > 10) return badRequest("태그는 최대 10개까지 입력 가능합니다");
+
+    // status: 사용자는 'draft' 또는 'published'만 설정 가능 ('featured'는 admin 전용)
+    if (status !== undefined && status !== "draft" && status !== "published") {
+      return badRequest("status는 'draft' 또는 'published'만 가능합니다");
+    }
+    const resolvedStatus: "draft" | "published" = status === "draft" ? "draft" : "published";
 
     let validatedGameSpecific: unknown;
     try {
@@ -95,6 +123,7 @@ export async function POST(req: Request) {
         inputSummary: inputSummary ?? [],
         gameSpecific: validatedGameSpecific as object,
         thumbnailUrl, videoUrl, tutfileUrl, patchVersion,
+        status: resolvedStatus,
       },
     });
 
@@ -107,7 +136,8 @@ export async function POST(req: Request) {
 // ── tutfile 서버 처리 ─────────────────────────────────────────
 async function handleTutfileUpload(userId: string, body: Record<string, unknown>) {
   const { tutfilePath, title, description, tip, characterSlug, difficulty, tags,
-          gameSpecific: gameSpecificOverride, thumbnailUrl, videoUrl: videoUrlOverride } = body as {
+          gameSpecific: gameSpecificOverride, thumbnailUrl, videoUrl: videoUrlOverride, status,
+          editedInputs, editedSteps } = body as {
     tutfilePath: string;
     title?: string;
     description?: string;
@@ -118,7 +148,33 @@ async function handleTutfileUpload(userId: string, body: Record<string, unknown>
     gameSpecific?: Record<string, unknown>;
     thumbnailUrl?: string;
     videoUrl?: string;
+    status?: string;
+    editedInputs?: ParsedInput[];
+    editedSteps?: ParsedStep[];
   };
+
+  // editedInputs 형태 검증 — 신뢰할 수 없는 클라이언트 입력
+  if (editedInputs !== undefined) {
+    if (!Array.isArray(editedInputs)) return badRequest("editedInputs는 배열이어야 합니다");
+    for (const inp of editedInputs) {
+      if (!inp || typeof inp !== "object") return badRequest("editedInputs 항목 형식이 올바르지 않습니다");
+      if (typeof inp.t !== "number" || !Number.isFinite(inp.t) || inp.t < 0) {
+        return badRequest("editedInputs.t 는 0 이상의 숫자여야 합니다");
+      }
+      if (typeof inp.category !== "string" || inp.category.length === 0 || inp.category.length > 32) {
+        return badRequest("editedInputs.category 는 비어 있지 않은 문자열이어야 합니다");
+      }
+    }
+  }
+  if (editedSteps !== undefined) {
+    if (!Array.isArray(editedSteps)) return badRequest("editedSteps는 배열이어야 합니다");
+  }
+
+  // status: 사용자는 'draft' 또는 'published'만 설정 가능 ('featured'는 admin 전용)
+  if (status !== undefined && status !== "draft" && status !== "published") {
+    return badRequest("status는 'draft' 또는 'published'만 가능합니다");
+  }
+  const resolvedStatus: "draft" | "published" = status === "draft" ? "draft" : "published";
 
   const supabaseAdmin = getSupabaseAdmin();
 
@@ -138,8 +194,15 @@ async function handleTutfileUpload(userId: string, body: Record<string, unknown>
     return badRequest(`tutfile 파싱 실패: ${e instanceof Error ? e.message : "invalid"}`);
   }
 
-  const { manifest, inputs, videoBuffer } = parsed;
+  const { manifest, videoBuffer } = parsed;
   const gameSlug = manifest.game;
+
+  // TODO: editedInputs/editedSteps 가 있어도 Storage 의 .tutfile 자체는 원본 그대로
+  // 남는다 — 일관성 깨짐 인지하고 있음. 차후 서버에서 재패킹하거나
+  // 클라이언트에서 .tutfile 을 다시 zip 해서 올리는 방향 검토.
+  const inputs: ParsedInput[] = editedInputs ?? parsed.inputs;
+  const steps: ParsedStep[] = editedSteps ?? parsed.steps;
+  void steps; // steps 는 현재 DB 에 별도 저장하지 않음 — .tutfile 안에서만 사용
 
   // 3. game_specific 검증
   const rawGameSpecific = gameSpecificOverride ?? manifest.game_specific ?? {};
@@ -198,8 +261,14 @@ async function handleTutfileUpload(userId: string, body: Record<string, unknown>
       videoUrl,
       tutfileUrl,
       patchVersion: manifest.patch_version ?? null,
+      status:       resolvedStatus,
     },
   });
 
   return ok({ id: combo.id }, 201);
+}
+
+// Explicit OPTIONS handler for Overwolf preflight requests.
+export function OPTIONS() {
+  return new NextResponse(null, { status: 204 });
 }

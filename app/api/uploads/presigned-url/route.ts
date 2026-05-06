@@ -2,6 +2,7 @@ import { getSession } from "@/lib/auth/require-auth";
 import { ok, unauthorized, badRequest, serverError } from "@/lib/api/response";
 import { getSupabaseAdmin, BUCKETS } from "@/lib/supabase";
 import { verifyDesktopToken } from "@/lib/desktop-token";
+import { NextResponse } from "next/server";
 
 const ALLOWED_BUCKETS = Object.values(BUCKETS);
 
@@ -46,4 +47,9 @@ export async function POST(req: Request) {
   } catch (err) {
     return serverError(err);
   }
+}
+
+// Explicit OPTIONS handler for Overwolf preflight requests.
+export function OPTIONS() {
+  return new NextResponse(null, { status: 204 });
 }

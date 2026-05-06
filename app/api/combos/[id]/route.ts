@@ -42,17 +42,22 @@ export async function PATCH(req: Request, { params }: Ctx) {
     if (combo.authorId !== session.user.id) return forbidden();
 
     const body = await req.json();
-    const { title, description, tip, difficulty, tags, gameSpecific, inputSummary, steps, thumbnailUrl, videoUrl } = body;
+    const { title, description, tip, difficulty, tags, gameSpecific, inputSummary, steps, thumbnailUrl, videoUrl, status } = body;
+
+    // status: 사용자는 'draft' 또는 'published'만 설정 가능 ('featured'는 admin 전용)
+    if (status !== undefined && status !== "draft" && status !== "published") {
+      return badRequest("status는 'draft' 또는 'published'만 가능합니다");
+    }
 
     const updated = await prisma.combo.update({
       where: { id },
       data: {
-        title,
-        description,
-        tip,
-        difficulty,
-        tags,
-        ...(gameSpecific && { gameSpecific }),
+        ...(title !== undefined && { title }),
+        ...(description !== undefined && { description }),
+        ...(tip !== undefined && { tip }),
+        ...(difficulty !== undefined && { difficulty }),
+        ...(tags !== undefined && { tags }),
+        ...(gameSpecific !== undefined && { gameSpecific }),
         ...(inputSummary !== undefined && {
           inputSummary,
           inputCount: (inputSummary as unknown[])?.length ?? 0,
@@ -60,10 +65,11 @@ export async function PATCH(req: Request, { params }: Ctx) {
         ...(steps !== undefined && { steps }),
         ...(thumbnailUrl !== undefined && { thumbnailUrl }),
         ...(videoUrl !== undefined && { videoUrl }),
+        ...(status !== undefined && { status }),
       },
     });
 
-    return ok({ id: updated.id });
+    return ok({ id: updated.id, status: updated.status });
   } catch (err) {
     return serverError(err);
   }

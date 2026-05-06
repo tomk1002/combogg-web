@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLang } from "@/lib/i18n-client";
 
 interface Props {
   comboId: string;
@@ -13,6 +14,7 @@ interface Props {
 
 export default function ComboActions({ comboId, initialIsLiked, initialLikeCount, tutfileUrl, isLoggedIn }: Props) {
   const router = useRouter();
+  const { t } = useLang();
   const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [isLiking, setIsLiking] = useState(false);
@@ -48,7 +50,7 @@ export default function ComboActions({ comboId, initialIsLiked, initialLikeCount
       const { url } = await res.json();
       window.open(url, "_blank");
     } catch {
-      alert("다운로드 링크를 가져올 수 없습니다.");
+      alert(t.detail_download_fail);
     } finally {
       setIsDownloading(false);
     }
@@ -56,14 +58,7 @@ export default function ComboActions({ comboId, initialIsLiked, initialLikeCount
 
   return (
     <div className="flex flex-col gap-2">
-      <button
-        type="button"
-        onClick={handleDownload}
-        disabled={isDownloading || !tutfileUrl}
-        className="w-full h-12 rounded-xl bg-gold text-white font-bold text-sm shadow-[0_2px_8px_rgba(184,134,11,0.32)] hover:bg-gold-light disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
-      >
-        {isDownloading ? "준비 중..." : ".tutfile 다운로드"}
-      </button>
+      {/* Primary: like */}
       <button
         type="button"
         onClick={handleLike}
@@ -74,8 +69,24 @@ export default function ComboActions({ comboId, initialIsLiked, initialLikeCount
             : "border-border text-text-secondary hover:bg-surface-overlay hover:text-text"
         }`}
       >
-        {isLiked ? `♥ 좋아요 ${likeCount}` : `♡ 좋아요 ${likeCount}`}
+        {isLiked ? `♥ ${likeCount}` : `♡ ${likeCount}`}
       </button>
+
+      {/* Secondary: small text-only .tutfile export link */}
+      {tutfileUrl && (
+        <button
+          type="button"
+          onClick={handleDownload}
+          disabled={isDownloading}
+          className="w-full h-8 inline-flex items-center justify-center gap-1.5 text-xs font-medium text-text-muted hover:text-text-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+          title={t.download_export_tutfile}
+        >
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <path d="M8 2v8m0 0L5 7m3 3 3-3M3 13h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {isDownloading ? t.detail_downloading : t.download_export_tutfile}
+        </button>
+      )}
     </div>
   );
 }
