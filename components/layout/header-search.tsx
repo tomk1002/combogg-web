@@ -52,11 +52,8 @@ function HeaderSearchInner() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="콤보, 챔피언, 작성자 검색..."
-        className="w-full h-10 pl-9 pr-12 rounded-lg border border-[rgba(255,255,255,0.08)] bg-surface-overlay text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-[rgba(255,255,255,0.24)] transition-colors"
+        className="w-full h-10 pl-9 pr-4 rounded-lg border border-[rgba(255,255,255,0.08)] bg-surface-overlay text-sm text-text placeholder:text-text-muted focus:outline-none focus:border-[rgba(255,255,255,0.24)] transition-colors"
       />
-      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-surface border border-[rgba(255,255,255,0.08)] font-mono text-[10px] font-bold text-text-muted pointer-events-none">
-        ⌘K
-      </span>
     </form>
   );
 }

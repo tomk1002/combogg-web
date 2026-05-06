@@ -12,8 +12,8 @@ export default function SiteHeader() {
           <span className="w-[34px] h-[34px] rounded-[8px] bg-surface-raised border border-border flex items-center justify-center text-[11px] font-black font-mono">
             ⌥▷
           </span>
-          <span className="hidden sm:inline text-[18px] font-extrabold tracking-tight">
-            combo<span className="text-gold">.gg</span>
+          <span className="hidden sm:inline text-[22px] tracking-wide font-display">
+            COMBO<span className="text-gold">.GG</span>
           </span>
         </Link>
 

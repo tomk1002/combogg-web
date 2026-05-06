@@ -111,7 +111,7 @@ export default async function Home() {
               href={`/combos/${featuredCombo.id}`}
               className="hidden lg:block group relative rounded-xl overflow-hidden border border-border bg-surface-raised hover:-translate-y-0.5 transition-transform"
             >
-              <div className="absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gold text-bg text-[10px] font-black tracking-widest">
+              <div className="absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gold text-bg text-[13px] font-display tracking-widest">
                 <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor">
                   <path d="M5 0l1.4 3.2L10 4 7 6.4 8 10 5 8 2 10l1-3.6L0 4l3.6-.8L5 0z"/>
                 </svg>
