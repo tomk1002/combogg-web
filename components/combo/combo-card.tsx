@@ -79,7 +79,7 @@ export default function ComboCard({ combo, priority = false }: Props) {
             </span>
             <span className="text-[11px] text-text-secondary truncate max-w-[100px]">{authorDisplayName(combo.author)}</span>
           </div>
-          <div className="flex items-center gap-2.5 text-[11px] text-text-muted tabular-nums">
+          <div className="flex items-center gap-2.5 text-[11px] text-text-muted tabular-nums font-display">
             <span className="flex items-center gap-0.5">
               <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
                 <path d="M8 2C4.5 2 2 5 2 8s2.5 6 6 6 6-3 6-6-2.5-6-6-6z" stroke="currentColor" strokeWidth="1.4"/>

@@ -85,7 +85,7 @@ export default async function Home() {
         <div className="max-w-[var(--width-content)] mx-auto px-4 sm:px-8 py-8 sm:py-12 grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-10 items-center">
           {/* Left */}
           <div>
-            <h1 className="text-3xl lg:text-5xl font-black tracking-tight leading-tight mb-4">
+            <h1 className="text-3xl lg:text-5xl font-black tracking-tight leading-tight mb-4 font-display">
               {t.hero_title1}<br />
               <span className="text-gold">{t.hero_title2}</span>
             </h1>

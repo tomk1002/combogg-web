@@ -68,8 +68,6 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
       {/* ── Champion Rail ─────────────────────────────────────────────── */}
       <div className="sticky top-[69px] z-30 bg-surface/[0.92] backdrop-blur-md border-b border-border">
         <div className="max-w-[var(--width-content)] mx-auto px-4 sm:px-8 py-3 flex items-center gap-3">
-          <span className="text-[10px] font-black tracking-widest text-text-muted shrink-0">{t.rail_label}</span>
-
           <div className="relative shrink-0">
             <input
               type="text"
@@ -123,7 +121,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
             <div>
               <div className="flex items-center gap-3">
                 <span className="inline-block w-1 h-7 bg-gold rounded-full" />
-                <h2 className="text-2xl font-extrabold tracking-tight text-gold">
+                <h2 className="text-2xl font-extrabold tracking-tight text-gold font-display">
                   {selectedChamp
                     ? t.filtered_for(characters.find((c) => c.slug === selectedChamp)?.name ?? selectedChamp)
                     : t.trending_kicker}
@@ -166,7 +164,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
             <div className="mb-4">
               <div className="flex items-center gap-3 mb-1.5">
                 <span className="inline-block w-1 h-7 bg-[#4a90e2] rounded-full" />
-                <h2 className="text-2xl font-extrabold tracking-tight text-[#4a90e2]">{t.champ_kicker}</h2>
+                <h2 className="text-2xl font-extrabold tracking-tight text-[#4a90e2] font-display">{t.champ_kicker}</h2>
               </div>
               <p className="text-sm text-text-secondary">{t.champ_subtitle}</p>
             </div>
@@ -201,7 +199,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
             <div>
               <div className="flex items-center gap-3">
                 <span className="inline-block w-1 h-7 bg-easy rounded-full" />
-                <h2 className="text-2xl font-extrabold tracking-tight text-easy">{t.diff_kicker}</h2>
+                <h2 className="text-2xl font-extrabold tracking-tight text-easy font-display">{t.diff_kicker}</h2>
               </div>
             </div>
             <div className="flex items-center gap-1 shrink-0 pb-1">
@@ -269,7 +267,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
               <div>
                 <div className="flex items-center gap-3">
                   <span className="inline-block w-1 h-7 bg-[#9c6fe4] rounded-full" />
-                  <h2 className="text-2xl font-extrabold tracking-tight text-[#9c6fe4]">{t.newest_kicker}</h2>
+                  <h2 className="text-2xl font-extrabold tracking-tight text-[#9c6fe4] font-display">{t.newest_kicker}</h2>
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0 pb-1">
