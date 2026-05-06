@@ -42,7 +42,7 @@ export default function ComboCard({ combo, priority = false }: Props) {
         ) : null}
 
         {/* Difficulty */}
-        <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/55 backdrop-blur-sm">
+        <span className="absolute top-2 left-2 inline-flex items-center px-2 py-0.5 rounded-full bg-black/55 backdrop-blur-sm">
           <DifficultyPips difficulty={combo.difficulty} forceDark />
         </span>
       </div>

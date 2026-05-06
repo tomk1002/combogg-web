@@ -172,7 +172,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
               <h2 className="text-2xl font-extrabold tracking-tight">{t.champ_title}</h2>
               <p className="text-sm text-text-secondary mt-1">{t.champ_subtitle}</p>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+            <div className="grid grid-cols-4 sm:grid-cols-4 lg:grid-cols-8 gap-2">
               {topChampTiles.map((c) => (
                 <Link
                   key={c.slug}

@@ -17,18 +17,18 @@ export default function DifficultyPips({ difficulty, className, forceDark }: Pro
   const { color, label, filled } = CONFIG[difficulty];
   return (
     <span className={cn("inline-flex items-center gap-1.5", className)}>
-      <span className="inline-flex gap-0.5">
+      <span className="inline-flex items-center gap-0.5">
         {[1, 2, 3].map((i) => (
           <span
             key={i}
             className={cn(
-              "w-[5px] h-[5px] rounded-full",
+              "w-[5px] h-[5px] rounded-full shrink-0",
               i <= filled ? color : forceDark ? "bg-white/20" : "bg-text-muted"
             )}
           />
         ))}
       </span>
-      <span className={cn("text-[11px] font-semibold", forceDark ? "text-white/75" : "text-text-secondary")}>{label}</span>
+      <span className={cn("text-[11px] font-semibold leading-none", forceDark ? "text-white/75" : "text-text-secondary")}>{label}</span>
     </span>
   );
 }
