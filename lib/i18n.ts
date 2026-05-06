@@ -26,14 +26,11 @@ export const dict = {
     filtered_for: (name: string) => `${name} — 인기 콤보`,
     // trending
     trending_kicker: "인기 급상승",
-    trending_title: "인기 콤보",
     // champion section
     champ_kicker: "챔피언별 탐색",
-    champ_title: "챔피언별 콤보",
     champ_subtitle: "플레이하는 챔피언을 선택하면 인기 콤보부터 볼 수 있습니다.",
     // difficulty
     diff_kicker: "실력별 분류",
-    diff_title: "실력에 맞는 콤보 찾기",
     diff_subtitle: "처음 배우는 사람부터 프로 지망생까지, 단계별로 분류된 콤보.",
     diff_easy_label: "입문",
     diff_easy_desc: "기본 스킬 콤보. 오늘 배우면 오늘 사용할 수 있습니다.",
@@ -44,7 +41,6 @@ export const dict = {
     combos_unit: "콤보",
     // newest
     newest_kicker: "최신 업로드",
-    newest_title: "새로 올라온 콤보",
     // CTA strip
     cta_kicker: "─── 콤보 공유하기",
     cta_title: "당신만의 콤보가 있나요?\n지금 바로 공유해보세요.",
@@ -138,12 +134,9 @@ export const dict = {
     rail_no_results: "No combos",
     filtered_for: (name: string) => `${name} — Popular`,
     trending_kicker: "TRENDING NOW",
-    trending_title: "Popular Combos",
     champ_kicker: "BROWSE BY CHAMPION",
-    champ_title: "Combos by Champion",
     champ_subtitle: "Pick your champion to see the most popular combos first.",
     diff_kicker: "BY SKILL LEVEL",
-    diff_title: "Find Combos by Skill Level",
     diff_subtitle: "From beginners to aspiring pros — combos sorted by difficulty.",
     diff_easy_label: "Beginner",
     diff_easy_desc: "Basic skill combos. Learn it today, use it today.",
@@ -153,7 +146,6 @@ export const dict = {
     diff_hard_desc: "Frame-perfect inputs. Requires dedicated practice.",
     combos_unit: "combos",
     newest_kicker: "FRESHLY UPLOADED",
-    newest_title: "Newly Added Combos",
     cta_kicker: "─── SHARE YOUR COMBO",
     cta_title: "Got your own combo?\nShare it right now.",
     cta_subtitle: "Upload a .tutfile recorded with the desktop app. Fill in title, description, and difficulty — live in under a minute.",

@@ -121,15 +121,14 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
         <section className="pt-8 pb-2">
           <div className="flex items-end justify-between mb-4 gap-6">
             <div>
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2">
                 <span className="inline-block w-6 h-0.5 bg-gold rounded" />
-                <span className="text-[10px] font-black tracking-widest text-gold">{t.trending_kicker}</span>
+                <span className="text-[10px] font-black tracking-widest text-gold">
+                  {selectedChamp
+                    ? t.filtered_for(characters.find((c) => c.slug === selectedChamp)?.name ?? selectedChamp)
+                    : t.trending_kicker}
+                </span>
               </div>
-              <h2 className="text-2xl font-extrabold tracking-tight">
-                {selectedChamp
-                  ? t.filtered_for(characters.find((c) => c.slug === selectedChamp)?.name ?? selectedChamp)
-                  : t.trending_title}
-              </h2>
             </div>
             <div className="flex items-center gap-1 shrink-0 pb-1">
               <button type="button" onClick={() => scrollRow(trendingRef, -1)} className="hidden sm:flex w-6 h-6 items-center justify-center rounded text-text-muted hover:text-text hover:bg-surface-overlay transition-colors cursor-pointer">
@@ -165,12 +164,11 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
         {topChampTiles.length > 0 && (
           <section className="pb-2">
             <div className="mb-4">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-1.5">
                 <span className="inline-block w-6 h-0.5 bg-[#4a90e2] rounded" />
                 <span className="text-[10px] font-black tracking-widest text-[#4a90e2]">{t.champ_kicker}</span>
               </div>
-              <h2 className="text-2xl font-extrabold tracking-tight">{t.champ_title}</h2>
-              <p className="text-sm text-text-secondary mt-1">{t.champ_subtitle}</p>
+              <p className="text-sm text-text-secondary">{t.champ_subtitle}</p>
             </div>
             <div className="grid grid-cols-4 sm:grid-cols-4 lg:grid-cols-8 gap-2">
               {topChampTiles.map((c) => (
@@ -201,11 +199,10 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
         <section className="pb-2">
           <div className="flex items-end justify-between mb-4 gap-6">
             <div>
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2">
                 <span className="inline-block w-6 h-0.5 bg-easy rounded" />
                 <span className="text-[10px] font-black tracking-widest text-easy">{t.diff_kicker}</span>
               </div>
-              <h2 className="text-2xl font-extrabold tracking-tight">{t.diff_title}</h2>
             </div>
             <div className="flex items-center gap-1 shrink-0 pb-1">
               <button type="button" onClick={() => scrollRow(difficultyRef, -1)} className="hidden sm:flex w-6 h-6 items-center justify-center rounded text-text-muted hover:text-text hover:bg-surface-overlay transition-colors cursor-pointer">
@@ -270,11 +267,10 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
           <section className="pb-2">
             <div className="flex items-end justify-between mb-4 gap-6">
               <div>
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2">
                   <span className="inline-block w-6 h-0.5 bg-[#9c6fe4] rounded" />
                   <span className="text-[10px] font-black tracking-widest text-[#9c6fe4]">{t.newest_kicker}</span>
                 </div>
-                <h2 className="text-2xl font-extrabold tracking-tight">{t.newest_title}</h2>
               </div>
               <div className="flex items-center gap-1 shrink-0 pb-1">
                 <button type="button" onClick={() => scrollRow(newestRef, -1)} className="hidden sm:flex w-6 h-6 items-center justify-center rounded text-text-muted hover:text-text hover:bg-surface-overlay transition-colors cursor-pointer">
