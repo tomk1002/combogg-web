@@ -29,8 +29,10 @@ export default async function ComboEditPage({ params }: Props) {
       inputSummary: true,
       thumbnailUrl: true,
       videoUrl: true,
+      durationMs: true,
       authorId: true,
       game: { select: { slug: true } },
+      character: { select: { slug: true, name: true } },
     },
   });
 

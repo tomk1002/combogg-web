@@ -8,6 +8,7 @@ import { authConfig } from "@/lib/auth.config";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma),
+  session: { strategy: "jwt" },
   trustHost: true,
   providers: [
     Google({
@@ -22,11 +23,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
-        session.user.onboardingCompleted =
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id!;
+        token.onboardingCompleted =
           (user as { onboardingCompleted?: boolean }).onboardingCompleted ?? false;
+      }
+      return token;
+    },
+    session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.onboardingCompleted = (token.onboardingCompleted as boolean) ?? false;
       }
       return session;
     },
@@ -38,7 +46,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         .toLowerCase()
         .slice(0, 16) || "user";
 
-      // timestamp base36 suffix — 사실상 충돌 불가, DB 왕복 없음
       const nickname = `${base}_${Date.now().toString(36)}`.slice(0, 28);
 
       await prisma.user.update({

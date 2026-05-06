@@ -301,6 +301,8 @@ export default function UploadWizard({ characters, patch, items }: Props) {
   const [isJsonMode, setIsJsonMode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [champPickerOpen, setChampPickerOpen] = useState(false);
+
   // AI autofill
   const [aiPending, startAiTransition] = useTransition();
   const [aiError, setAiError] = useState<string | null>(null);
@@ -657,8 +659,29 @@ export default function UploadWizard({ characters, patch, items }: Props) {
 
         {/* 챔피언 */}
         <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-semibold">챔피언 <span className="text-hard">*</span></span>
-          <ChampionPicker characters={characters} patch={patch} value={characterSlug} onChange={(slug) => { setCharacterSlug(slug); saveDraft({ title, description, tip, difficulty, tagsInput: tags, character: slug, gameSpecific }); }} />
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold">챔피언 <span className="text-hard">*</span></span>
+            {characterSlug && !champPickerOpen && (
+              <button type="button" onClick={() => setChampPickerOpen(true)} className="text-xs text-text-secondary hover:text-text transition-colors">변경</button>
+            )}
+          </div>
+          {characterSlug && !champPickerOpen ? (
+            <div className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border bg-surface-overlay">
+              {(() => {
+                const champ = characters.find((c) => c.slug === characterSlug);
+                const iconUrl = champ?.iconUrl ?? getChampIconUrl(characterSlug, patch);
+                return (
+                  <>
+                    <Image src={iconUrl} alt={champ?.name ?? characterSlug} width={20} height={20} sizes="20px" className="rounded shrink-0" />
+                    <span className="text-sm font-semibold">{champ?.name ?? characterSlug}</span>
+                    <span className="ml-auto text-xs text-text-muted">.tutfile에서 자동 인식됨</span>
+                  </>
+                );
+              })()}
+            </div>
+          ) : (
+            <ChampionPicker characters={characters} patch={patch} value={characterSlug} onChange={(slug) => { setCharacterSlug(slug); setChampPickerOpen(false); saveDraft({ title, description, tip, difficulty, tagsInput: tags, character: slug, gameSpecific }); }} />
+          )}
         </div>
 
         {/* 난이도 */}
