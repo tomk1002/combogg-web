@@ -13,6 +13,22 @@ interface InputEntry {
   t?: number;
 }
 
+interface StepEntry {
+  start: number;
+  end: number;
+  title?: string;
+  tip?: string;
+}
+
+interface GameSpecific {
+  required_level?: number;
+  ability_haste_min?: number;
+  attack_speed_min?: number;
+  required_items?: string[];
+  summoner_spells?: string[];
+  required_skills?: Record<string, number>;
+}
+
 export async function POST(req: Request) {
   const session = await getSession();
   if (!session?.user?.id) return unauthorized();
@@ -22,9 +38,13 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   if (!body) return badRequest("요청 본문이 없습니다");
 
-  const { character, inputs, durationMs, patch } = body as {
+  const { character, inputs, steps, gameSpecific, difficulty, tags, durationMs, patch } = body as {
     character: string;
     inputs: InputEntry[];
+    steps?: StepEntry[];
+    gameSpecific?: GameSpecific;
+    difficulty?: string;
+    tags?: string[];
     durationMs?: number;
     patch?: string;
   };
@@ -51,6 +71,44 @@ export async function POST(req: Request) {
 
   const durationSec = durationMs ? (durationMs / 1000).toFixed(1) : null;
 
+  // 사용자가 직접 분류한 구간 정보 (있으면 AI 가 더 정확한 설명 생성)
+  const stepsDesc = Array.isArray(steps) && steps.length > 0
+    ? steps
+        .slice(0, 10)
+        .map((s, idx) => {
+          const t = (s.title ?? "").toString().slice(0, 30);
+          const tp = (s.tip ?? "").toString().slice(0, 80);
+          const range = `${(s.start / 1000).toFixed(1)}–${(s.end / 1000).toFixed(1)}s`;
+          return `  ${idx + 1}. [${range}] ${t || "(제목 없음)"}${tp ? ` — ${tp}` : ""}`;
+        })
+        .join("\n")
+    : null;
+
+  // 사용자가 이미 채워둔 LoL 조건 — AI 가 모순되지 않게 활용
+  const gsLines: string[] = [];
+  if (gameSpecific) {
+    if (typeof gameSpecific.required_level === "number")    gsLines.push(`  - 최소 레벨: ${gameSpecific.required_level}`);
+    if (typeof gameSpecific.ability_haste_min === "number") gsLines.push(`  - 최소 스킬가속: ${gameSpecific.ability_haste_min}`);
+    if (typeof gameSpecific.attack_speed_min === "number")  gsLines.push(`  - 최소 공격속도: ${gameSpecific.attack_speed_min}`);
+    if (Array.isArray(gameSpecific.required_items) && gameSpecific.required_items.length)
+      gsLines.push(`  - 필요 아이템: ${gameSpecific.required_items.slice(0, 6).join(", ")}`);
+    if (Array.isArray(gameSpecific.summoner_spells) && gameSpecific.summoner_spells.length)
+      gsLines.push(`  - 소환사 주문: ${gameSpecific.summoner_spells.slice(0, 2).join(", ")}`);
+    if (gameSpecific.required_skills && Object.keys(gameSpecific.required_skills).length)
+      gsLines.push(`  - 필요 스킬 레벨: ${Object.entries(gameSpecific.required_skills).map(([k, v]) => `${k} Lv.${v}`).join(", ")}`);
+  }
+  const gsBlock = gsLines.length > 0 ? `\n## 사용자가 이미 입력한 LoL 조건\n${gsLines.join("\n")}` : "";
+
+  const userDifficulty = typeof difficulty === "string" && ["easy", "medium", "hard"].includes(difficulty)
+    ? difficulty : null;
+  const userTags = Array.isArray(tags)
+    ? tags.map((t) => String(t).slice(0, 30)).filter(Boolean).slice(0, 6)
+    : [];
+  const userMetaLines: string[] = [];
+  if (userDifficulty) userMetaLines.push(`  - 사용자가 설정한 난이도: ${userDifficulty} (참고만, 시퀀스 분석으로 재판단)`);
+  if (userTags.length) userMetaLines.push(`  - 사용자가 설정한 태그: ${userTags.join(", ")} (참고만, 더 적절한 태그 제안 가능)`);
+  const userMetaBlock = userMetaLines.length > 0 ? `\n## 사용자가 현재 설정한 메타\n${userMetaLines.join("\n")}` : "";
+
   // Delimiters prevent user-supplied values from escaping their context in the prompt
   const prompt = `당신은 리그 오브 레전드 콤보 공유 플랫폼의 AI 보조입니다.
 아래 콤보 정보를 분석해서 JSON으로만 응답하세요. 설명이나 마크다운 없이 순수 JSON만 출력.
@@ -65,6 +123,7 @@ export async function POST(req: Request) {
 - 플래시 사용: ${hasFlash ? "예" : "아니오"}
 - 궁극기 사용: ${hasUlt ? "예" : "아니오"}
 ${patch ? `- 패치: [${String(patch).slice(0, 20)}]` : ""}
+${stepsDesc ? `\n## 사용자가 나눈 구간 (콤보 흐름)\n${stepsDesc}` : ""}${gsBlock}${userMetaBlock}
 
 ## 응답 JSON 형식
 {
