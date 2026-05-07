@@ -70,14 +70,15 @@ export default async function ComboDetailPage({ params }: Props) {
   // draft는 작성자만 볼 수 있음 — 비-작성자에겐 notFound 위장
   if (combo.status === "draft" && combo.authorId !== userId) notFound();
 
-  // 좋아요·저장 여부 병렬 조회 (댓글·관련 콤보는 Suspense로 스트리밍)
-  const [isLikedRecord, isSavedRecord] = await Promise.all([
+  // 좋아요·저장 여부 + 저장 카운트 병렬 조회 (댓글·관련 콤보는 Suspense로 스트리밍)
+  const [isLikedRecord, isSavedRecord, saveCount] = await Promise.all([
     userId
       ? prisma.like.findUnique({ where: { userId_comboId: { userId, comboId: id } } })
       : null,
     userId
       ? prisma.savedCombo.findUnique({ where: { userId_comboId: { userId, comboId: id } } })
       : null,
+    prisma.savedCombo.count({ where: { comboId: id } }),
   ]);
 
   // 조회수 +1 (fire-and-forget)
@@ -122,9 +123,9 @@ export default async function ComboDetailPage({ params }: Props) {
             <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">{t.detail_stats}</h2>
             <div className="grid grid-cols-3 gap-3 text-center">
               {[
-                { label: t.detail_stat_likes,     value: formatCount(combo.likeCount) },
-                { label: t.detail_stat_downloads, value: formatCount(combo.downloadCount) },
-                { label: t.detail_stat_views,     value: formatCount(combo.viewCount) },
+                { label: t.detail_stat_likes, value: formatCount(combo.likeCount) },
+                { label: t.detail_stat_saves, value: formatCount(saveCount) },
+                { label: t.detail_stat_views, value: formatCount(combo.viewCount) },
               ].map(({ label, value }) => (
                 <div key={label}>
                   <p className="text-lg font-black">{value}</p>
@@ -137,17 +138,16 @@ export default async function ComboDetailPage({ params }: Props) {
           {/* Save to my library — primary CTA */}
           <SaveComboButton comboId={id} initialIsSaved={isSaved} isLoggedIn={!!userId} />
 
-          {/* Like + .tutfile export (demoted) */}
+          {/* Like */}
           <ComboActions
             comboId={id}
             initialIsLiked={isLiked}
             initialLikeCount={combo.likeCount}
-            tutfileUrl={combo.tutfileUrl}
             isLoggedIn={!!userId}
           />
 
           {/* Share */}
-          <ComboShareButton comboId={id} />
+          <ComboShareButton comboId={id} isOwn={combo.authorId === userId} />
 
           {/* Author actions */}
           {combo.authorId === userId && (

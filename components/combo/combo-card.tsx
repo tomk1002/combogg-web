@@ -125,21 +125,14 @@ export default function ComboCard({ combo, priority = false }: Props) {
           <div className="flex items-center gap-2.5 text-xs text-text-muted tabular-nums">
             <span className="flex items-center gap-0.5">
               <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
-                <path d="M8 2C4.5 2 2 5 2 8s2.5 6 6 6 6-3 6-6-2.5-6-6-6z" stroke="currentColor" strokeWidth="1.4"/>
-                <path d="M8 5v3l2 2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                <path d="M2 8c0-1.1 2.7-4 6-4s6 2.9 6 4-2.7 4-6 4-6-2.9-6-4z" stroke="currentColor" strokeWidth="1.4"/>
+                <circle cx="8" cy="8" r="1.5" fill="currentColor"/>
               </svg>
               {formatCount(combo.viewCount)}
             </span>
             <span className="flex items-center gap-0.5">
               <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
-                <path d="M8 2v8m0 0L5 7m3 3 3-3M3 13h10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              {formatCount(combo.downloadCount)}
-            </span>
-            <span className="flex items-center gap-0.5">
-              <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
-                <path d="M2 8c0-1.1 2.7-4 6-4s6 2.9 6 4-2.7 4-6 4-6-2.9-6-4z" stroke="currentColor" strokeWidth="1.4"/>
-                <circle cx="8" cy="8" r="1.5" fill="currentColor"/>
+                <path d="M14 6c0 4.5-6 8-6 8S2 10.5 2 6a4 4 0 0 1 6-3.46A4 4 0 0 1 14 6z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
               </svg>
               {formatCount(combo.likeCount)}
             </span>

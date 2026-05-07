@@ -30,24 +30,31 @@ enum OAuthProvider {
   discord
 }
 
+enum NotificationType {
+  like
+  save
+  comment
+  share
+}
+
 // ──────────────────────────────────────────────────────────
 // USER
 // ──────────────────────────────────────────────────────────
 
 model User {
-  id            String        @id @default(cuid())
+  id                  String         @id @default(cuid())
   // Auth.js standard fields
-  name          String?
-  email         String?       @unique
-  emailVerified DateTime?
-  image         String?
+  name                String?
+  email               String?        @unique
+  emailVerified       DateTime?
+  image               String?
   // Custom fields
-  nickname      String?       @unique
-  avatarUrl     String?
+  nickname            String?        @unique
+  avatarUrl           String?
   oauthProvider       OAuthProvider?
   oauthId             String?
-  onboardingCompleted Boolean       @default(false)
-  createdAt           DateTime      @default(now())
+  onboardingCompleted Boolean        @default(false)
+  createdAt           DateTime       @default(now())
   // Riot account linking
   riotPuuid           String?
   riotGameName        String?
@@ -64,6 +71,9 @@ model User {
   comments    Comment[]
   downloads   Download[]
   savedCombos SavedCombo[]
+
+  receivedNotifications Notification[] @relation("NotificationRecipient")
+  sentNotifications     Notification[] @relation("NotificationActor")
 
   // Auth.js relations
   accounts Account[]
@@ -151,38 +161,39 @@ model Character {
 // ──────────────────────────────────────────────────────────
 
 model Combo {
-  id           String      @id @default(cuid())
-  title        String
-  description  String?     @db.Text
-  tip          String?     @db.Text
-  authorId     String
-  gameId       String
-  characterId  String
-  difficulty   Difficulty
-  tags         String[]
-  durationMs   Int?
-  inputCount   Int         @default(0)
-  inputSummary Json        @default("[]")
-  steps        Json        @default("[]")
-  gameSpecific Json        @default("{}")
-  thumbnailUrl String?
-  videoUrl     String?
-  tutfileUrl   String?
-  patchVersion String?
-  viewCount    Int         @default(0)
-  downloadCount Int        @default(0)
-  likeCount    Int         @default(0)
-  status       ComboStatus @default(published)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id            String      @id @default(cuid())
+  title         String
+  description   String?     @db.Text
+  tip           String?     @db.Text
+  authorId      String
+  gameId        String
+  characterId   String
+  difficulty    Difficulty
+  tags          String[]
+  durationMs    Int?
+  inputCount    Int         @default(0)
+  inputSummary  Json        @default("[]")
+  steps         Json        @default("[]")
+  gameSpecific  Json        @default("{}")
+  thumbnailUrl  String?
+  videoUrl      String?
+  tutfileUrl    String?
+  patchVersion  String?
+  viewCount     Int         @default(0)
+  downloadCount Int         @default(0)
+  likeCount     Int         @default(0)
+  status        ComboStatus @default(published)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
-  author    User      @relation(fields: [authorId], references: [id])
-  game      Game      @relation(fields: [gameId], references: [id])
-  character Character @relation(fields: [characterId], references: [id])
-  likes     Like[]
-  comments  Comment[]
-  downloads Download[]
-  savedBy   SavedCombo[]
+  author        User           @relation(fields: [authorId], references: [id])
+  game          Game           @relation(fields: [gameId], references: [id])
+  character     Character      @relation(fields: [characterId], references: [id])
+  likes         Like[]
+  comments      Comment[]
+  downloads     Download[]
+  savedBy       SavedCombo[]
+  notifications Notification[]
 
   @@index([gameId, characterId])
   @@index([status, createdAt(sort: Desc)])
@@ -215,8 +226,9 @@ model Comment {
   content   String   @db.Text
   createdAt DateTime @default(now())
 
-  combo Combo @relation(fields: [comboId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  combo         Combo          @relation(fields: [comboId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notifications Notification[]
 
   @@index([comboId, createdAt(sort: Desc)])
   @@map("comments")
@@ -228,8 +240,8 @@ model Download {
   comboId      String
   downloadedAt DateTime @default(now())
 
-  user  User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
-  combo Combo  @relation(fields: [comboId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  combo Combo @relation(fields: [comboId], references: [id], onDelete: Cascade)
 
   @@map("downloads")
 }
@@ -247,6 +259,30 @@ model SavedCombo {
   @@index([userId, savedAt(sort: Desc)])
   @@index([comboId])
   @@map("saved_combos")
+}
+
+// ──────────────────────────────────────────────────────────
+// NOTIFICATIONS
+// ──────────────────────────────────────────────────────────
+
+model Notification {
+  id          String           @id @default(cuid())
+  recipientId String
+  actorId     String
+  type        NotificationType
+  comboId     String
+  commentId   String?
+  readAt      DateTime?
+  createdAt   DateTime         @default(now())
+
+  recipient User     @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor     User     @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  combo     Combo    @relation(fields: [comboId], references: [id], onDelete: Cascade)
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: SetNull)
+
+  @@index([recipientId, readAt, createdAt(sort: Desc)])
+  @@index([recipientId, actorId, comboId, type, createdAt])
+  @@map("notifications")
 }
 
 // ──────────────────────────────────────────────────────────

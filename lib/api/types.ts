@@ -74,3 +74,22 @@ export interface PaginatedDTO<T> {
   page: number;
   limit: number;
 }
+
+export type NotificationTypeDTO = "like" | "save" | "comment" | "share";
+
+export interface NotificationDTO {
+  id: string;
+  type: NotificationTypeDTO;
+  actor: { id: string; nickname: string | null; avatarUrl: string | null };
+  combo: { id: string; title: string };
+  commentId: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface NotificationListDTO {
+  items: NotificationDTO[];
+  unreadCount: number;
+  page: number;
+  limit: number;
+}

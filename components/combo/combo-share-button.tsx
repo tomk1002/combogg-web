@@ -4,9 +4,10 @@ import { useState } from "react";
 
 interface Props {
   comboId: string;
+  isOwn?: boolean;
 }
 
-export default function ComboShareButton({ comboId: _comboId }: Props) {
+export default function ComboShareButton({ comboId, isOwn = false }: Props) {
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
@@ -17,6 +18,10 @@ export default function ComboShareButton({ comboId: _comboId }: Props) {
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // 클립보드 접근 불가 시 무시
+    }
+    if (!isOwn) {
+      // 작성자에게 공유 알림 — 실패해도 무시
+      fetch(`/api/combos/${comboId}/share`, { method: "POST" }).catch(() => {});
     }
   };
 

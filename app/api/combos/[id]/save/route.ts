@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth/require-auth";
 import { ok, notFound, unauthorized, tooManyRequests, serverError } from "@/lib/api/response";
 import { rateLimit } from "@/lib/api/rate-limit";
 import { verifyDesktopToken } from "@/lib/desktop-token";
+import { createNotification } from "@/lib/notifications";
 import { NextResponse } from "next/server";
 
 interface Ctx { params: Promise<{ id: string }> }
@@ -27,7 +28,7 @@ export async function POST(req: Request, { params }: Ctx) {
 
     const combo = await prisma.combo.findUnique({
       where: { id },
-      select: { id: true, status: true },
+      select: { id: true, status: true, authorId: true },
     });
     if (!combo || combo.status === "removed") return notFound();
 
@@ -40,6 +41,7 @@ export async function POST(req: Request, { params }: Ctx) {
       return ok({ saved: false });
     } else {
       await prisma.savedCombo.create({ data: { userId, comboId: id } });
+      createNotification({ recipientId: combo.authorId, actorId: userId, type: "save", comboId: id }).catch(() => {});
       return ok({ saved: true });
     }
   } catch (err) {

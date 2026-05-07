@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth/require-auth";
 import { ok, notFound, unauthorized, badRequest, tooManyRequests, serverError } from "@/lib/api/response";
 import { rateLimit } from "@/lib/api/rate-limit";
+import { createNotification } from "@/lib/notifications";
 
 interface Ctx { params: Promise<{ id: string }> }
 
@@ -61,6 +62,14 @@ export async function POST(req: Request, { params }: Ctx) {
       data: { comboId: id, userId: session.user.id, content: content.trim() },
       include: { user: { select: { id: true, nickname: true, avatarUrl: true } } },
     });
+
+    createNotification({
+      recipientId: combo.authorId,
+      actorId: session.user.id,
+      type: "comment",
+      comboId: id,
+      commentId: comment.id,
+    }).catch(() => {});
 
     return ok({
       id: comment.id,
