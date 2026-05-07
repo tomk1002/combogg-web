@@ -13,6 +13,7 @@ import ComboComments from "@/components/combo/combo-comments";
 import ComboCard from "@/components/combo/combo-card";
 import ComboAuthorActions from "@/components/combo/combo-author-actions";
 import ComboShareButton from "@/components/combo/combo-share-button";
+import ReportButton from "@/components/combo/report-button";
 import SaveComboButton from "@/components/combo/save-combo-button";
 import CroppedVideo from "@/components/combo/cropped-video";
 import { formatCount, formatDuration, timeAgo, authorDisplayName } from "@/lib/utils";
@@ -151,6 +152,11 @@ export default async function ComboDetailPage({ params }: Props) {
 
           {/* Share */}
           <ComboShareButton comboId={id} isOwn={combo.authorId === userId} />
+
+          {/* Report — only show to non-owners */}
+          {combo.authorId !== userId && (
+            <ReportButton targetType="combo" targetId={id} />
+          )}
 
           {/* Author actions */}
           {combo.authorId === userId && (

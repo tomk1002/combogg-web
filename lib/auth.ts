@@ -29,12 +29,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.onboardingCompleted =
           (user as { onboardingCompleted?: boolean }).onboardingCompleted ?? false;
       }
+      // Refresh role from DB on each JWT pass — cheap (id index lookup) and
+      // keeps role current after admin promotion without forcing relogin.
+      if (token.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true },
+        });
+        token.role = dbUser?.role ?? "USER";
+      }
       return token;
     },
     session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.onboardingCompleted = (token.onboardingCompleted as boolean) ?? false;
+        session.user.role = (token.role as "USER" | "ADMIN") ?? "USER";
       }
       return session;
     },

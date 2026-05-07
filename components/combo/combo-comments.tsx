@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { timeAgo, authorDisplayName } from "@/lib/utils";
 import { useLang } from "@/lib/i18n-client";
 import type { CommentDTO } from "@/lib/api/types";
+import ReportButton from "./report-button";
 
 interface Props {
   comboId: string;
@@ -148,6 +149,11 @@ export default function ComboComments({ comboId, initialComments, currentUserId 
                   <button type="button" onClick={() => handleDelete(c.id)} className="text-xs text-text-muted hover:text-hard transition-colors cursor-pointer">
                     {t.comment_delete}
                   </button>
+                </div>
+              )}
+              {currentUserId !== c.author.id && (
+                <div className="flex gap-2 shrink-0">
+                  <ReportButton targetType="comment" targetId={c.id} variant="icon" />
                 </div>
               )}
             </div>

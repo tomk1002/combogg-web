@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import SiteHeader from "@/components/layout/site-header";
+import SiteBanner from "@/components/layout/banner";
 import Providers from "@/components/providers";
 import { auth } from "@/lib/auth";
 
@@ -27,6 +28,7 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-surface text-text antialiased">
         <Providers session={session}>
+          <SiteBanner />
           <SiteHeader />
           {children}
         </Providers>
