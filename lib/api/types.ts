@@ -52,12 +52,18 @@ export interface VideoCropDTO {
   ratio?: string;
 }
 
+export interface VideoTrimDTO {
+  start: number;
+  end: number;
+}
+
 export interface ComboDetailDTO extends ComboListItemDTO {
   description: string | null;
   tip: string | null;
   gameSpecific: Record<string, unknown>;
   videoUrl: string | null;
   videoCrop: VideoCropDTO | null;
+  videoTrim: VideoTrimDTO | null;
   tutfileUrl: string | null;
   isLiked: boolean;
 }

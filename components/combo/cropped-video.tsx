@@ -1,33 +1,72 @@
 "use client";
 
-import type { VideoCropDTO } from "@/lib/api/types";
+import { useEffect, useRef } from "react";
+import type { VideoCropDTO, VideoTrimDTO } from "@/lib/api/types";
 
 interface Props {
   videoUrl: string;
   thumbnailUrl: string | null;
   crop: VideoCropDTO | null;
+  trim?: VideoTrimDTO | null;
   className?: string;
 }
 
 // Display-time video crop using CSS transform — no re-encoding.
+// Display-time video trim using currentTime control — no re-encoding.
 //
-// Strategy:
+// Crop strategy:
 //   - 외부 wrapper(아래 fragment 의 outer)는 부모가 결정 (aspect-video).
 //   - crop 이 있으면 fragment 안에 absolute 로 박힌 inner-wrapper 가 화면을 덮음.
 //   - inner <video> 를 (1/crop.w × 1/crop.h) 배율로 키우고 (-crop.x, -crop.y) 만큼 평행이동.
 //     → crop 영역만 wrapper 안에 보임.
 //
-// 한계: 부모 wrapper 의 aspect-ratio (현재 aspect-video=16:9) 와 crop 의 aspect-ratio 가
-// 다르면 영상이 letterbox 없이 wrapper 를 채우지 못하거나 약간 늘어남. 부모 컨테이너
-// 의 aspect-ratio 는 page 측에서 비디오의 native aspect × crop.w/crop.h 로 맞추는 게 이상적.
-// 일단 MVP 로는 부모가 aspect-video 인 채로 두고, object-cover 로 crop region 을 채움.
-export default function CroppedVideo({ videoUrl, thumbnailUrl, crop, className }: Props) {
+// Trim strategy:
+//   - metadata 로드 시 currentTime = trim.start 로 점프.
+//   - timeupdate 마다 currentTime >= trim.end 면 trim.start 로 되돌리고 일시 정지(loop 효과는
+//     사용자가 다시 재생을 누르면 됨 — UI 단순함 우선).
+//   - 사용자가 직접 trim.start 이전·trim.end 이후로 시킹할 수 있으나, 자동으로 다시 trim 범위로
+//     되돌리지는 않는다 (시킹은 사용자 의도라고 가정).
+export default function CroppedVideo({ videoUrl, thumbnailUrl, crop, trim, className }: Props) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // trim 효과: 메타데이터 로드 시 시작점 점프 + timeupdate 마다 끝점 체크
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || !trim) return;
+
+    const onLoaded = () => {
+      // 메타데이터 로드 직후 currentTime 을 trim.start 로 (시도)
+      try { v.currentTime = trim.start; } catch { /* noop */ }
+    };
+    const onTimeUpdate = () => {
+      if (v.currentTime >= trim.end) {
+        // 끝 도달 → 시작으로 되돌리고 정지
+        try { v.currentTime = trim.start; } catch { /* noop */ }
+        v.pause();
+      }
+    };
+
+    v.addEventListener("loadedmetadata", onLoaded);
+    v.addEventListener("timeupdate", onTimeUpdate);
+
+    // 이미 metadata 가 로드된 경우 즉시 시작점으로 점프
+    if (v.readyState >= 1 /* HAVE_METADATA */) {
+      try { v.currentTime = trim.start; } catch { /* noop */ }
+    }
+
+    return () => {
+      v.removeEventListener("loadedmetadata", onLoaded);
+      v.removeEventListener("timeupdate", onTimeUpdate);
+    };
+  }, [trim]);
+
   if (!crop) {
     return (
       <video
+        ref={videoRef}
         src={videoUrl}
         controls
-        preload="none"
+        preload={trim ? "metadata" : "none"}
         className={className ?? "w-full h-full object-cover"}
         poster={thumbnailUrl ?? undefined}
       />
@@ -52,9 +91,10 @@ export default function CroppedVideo({ videoUrl, thumbnailUrl, crop, className }
   return (
     <div className="absolute inset-0 overflow-hidden">
       <video
+        ref={videoRef}
         src={videoUrl}
         controls
-        preload="none"
+        preload={trim ? "metadata" : "none"}
         poster={thumbnailUrl ?? undefined}
         style={innerStyle}
         className="object-cover"

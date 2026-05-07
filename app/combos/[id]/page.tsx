@@ -16,7 +16,7 @@ import ComboShareButton from "@/components/combo/combo-share-button";
 import SaveComboButton from "@/components/combo/save-combo-button";
 import CroppedVideo from "@/components/combo/cropped-video";
 import { formatCount, formatDuration, timeAgo, authorDisplayName } from "@/lib/utils";
-import type { InputEntryDTO, CommentDTO, VideoCropDTO } from "@/lib/api/types";
+import type { InputEntryDTO, CommentDTO, VideoCropDTO, VideoTrimDTO } from "@/lib/api/types";
 import type { LolGameSpecific } from "@/lib/games/lol/schema";
 import { getServerT } from "@/lib/i18n-server";
 import type { T } from "@/lib/i18n";
@@ -91,6 +91,7 @@ export default async function ComboDetailPage({ params }: Props) {
   const keys = inputToKeySequence(inputSummary, combo.patchVersion);
   const gameSpecific = (combo.gameSpecific as unknown as Partial<LolGameSpecific>) ?? {};
   const videoCrop = parseVideoCropForPage(combo.videoCrop);
+  const videoTrim = parseVideoTrimForPage(combo.videoTrim);
   const isLiked = !!isLikedRecord;
   const isSaved = !!isSavedRecord;
 
@@ -175,6 +176,7 @@ export default async function ComboDetailPage({ params }: Props) {
                 videoUrl={combo.videoUrl}
                 thumbnailUrl={combo.thumbnailUrl}
                 crop={videoCrop}
+                trim={videoTrim}
                 className="w-full h-full object-cover"
               />
             ) : combo.thumbnailUrl ? (
@@ -282,6 +284,15 @@ function parseVideoCropForPage(raw: unknown): VideoCropDTO | null {
     x: r.x, y: r.y, w: r.w, h: r.h,
     ...(typeof r.ratio === "string" && { ratio: r.ratio }),
   };
+}
+
+function parseVideoTrimForPage(raw: unknown): VideoTrimDTO | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const { start, end } = r;
+  if (typeof start !== "number" || !Number.isFinite(start) || start < 0) return null;
+  if (typeof end !== "number" || !Number.isFinite(end) || end <= start) return null;
+  return { start, end };
 }
 
 // ── Streaming sections ────────────────────────────────────────────

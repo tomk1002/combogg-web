@@ -82,7 +82,7 @@ export async function POST(req: Request) {
 
     // ── 앱 업로드 흐름: 메타데이터 직접 전달 ──────────────────────
     const { title, description, tip, gameSlug, characterSlug, difficulty, tags,
-            durationMs, inputSummary, gameSpecific, thumbnailUrl, videoUrl, videoCrop,
+            durationMs, inputSummary, gameSpecific, thumbnailUrl, videoUrl, videoCrop, videoTrim,
             tutfileUrl, patchVersion, status } = body;
 
     if (!title || !gameSlug || !characterSlug || !difficulty) {
@@ -105,6 +105,18 @@ export async function POST(req: Request) {
       const isFrac = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1;
       if (!isFrac(x) || !isFrac(y) || !isFrac(w) || !isFrac(h)) {
         return badRequest("videoCrop의 x/y/w/h는 0~1 범위 숫자여야 합니다");
+      }
+    }
+
+    // videoTrim 검증 (선택)
+    if (videoTrim !== undefined && videoTrim !== null) {
+      if (typeof videoTrim !== "object") return badRequest("videoTrim은 객체여야 합니다");
+      const { start, end } = videoTrim as { start?: unknown; end?: unknown };
+      if (typeof start !== "number" || !Number.isFinite(start) || start < 0) {
+        return badRequest("videoTrim.start는 0 이상의 숫자여야 합니다");
+      }
+      if (typeof end !== "number" || !Number.isFinite(end) || end <= start) {
+        return badRequest("videoTrim.end는 start보다 큰 숫자여야 합니다");
       }
     }
 
@@ -134,6 +146,7 @@ export async function POST(req: Request) {
         gameSpecific: validatedGameSpecific as object,
         thumbnailUrl, videoUrl, tutfileUrl, patchVersion,
         ...(videoCrop !== undefined && { videoCrop: videoCrop ?? undefined }),
+        ...(videoTrim !== undefined && { videoTrim: videoTrim ?? undefined }),
         status: resolvedStatus,
       },
     });

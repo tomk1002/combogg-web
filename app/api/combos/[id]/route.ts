@@ -43,7 +43,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
     if (combo.authorId !== session.user.id) return forbidden();
 
     const body = await req.json();
-    const { title, description, tip, difficulty, tags, gameSpecific, inputSummary, steps, thumbnailUrl, videoUrl, videoCrop, status } = body;
+    const { title, description, tip, difficulty, tags, gameSpecific, inputSummary, steps, thumbnailUrl, videoUrl, videoCrop, videoTrim, status } = body;
 
     // status: 사용자는 'draft' 또는 'published'만 설정 가능 ('featured'는 admin 전용)
     if (status !== undefined && status !== "draft" && status !== "published") {
@@ -57,6 +57,18 @@ export async function PATCH(req: Request, { params }: Ctx) {
       const isFrac = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1;
       if (!isFrac(x) || !isFrac(y) || !isFrac(w) || !isFrac(h)) {
         return badRequest("videoCrop의 x/y/w/h는 0~1 범위 숫자여야 합니다");
+      }
+    }
+
+    // videoTrim 검증 — null(=clear) 이거나 { start>=0, end>start } 인 객체.
+    if (videoTrim !== undefined && videoTrim !== null) {
+      if (typeof videoTrim !== "object") return badRequest("videoTrim은 객체여야 합니다");
+      const { start, end } = videoTrim as { start?: unknown; end?: unknown };
+      if (typeof start !== "number" || !Number.isFinite(start) || start < 0) {
+        return badRequest("videoTrim.start는 0 이상의 숫자여야 합니다");
+      }
+      if (typeof end !== "number" || !Number.isFinite(end) || end <= start) {
+        return badRequest("videoTrim.end는 start보다 큰 숫자여야 합니다");
       }
     }
 
@@ -77,6 +89,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
         ...(thumbnailUrl !== undefined && { thumbnailUrl }),
         ...(videoUrl !== undefined && { videoUrl }),
         ...(videoCrop !== undefined && { videoCrop: videoCrop ?? Prisma.JsonNull }),
+        ...(videoTrim !== undefined && { videoTrim: videoTrim ?? Prisma.JsonNull }),
         ...(status !== undefined && { status }),
       },
     });

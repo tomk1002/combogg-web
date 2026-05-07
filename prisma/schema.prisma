@@ -178,6 +178,7 @@ model Combo {
   thumbnailUrl  String?
   videoUrl      String?
   videoCrop     Json?
+  videoTrim     Json?
   tutfileUrl    String?
   patchVersion  String?
   viewCount     Int         @default(0)

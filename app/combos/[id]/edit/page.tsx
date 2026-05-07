@@ -33,6 +33,7 @@ export default async function ComboEditPage({ params }: Props) {
       thumbnailUrl: true,
       videoUrl: true,
       videoCrop: true,
+      videoTrim: true,
       durationMs: true,
       authorId: true,
       status: true,
