@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect, useTransition } from "react";
+import { useState, useRef, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import DifficultyPips from "@/components/shared/difficulty-pips";
 import LolUploadForm from "@/components/games/lol/lol-upload-form";
-import InputKeyMapper, { type MappableEntry } from "@/components/upload/input-key-mapper";
+import { type MappableEntry } from "@/components/upload/input-key-mapper";
 import { getSummonerSpellIconUrl } from "@/lib/games/lol/ddragon";
-import VideoEditor from "@/components/combo/video-editor";
 import type { Difficulty } from "@/types";
 import type { LolGameSpecific } from "@/lib/games/lol/schema";
 
@@ -932,13 +931,6 @@ function SequenceEditor({ inputs, onChange, characterSlug, items, patch, require
       <p className="text-[11px] text-text-muted pt-1">
         팔레트 드래그 → 원하는 위치에 삽입 · 칩 드래그 → 순서 변경 · 클릭 → 편집 · 우클릭 → 삭제
       </p>
-
-      {/* 아이템·소환사 주문 슬롯 매핑 (세부 ref 조정용) */}
-      {inputs.filter(i => i.category === "item" || i.category === "summoner_spell").length > 0 && (
-        <div className="border-t border-border pt-3">
-          <InputKeyMapper inputs={inputs} items={items} patch={patch} onChange={onChange} />
-        </div>
-      )}
     </div>
   );
 }
@@ -1050,36 +1042,11 @@ function splitSequence(
   return { inputSummary, steps };
 }
 
-// ── Auto-thumbnail helpers ────────────────────────────────────
+// ── Thumbnail frame capture ───────────────────────────────────
 //
-// 입력 밀도가 가장 높은 시점(콤보의 가장 "바쁜" 순간)을 찾아
-// 그 시점의 영상 프레임을 캡처해서 기본 썸네일로 쓴다.
-// AI 기반 편집(스타일링·텍스트 오버레이)은 별도 라운드에서 추가 — 여기는 단순 추출만.
-
-function pickBusyTimestamp(inputs: SeqEntry[], durationMs: number): number {
-  // input 만 (step_marker 제외) + t 가 숫자인 것
-  const ts = inputs
-    .filter((e) => !isStepMarker(e) && typeof e.t === "number")
-    .map((e) => e.t as number);
-
-  if (ts.length === 0) return Math.max(0, Math.floor(durationMs / 2));
-  if (ts.length === 1) return ts[0];
-
-  const WINDOW = 500; // ±500ms
-  let bestT     = ts[0];
-  let bestCount = 0;
-  for (const t of ts) {
-    let count = 0;
-    for (const u of ts) {
-      if (Math.abs(u - t) <= WINDOW) count++;
-    }
-    if (count > bestCount) {
-      bestCount = count;
-      bestT     = t;
-    }
-  }
-  return bestT;
-}
+// 사용자가 영상을 원하는 시점으로 스크럽한 뒤 버튼을 눌러 해당 프레임을
+// 캡처해 썸네일로 쓴다. (이전엔 콤보의 가장 "바쁜" 순간을 자동 추출하는
+// 방식이었지만, 화질·구도 모두 수동 캡처가 더 좋아 그쪽으로 통일.)
 
 function autoExtractThumbnail(videoEl: HTMLVideoElement, timestampMs: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
@@ -1203,19 +1170,9 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
     setVideoBlobUrl(url);
   };
 
-  const handleVideoDone = useCallback((blob: Blob, ext: string) => {
-    if (videoBlobUrl) URL.revokeObjectURL(videoBlobUrl);
-    const processed = new File([blob], `video.${ext}`, { type: blob.type });
-    const url = URL.createObjectURL(processed);
-    setNewVideoFile(processed);
-    setVideoSrc(url);
-    setVideoBlobUrl(url);
-  }, [videoBlobUrl]);
-
-  // 콤보 시퀀스에서 가장 입력이 몰린 시점을 잡아 영상에서 프레임 캡처 → 썸네일로 사용.
-  // TODO: AI 편집 라운드 — 캡처한 프레임에 텍스트·로고·블러 효과를 자동 합성하는 별도 흐름이
-  // 추가될 예정. 현재는 단순 프레임 추출까지만 지원.
-  const handleAutoExtractThumbnail = async () => {
+  // 사용자가 영상을 원하는 프레임으로 스크럽한 뒤 클릭 → 그 프레임을 썸네일로 캡처.
+  // 자동 "busy timestamp" 추출 대신 수동 캡처가 화질·구도 모두 더 낫다.
+  const handleCaptureCurrentFrame = async () => {
     const videoEl = videoRef.current;
     if (!videoEl || !videoSrc) {
       setThumbnailError("영상이 로드되지 않았습니다.");
@@ -1224,12 +1181,9 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
     setThumbnailError(null);
     setThumbnailExtracting(true);
     try {
-      const totalMs = combo.durationMs && combo.durationMs > 0
-        ? combo.durationMs
-        : Math.max(0, Math.round((videoEl.duration || 0) * 1000));
-      const tMs = pickBusyTimestamp(sequence, totalMs);
+      const tMs = Math.max(0, Math.round((videoEl.currentTime || 0) * 1000));
       const blob = await autoExtractThumbnail(videoEl, tMs);
-      const file = new File([blob], `auto-thumb-${Date.now()}.jpg`, { type: "image/jpeg" });
+      const file = new File([blob], `frame-thumb-${Date.now()}.jpg`, { type: "image/jpeg" });
       // 기존 미리보기가 blob URL 이면 revoke (combo.thumbnailUrl 같은 원격 URL 은 그대로 둠)
       if (thumbnailPreview && thumbnailPreview.startsWith("blob:")) {
         URL.revokeObjectURL(thumbnailPreview);
@@ -1237,8 +1191,8 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
       setNewThumbnailFile(file);
       setThumbnailPreview(URL.createObjectURL(file));
     } catch (err) {
-      console.error("auto thumbnail extraction failed:", err);
-      setThumbnailError(err instanceof Error ? err.message : "썸네일 추출 실패");
+      console.error("frame capture failed:", err);
+      setThumbnailError(err instanceof Error ? err.message : "프레임 캡처 실패");
     } finally {
       setThumbnailExtracting(false);
     }
@@ -1466,15 +1420,17 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
             </div>
           )}
 
-          {/* Trim/Crop 편집기 — 영상이 있을 때 항상 펼쳐서 노출. */}
+          {/* 현재 프레임 캡처 — 영상에서 원하는 장면으로 스크럽 후 클릭 */}
           {videoSrc && (
-            <VideoEditor
-              key={videoSrc}
-              src={videoSrc}
-              onDone={handleVideoDone}
-              onCancel={() => { /* always visible — no close action */ }}
-              alwaysVisible
-            />
+            <button
+              type="button"
+              onClick={handleCaptureCurrentFrame}
+              disabled={thumbnailExtracting}
+              title="영상을 원하는 장면에서 멈춘 뒤 클릭하면 해당 프레임이 썸네일로 사용됩니다"
+              className="self-start text-xs font-semibold text-gold hover:text-gold-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {thumbnailExtracting ? "캡처 중..." : "📷 현재 장면을 썸네일로"}
+            </button>
           )}
         </div>
 
@@ -1482,21 +1438,10 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold">썸네일</span>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleAutoExtractThumbnail}
-                disabled={!videoSrc || thumbnailExtracting}
-                title={videoSrc ? "콤보의 가장 바쁜 순간을 영상에서 캡처" : "영상 로드 후 사용 가능"}
-                className="text-xs font-semibold text-gold hover:text-gold-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {thumbnailExtracting ? "추출 중..." : "🎬 영상에서 자동 추출"}
-              </button>
-              <button type="button" onClick={() => thumbnailInputRef.current?.click()}
-                className="text-xs font-semibold text-text-secondary hover:text-text transition-colors">
-                이미지 선택
-              </button>
-            </div>
+            <button type="button" onClick={() => thumbnailInputRef.current?.click()}
+              className="text-xs font-semibold text-text-secondary hover:text-text transition-colors">
+              이미지 선택
+            </button>
           </div>
           <input ref={thumbnailInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
             onChange={(e) => e.target.files?.[0] && handleThumbnailFile(e.target.files[0])} />
@@ -1521,7 +1466,7 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
             <p className="text-xs text-hard">{thumbnailError}</p>
           )}
           {!videoSrc && (
-            <p className="text-[11px] text-text-muted">영상을 업로드하면 「🎬 영상에서 자동 추출」 버튼이 활성화됩니다.</p>
+            <p className="text-[11px] text-text-muted">영상을 업로드하면 영상 아래에 「📷 현재 장면을 썸네일로」 버튼이 활성화됩니다.</p>
           )}
         </div>
       </div>
