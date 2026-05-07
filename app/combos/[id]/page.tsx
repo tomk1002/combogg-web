@@ -25,8 +25,13 @@ export const revalidate = 30;
 interface Props { params: Promise<{ id: string }> }
 
 // React cache() — generateMetadata와 페이지 컴포넌트가 같은 요청 안에서 결과 공유
+// status 필터를 페이지 레벨에서 — 작성자 본인은 draft도 볼 수 있어야 함 (편집 후 미리보기 등).
+// 단, removed는 무조건 차단.
 const getCombo = cache(async (id: string) =>
-  prisma.combo.findUnique({ where: { id, status: "published" }, include: COMBO_INCLUDE })
+  prisma.combo.findUnique({
+    where: { id, status: { in: ["published", "featured", "draft"] } },
+    include: COMBO_INCLUDE,
+  })
 );
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -62,6 +67,8 @@ export default async function ComboDetailPage({ params }: Props) {
 
   const combo = await getCombo(id);
   if (!combo) notFound();
+  // draft는 작성자만 볼 수 있음 — 비-작성자에겐 notFound 위장
+  if (combo.status === "draft" && combo.authorId !== userId) notFound();
 
   // 좋아요·저장 여부 병렬 조회 (댓글·관련 콤보는 Suspense로 스트리밍)
   const [isLikedRecord, isSavedRecord] = await Promise.all([
