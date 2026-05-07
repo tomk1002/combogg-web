@@ -87,7 +87,7 @@ export default async function ComboDetailPage({ params }: Props) {
   const t = await getServerT();
 
   const inputSummary = (combo.inputSummary as unknown as InputEntryDTO[]) ?? [];
-  const keys = inputToKeySequence(inputSummary);
+  const keys = inputToKeySequence(inputSummary, combo.patchVersion);
   const gameSpecific = (combo.gameSpecific as unknown as Partial<LolGameSpecific>) ?? {};
   const isLiked = !!isLikedRecord;
   const isSaved = !!isSavedRecord;

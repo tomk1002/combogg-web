@@ -1,6 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import type { ParsedInput } from "@/lib/tutfile";
+import { getItemIconUrl } from "@/lib/games/lol/ddragon";
 
 export const INPUT_CATEGORIES = [
   { value: "skill",          label: "스킬" },
@@ -18,6 +20,8 @@ export type InputCategory = (typeof INPUT_CATEGORIES)[number]["value"];
 interface InputIconProps {
   input: ParsedInput;
   size?: "sm" | "md";
+  /** LoL 패치. item.ref가 있을 때 아이템 아이콘 URL 조립에 사용. 없으면 텍스트 라벨 폴백. */
+  patch?: string | null;
 }
 
 /**
@@ -26,10 +30,11 @@ interface InputIconProps {
  * 디자인 토큰 대신 Tailwind color 유틸을 직접 쓴다 — 카테고리별 시각 구분이
  * 우선이고, gold/border 같은 의미가 없는 단순 ID 라벨이기 때문.
  */
-export function InputIcon({ input, size = "sm" }: InputIconProps) {
+export function InputIcon({ input, size = "sm", patch }: InputIconProps) {
   const { category, ref, slot } = input;
   const px = size === "sm" ? "px-1" : "px-1.5";
   const text = size === "sm" ? "text-[10px]" : "text-xs";
+  const dim = size === "sm" ? 20 : 26;
   const base = `inline-flex items-center justify-center ${px} ${text} font-bold rounded leading-none h-5 min-w-[20px]`;
 
   switch (category) {
@@ -49,6 +54,18 @@ export function InputIcon({ input, size = "sm" }: InputIconProps) {
     case "attack_cancel":
       return <span className={`${base} bg-orange-600 text-white`}>AC</span>;
     case "item":
+      if (ref && patch) {
+        return (
+          <Image
+            src={getItemIconUrl(ref, patch)}
+            alt={`Item ${ref}`}
+            width={dim}
+            height={dim}
+            sizes={`${dim}px`}
+            className="rounded"
+          />
+        );
+      }
       return (
         <span className={`${base} bg-gray-600 text-white`}>
           I{slot ?? ""}

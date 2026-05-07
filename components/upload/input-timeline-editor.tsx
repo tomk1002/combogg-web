@@ -8,6 +8,7 @@ interface Props {
   inputs: ParsedInput[];
   durationMs: number;
   onChange: (inputs: ParsedInput[]) => void;
+  patch?: string | null;
 }
 
 interface DragState {
@@ -28,7 +29,7 @@ function sortByTime(inputs: ParsedInput[]): ParsedInput[] {
   return [...inputs].sort((a, b) => a.t - b.t);
 }
 
-export default function InputTimelineEditor({ inputs, durationMs, onChange }: Props) {
+export default function InputTimelineEditor({ inputs, durationMs, onChange, patch }: Props) {
   // durationMs 가 0/누락이면 입력 중 가장 큰 t 또는 1초 폴백
   const safeDuration = Math.max(
     MIN_DURATION_MS,
@@ -179,7 +180,7 @@ export default function InputTimelineEditor({ inputs, durationMs, onChange }: Pr
                 } ${isSelected ? "ring-2 ring-gold ring-offset-1 ring-offset-surface-overlay rounded" : ""}`}
                 title={`${input.category}${input.ref ? ` · ${input.ref}` : ""}${input.slot !== undefined ? ` · slot ${input.slot}` : ""} @ ${input.t}ms`}
               >
-                <InputIcon input={input} size="sm" />
+                <InputIcon input={input} size="sm" patch={patch} />
               </button>
             );
           })}
@@ -191,7 +192,7 @@ export default function InputTimelineEditor({ inputs, durationMs, onChange }: Pr
         <div className="rounded-lg border border-gold/40 bg-gold/5 p-3 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <InputIcon input={selected} size="md" />
+              <InputIcon input={selected} size="md" patch={patch} />
               <span className="text-xs font-bold text-text-secondary">입력 편집</span>
             </div>
             <button

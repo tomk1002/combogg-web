@@ -575,7 +575,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
   // 항상 신뢰할 수 있다. 삭제로 비어 있는 경우(빈 배열)도 그대로 반영해야
   // 사용자가 본 화면과 실제 제출 결과(editedInputs)가 일치한다.
   const displayInputs = editedInputs;
-  const keys = inputToKeySequence(displayInputs.map(({ category, ref, slot }) => ({ category, ref, slot })));
+  const keys = inputToKeySequence(displayInputs.map(({ category, ref, slot }) => ({ category, ref, slot })), patch);
   const isAiFilled = aiFilledFields.size > 0;
 
   return (
@@ -635,6 +635,7 @@ export default function UploadWizard({ characters, patch, items }: Props) {
                 inputs={displayInputs}
                 durationMs={parsed.manifest.duration_ms ?? 0}
                 onChange={(updated) => setEditedInputs(updated)}
+                patch={patch}
               />
             </div>
           </div>

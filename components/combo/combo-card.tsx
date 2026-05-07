@@ -14,7 +14,7 @@ interface Props {
 }
 
 export default function ComboCard({ combo, priority = false }: Props) {
-  const keys = inputToKeySequence(combo.inputSummary);
+  const keys = inputToKeySequence(combo.inputSummary, combo.patchVersion);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const onEnter = () => {
