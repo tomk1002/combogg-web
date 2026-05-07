@@ -82,7 +82,7 @@ export default async function Home() {
     <main className="flex-1">
       {/* ── Hero ──────────────────────────────────────────────────────── */}
       <section className="border-b border-border">
-        <div className="max-w-[var(--width-content)] mx-auto px-4 sm:px-8 py-8 sm:py-12 grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-10 items-center">
+        <div className="max-w-[var(--width-content)] mx-auto px-4 sm:px-8 py-8 sm:py-12 grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-10 items-center">
           {/* Left */}
           <div>
             <h1 className="text-3xl lg:text-5xl font-black tracking-tight leading-tight mb-4">
@@ -103,7 +103,7 @@ export default async function Home() {
           </div>
 
           {/* Right — overlay 활용 예시 영상 (hidden on mobile, autoplay loop) */}
-          <div className="hidden lg:block relative aspect-video rounded-xl overflow-hidden border border-border bg-surface-overlay">
+          <div className="hidden lg:block relative aspect-video rounded-2xl overflow-hidden bg-surface-overlay shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
             <video
               src="/preview.mp4"
               autoPlay
