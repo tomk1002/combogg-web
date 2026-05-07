@@ -248,3 +248,17 @@ model SavedCombo {
   @@index([comboId])
   @@map("saved_combos")
 }
+
+// ──────────────────────────────────────────────────────────
+// DESKTOP LOGIN NONCE (auto-pickup token flow)
+// ──────────────────────────────────────────────────────────
+
+model DesktopLoginNonce {
+  nonce     String   @id
+  userId    String?
+  token     String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("desktop_login_nonces")
+}
