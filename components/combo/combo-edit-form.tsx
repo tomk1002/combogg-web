@@ -135,7 +135,14 @@ function chipLabel(inp: SeqEntry): string {
   }
   if (inp.category === "attack")         return "AA";
   if (inp.category === "attack_cancel")  return "AC";
-  if (inp.category === "item")           return `I${inp.slot ?? ""}`;
+  if (inp.category === "item") {
+    // slot 있으면 슬롯 번호, 없으면 ref 라도 보여주기 (e.g. "I3340")
+    if (inp.slot !== undefined && inp.slot !== null && inp.slot !== "") {
+      return `I${inp.slot}`;
+    }
+    if (typeof inp.ref === "string" && inp.ref) return `I${inp.ref}`;
+    return "I?";
+  }
   if (inp.category === "summoner_spell") return (inp.slot ?? "S").toString().toUpperCase();
   if (inp.category === "move")           return "MV";
   if (inp.category === "recall")         return "RC";
@@ -435,7 +442,44 @@ function StepMarkerPopover({
   );
 }
 
-// ── Palette: 클릭으로 시퀀스에 추가 ──────────────────────────
+// 팔레트 → 시퀀스 사이 drag-and-drop 시 사용하는 dataTransfer MIME.
+// `source` 가 'palette' 면 새 entry 를 삽입, 'sequence' 면 기존 인덱스를 옮긴다.
+const CGG_CHIP_MIME = "application/x-cgg-chip";
+
+type PaletteDragPayload = {
+  source: "palette";
+  data: Omit<SeqEntry, "_id" | "t">;
+};
+
+type SequenceDragPayload = {
+  source: "sequence";
+  index: number;
+};
+
+type ChipDragPayload = PaletteDragPayload | SequenceDragPayload;
+
+// dataTransfer 에서 chip payload 를 안전하게 추출.
+function readChipPayload(e: React.DragEvent): ChipDragPayload | null {
+  try {
+    const raw = e.dataTransfer.getData(CGG_CHIP_MIME);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && (parsed.source === "palette" || parsed.source === "sequence")) {
+        return parsed as ChipDragPayload;
+      }
+    }
+  } catch { /* fall through */ }
+  // sequence 내부 reorder 의 fallback (text/plain 에 인덱스만 들어 있는 경우)
+  try {
+    const raw = e.dataTransfer.getData("text/plain");
+    if (raw && /^\d+$/.test(raw)) {
+      return { source: "sequence", index: Number(raw) };
+    }
+  } catch {}
+  return null;
+}
+
+// ── Palette: 클릭으로 시퀀스에 추가, 또는 드래그해서 원하는 위치에 삽입 ───
 function Palette({
   characterSlug, items, patch, requiredItems, summonerSpells, onAdd,
 }: {
@@ -446,6 +490,16 @@ function Palette({
   summonerSpells: string[];
   onAdd: (entry: Omit<SeqEntry, "_id" | "t">) => void;
 }) {
+  // 팔레트 칩에서 드래그 시작 시 dataTransfer 채우기.
+  // 클릭 fallback 도 그대로 동작 → 드래그 안 하는 사용자도 OK.
+  const startDrag = (e: React.DragEvent<HTMLButtonElement>, data: Omit<SeqEntry, "_id" | "t">) => {
+    const payload: PaletteDragPayload = { source: "palette", data };
+    e.dataTransfer.effectAllowed = "copy";
+    try { e.dataTransfer.setData(CGG_CHIP_MIME, JSON.stringify(payload)); } catch {}
+    // 일부 브라우저는 text/plain 이 없으면 drop 자체가 안 일어남
+    try { e.dataTransfer.setData("text/plain", "palette-chip"); } catch {}
+  };
+
   const champSlug = characterSlug ? characterSlug.charAt(0).toUpperCase() + characterSlug.slice(1) : "";
 
   // 아이템: gameSpecific.required_items 의 순서가 곧 슬롯 1..N
@@ -480,7 +534,7 @@ function Palette({
 
   return (
     <div className="flex flex-col gap-2.5 rounded-lg border border-dashed border-border bg-surface-overlay/40 p-3">
-      <p className="text-xs font-semibold text-text-secondary">팔레트 — 클릭해서 시퀀스에 추가</p>
+      <p className="text-xs font-semibold text-text-secondary">팔레트 — 클릭해서 끝에 추가, 또는 시퀀스의 원하는 위치로 드래그</p>
 
       {/* 챔프 스킬 */}
       <PaletteSection label="스킬">
@@ -489,9 +543,11 @@ function Palette({
             key={k}
             type="button"
             disabled={!champSlug}
+            draggable={!!champSlug}
+            onDragStart={(e) => startDrag(e, { category: "skill", ref: `${champSlug}${k}` })}
             onClick={() => onAdd({ category: "skill", ref: `${champSlug}${k}` })}
             className="w-8 h-8 rounded-md border border-blue-500/40 bg-blue-600/20 text-blue-200 text-xs font-bold hover:border-blue-400/60 hover:bg-blue-600/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            title={champSlug ? `${champSlug}${k} 추가` : "챔피언이 지정되지 않았습니다"}
+            title={champSlug ? `${champSlug}${k} 추가 — 클릭 또는 드래그` : "챔피언이 지정되지 않았습니다"}
           >
             {k}
           </button>
@@ -502,6 +558,8 @@ function Palette({
       <PaletteSection label="평타">
         <button
           type="button"
+          draggable
+          onDragStart={(e) => startDrag(e, { category: "attack" })}
           onClick={() => onAdd({ category: "attack" })}
           className="h-8 px-3 rounded-md border border-yellow-500/40 bg-yellow-600/20 text-yellow-100 text-xs font-bold hover:border-yellow-400/60 hover:bg-yellow-600/30 transition-colors"
         >
@@ -509,6 +567,8 @@ function Palette({
         </button>
         <button
           type="button"
+          draggable
+          onDragStart={(e) => startDrag(e, { category: "attack_cancel" })}
           onClick={() => onAdd({ category: "attack_cancel" })}
           className="h-8 px-3 rounded-md border border-orange-500/40 bg-orange-600/20 text-orange-100 text-xs font-bold hover:border-orange-400/60 hover:bg-orange-600/30 transition-colors"
         >
@@ -526,9 +586,11 @@ function Palette({
           <button
             key={`${it.slot}-${it.id}`}
             type="button"
+            draggable
+            onDragStart={(e) => startDrag(e, { category: "item", slot: it.slot, ref: it.id })}
             onClick={() => onAdd({ category: "item", slot: it.slot, ref: it.id })}
             className="flex items-center gap-1.5 h-8 pl-1 pr-2 rounded-md border border-zinc-500/40 bg-zinc-600/30 text-zinc-100 text-xs font-bold hover:border-zinc-400/60 hover:bg-zinc-600/40 transition-colors max-w-[200px]"
-            title={`슬롯 ${it.slot}: ${it.name}`}
+            title={`슬롯 ${it.slot}: ${it.name} — 클릭 또는 드래그`}
           >
             <span className="w-5 h-5 rounded bg-black/30 inline-flex items-center justify-center text-[10px] font-black shrink-0">{it.slot}</span>
             {it.iconUrl && (
@@ -549,9 +611,11 @@ function Palette({
           <button
             key={`${sp.slot}-${sp.id}`}
             type="button"
+            draggable
+            onDragStart={(e) => startDrag(e, { category: "summoner_spell", slot: sp.slot, ref: sp.id })}
             onClick={() => onAdd({ category: "summoner_spell", slot: sp.slot, ref: sp.id })}
             className="flex items-center gap-1.5 h-8 pl-1 pr-2 rounded-md border border-purple-500/40 bg-purple-600/20 text-purple-100 text-xs font-bold hover:border-purple-400/60 hover:bg-purple-600/30 transition-colors"
-            title={`${sp.slot}: ${sp.label}`}
+            title={`${sp.slot}: ${sp.label} — 클릭 또는 드래그`}
           >
             <span className="w-5 h-5 rounded bg-black/30 inline-flex items-center justify-center text-[10px] font-black shrink-0">{sp.slot}</span>
             <Image src={getSummonerSpellIconUrl(sp.id, patch)} alt={sp.label} width={20} height={20} sizes="20px" className="rounded-sm shrink-0" />
@@ -564,9 +628,11 @@ function Palette({
       <PaletteSection label="구간">
         <button
           type="button"
+          draggable
+          onDragStart={(e) => startDrag(e, { category: STEP_MARKER, title: "", tip: "" })}
           onClick={() => onAdd({ category: STEP_MARKER, title: "", tip: "" })}
           className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-gold/40 bg-gold/10 text-gold text-xs font-bold hover:border-gold/60 hover:bg-gold/20 transition-colors"
-          title="현재 위치에 단계 marker 추가"
+          title="현재 위치에 단계 marker 추가 — 클릭 또는 드래그"
         >
           <span aria-hidden>▷</span>
           <span>구간 시작</span>
@@ -588,7 +654,9 @@ function SequenceEditor({ inputs, onChange, characterSlug, items, patch, require
 }) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
-  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  // dropTargetIdx 는 "삽입 위치" — 0..inputs.length 까지의 갭.
+  // 0 = 맨 앞에 삽입, N = 맨 뒤(끝)에 삽입.
+  const [dropTargetIdx, setDropTargetIdx] = useState<number | null>(null);
 
   const remove = (i: number) => {
     onChange(inputs.filter((_, idx) => idx !== i));
@@ -599,42 +667,112 @@ function SequenceEditor({ inputs, onChange, characterSlug, items, patch, require
     onChange(inputs.map((inp, idx) => (idx === i ? next : inp)));
   };
 
-  // 팔레트 클릭 → 시퀀스 끝에 추가. t 는 (마지막 입력 t) + 200ms.
-  const addToSequence = (entry: Omit<SeqEntry, "_id" | "t">) => {
+  // 시퀀스 마지막 입력 시점 + 200ms 의 새 t 값을 만든다.
+  const nextTrailingT = (): number => {
     const lastNonMarker = [...inputs].reverse().find((e) => !isStepMarker(e) && typeof e.t === "number");
     const baseT = typeof lastNonMarker?.t === "number" ? lastNonMarker.t : null;
-    const t = baseT === null ? 0 : baseT + 200;
-    const next: SeqEntry = { ...entry, _id: genId(), t };
+    return baseT === null ? 0 : baseT + 200;
+  };
+
+  // 인덱스 i 에 삽입할 때 사용할 t 값 추정.
+  // i 위치에 끼워넣으므로 "그 자리 직전 입력의 t + 100" 정도면 안전.
+  const insertionT = (i: number): number => {
+    // i 직전(=i-1) 부터 거꾸로 t 가 있는 입력을 찾는다
+    for (let k = i - 1; k >= 0; k--) {
+      const e = inputs[k];
+      if (!isStepMarker(e) && typeof e.t === "number") return e.t + 100;
+    }
+    // i 이후에서 t 있는 입력을 찾으면 그것보다 살짝 앞으로
+    for (let k = i; k < inputs.length; k++) {
+      const e = inputs[k];
+      if (!isStepMarker(e) && typeof e.t === "number") return Math.max(0, e.t - 100);
+    }
+    return 0;
+  };
+
+  // 팔레트 클릭 → 시퀀스 끝에 추가
+  const addToSequence = (entry: Omit<SeqEntry, "_id" | "t">) => {
+    const next: SeqEntry = { ...entry, _id: genId(), t: nextTrailingT() };
     onChange([...inputs, next]);
   };
 
-  // ── drag-and-drop reorder (HTML5 native) ─────────────────────
-  const onDragStart = (i: number) => (e: React.DragEvent<HTMLDivElement>) => {
+  // 공통 헬퍼: payload 받아서 적절히 삽입(팔레트) 또는 이동(시퀀스)
+  const handleDropAt = (insertIdx: number, payload: ChipDragPayload) => {
+    if (payload.source === "palette") {
+      const t = insertIdx >= inputs.length ? nextTrailingT() : insertionT(insertIdx);
+      const newEntry: SeqEntry = { ...payload.data, _id: genId(), t };
+      const next = [...inputs];
+      next.splice(insertIdx, 0, newEntry);
+      onChange(next);
+      return;
+    }
+    // sequence → 같은 배열 안에서 이동
+    const from = payload.index;
+    if (from === insertIdx || from === insertIdx - 1) return; // no-op
+    const next = [...inputs];
+    const [moved] = next.splice(from, 1);
+    // splice 로 from 제거 후 insertIdx 가 from 보다 뒤였다면 1 줄어든다
+    const adjusted = from < insertIdx ? insertIdx - 1 : insertIdx;
+    next.splice(adjusted, 0, moved);
+    onChange(next);
+  };
+
+  // ── drag-and-drop (HTML5 native) ─────────────────────────────
+  const onChipDragStart = (i: number) => (e: React.DragEvent<HTMLDivElement>) => {
     setDragIdx(i);
     setOpenIdx(null);
+    const payload: SequenceDragPayload = { source: "sequence", index: i };
     e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", String(i));
+    try { e.dataTransfer.setData(CGG_CHIP_MIME, JSON.stringify(payload)); } catch {}
+    try { e.dataTransfer.setData("text/plain", String(i)); } catch {}
   };
 
-  const onDragOver = (i: number) => (e: React.DragEvent<HTMLDivElement>) => {
+  // 칩 위에서 드래그 — 마우스 위치로 before/after 결정
+  const onChipDragOver = (i: number) => (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    if (dragIdx !== null && dragIdx !== i) setDragOverIdx(i);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const before = e.clientX < rect.left + rect.width / 2;
+    const target = before ? i : i + 1;
+    setDropTargetIdx(target);
+    e.dataTransfer.dropEffect = dragIdx !== null ? "move" : "copy";
   };
 
-  const onDrop = (i: number) => (e: React.DragEvent<HTMLDivElement>) => {
+  const onChipDrop = (i: number) => (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    if (dragIdx === null || dragIdx === i) {
-      setDragIdx(null); setDragOverIdx(null); return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const before = e.clientX < rect.left + rect.width / 2;
+    const target = before ? i : i + 1;
+    const payload = readChipPayload(e);
+    setDragIdx(null); setDropTargetIdx(null);
+    if (!payload) return;
+    handleDropAt(target, payload);
+  };
+
+  // 컨테이너(빈 공간 / trailing) 위 드래그 — 끝에 삽입
+  const onContainerDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    // 자식 칩이 이미 over 처리한 상태라면 그대로 둠
+    if (e.target !== e.currentTarget) {
+      e.preventDefault();
+      return;
     }
-    const next = [...inputs];
-    const [moved] = next.splice(dragIdx, 1);
-    next.splice(i, 0, moved);
-    onChange(next);
-    setDragIdx(null); setDragOverIdx(null);
+    e.preventDefault();
+    setDropTargetIdx(inputs.length);
+    e.dataTransfer.dropEffect = dragIdx !== null ? "move" : "copy";
   };
 
-  const onDragEnd = () => { setDragIdx(null); setDragOverIdx(null); };
+  const onContainerDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    // 자식 칩에서 이미 처리됐으면 무시
+    if (e.target !== e.currentTarget && dropTargetIdx !== inputs.length) {
+      return;
+    }
+    const payload = readChipPayload(e);
+    setDragIdx(null); setDropTargetIdx(null);
+    if (!payload) return;
+    handleDropAt(inputs.length, payload);
+  };
+
+  const onDragEnd = () => { setDragIdx(null); setDropTargetIdx(null); };
 
   // step number 계산: 각 marker 의 순번 (1-indexed)
   let stepCounter = 0;
@@ -660,14 +798,24 @@ function SequenceEditor({ inputs, onChange, characterSlug, items, patch, require
 
       {/* Chip flow (입력 + step marker 통합) */}
       {inputs.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border bg-surface-overlay px-4 py-6 text-center">
-          <p className="text-xs text-text-muted">시퀀스가 비어 있습니다. 아래 팔레트에서 입력을 추가하세요.</p>
+        <div
+          onDragOver={onContainerDragOver}
+          onDrop={onContainerDrop}
+          className={`rounded-lg border border-dashed px-4 py-6 text-center transition-colors ${
+            dropTargetIdx === 0 ? "border-gold bg-gold/5" : "border-border bg-surface-overlay"
+          }`}
+        >
+          <p className="text-xs text-text-muted">시퀀스가 비어 있습니다. 위 팔레트에서 클릭하거나 여기로 드래그하세요.</p>
         </div>
       ) : (
-        <div className="flex items-start gap-1.5 flex-wrap rounded-lg border border-border bg-surface-overlay p-2.5">
+        <div
+          className="flex items-start gap-1.5 flex-wrap rounded-lg border border-border bg-surface-overlay p-2.5"
+          onDragOver={onContainerDragOver}
+          onDrop={onContainerDrop}
+        >
           {inputs.map((inp, i) => {
             const isDragging  = dragIdx === i;
-            const isDropOver  = dragOverIdx === i && dragIdx !== null && dragIdx !== i;
+            const isDropBefore = dropTargetIdx === i;
             const isOpen      = openIdx === i;
             const marker      = isStepMarker(inp);
             const stepNum     = stepNumbers[i];
@@ -677,14 +825,14 @@ function SequenceEditor({ inputs, onChange, characterSlug, items, patch, require
               const titleText = inp.title?.trim() || "구간";
               return (
                 <div key={inp._id ?? `marker-${i}`} className="relative">
-                  {isDropOver && (
+                  {isDropBefore && (
                     <span className="absolute -left-1 top-0 bottom-0 w-0.5 bg-gold rounded-full pointer-events-none" />
                   )}
                   <div
                     draggable
-                    onDragStart={onDragStart(i)}
-                    onDragOver={onDragOver(i)}
-                    onDrop={onDrop(i)}
+                    onDragStart={onChipDragStart(i)}
+                    onDragOver={onChipDragOver(i)}
+                    onDrop={onChipDrop(i)}
                     onDragEnd={onDragEnd}
                     onClick={() => setOpenIdx(isOpen ? null : i)}
                     onContextMenu={(e) => { e.preventDefault(); remove(i); }}
@@ -727,14 +875,14 @@ function SequenceEditor({ inputs, onChange, characterSlug, items, patch, require
 
             return (
               <div key={inp._id ?? i} className="relative">
-                {isDropOver && (
+                {isDropBefore && (
                   <span className="absolute -left-1 top-0 bottom-0 w-0.5 bg-gold rounded-full pointer-events-none" />
                 )}
                 <div
                   draggable
-                  onDragStart={onDragStart(i)}
-                  onDragOver={onDragOver(i)}
-                  onDrop={onDrop(i)}
+                  onDragStart={onChipDragStart(i)}
+                  onDragOver={onChipDragOver(i)}
+                  onDrop={onChipDrop(i)}
                   onDragEnd={onDragEnd}
                   onClick={() => setOpenIdx(isOpen ? null : i)}
                   onContextMenu={(e) => { e.preventDefault(); remove(i); }}
@@ -773,12 +921,16 @@ function SequenceEditor({ inputs, onChange, characterSlug, items, patch, require
               </div>
             );
           })}
+          {/* 마지막 갭: 끝에 삽입 indicator */}
+          {dropTargetIdx === inputs.length && (
+            <span className="self-stretch w-0.5 bg-gold rounded-full pointer-events-none" />
+          )}
         </div>
       )}
 
       {/* 하단 힌트 */}
       <p className="text-[11px] text-text-muted pt-1">
-        드래그해서 순서 변경 · 클릭해서 편집 · 우클릭으로 삭제
+        팔레트 드래그 → 원하는 위치에 삽입 · 칩 드래그 → 순서 변경 · 클릭 → 편집 · 우클릭 → 삭제
       </p>
 
       {/* 아이템·소환사 주문 슬롯 매핑 (세부 ref 조정용) */}
@@ -898,6 +1050,96 @@ function splitSequence(
   return { inputSummary, steps };
 }
 
+// ── Auto-thumbnail helpers ────────────────────────────────────
+//
+// 입력 밀도가 가장 높은 시점(콤보의 가장 "바쁜" 순간)을 찾아
+// 그 시점의 영상 프레임을 캡처해서 기본 썸네일로 쓴다.
+// AI 기반 편집(스타일링·텍스트 오버레이)은 별도 라운드에서 추가 — 여기는 단순 추출만.
+
+function pickBusyTimestamp(inputs: SeqEntry[], durationMs: number): number {
+  // input 만 (step_marker 제외) + t 가 숫자인 것
+  const ts = inputs
+    .filter((e) => !isStepMarker(e) && typeof e.t === "number")
+    .map((e) => e.t as number);
+
+  if (ts.length === 0) return Math.max(0, Math.floor(durationMs / 2));
+  if (ts.length === 1) return ts[0];
+
+  const WINDOW = 500; // ±500ms
+  let bestT     = ts[0];
+  let bestCount = 0;
+  for (const t of ts) {
+    let count = 0;
+    for (const u of ts) {
+      if (Math.abs(u - t) <= WINDOW) count++;
+    }
+    if (count > bestCount) {
+      bestCount = count;
+      bestT     = t;
+    }
+  }
+  return bestT;
+}
+
+function autoExtractThumbnail(videoEl: HTMLVideoElement, timestampMs: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const targetSec = Math.max(0, timestampMs / 1000);
+
+    const captureFrame = () => {
+      try {
+        const vw = videoEl.videoWidth;
+        const vh = videoEl.videoHeight;
+        if (vw === 0 || vh === 0) {
+          reject(new Error("영상 프레임 크기를 알 수 없습니다."));
+          return;
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width  = vw;
+        canvas.height = vh;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("canvas context 를 만들 수 없습니다."));
+          return;
+        }
+        ctx.drawImage(videoEl, 0, 0, vw, vh);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error("프레임 캡처 실패"));
+          },
+          "image/jpeg",
+          0.9,
+        );
+      } catch (err) {
+        reject(err);
+      }
+    };
+
+    const seekAndCapture = () => {
+      const onSeeked = () => {
+        videoEl.removeEventListener("seeked", onSeeked);
+        captureFrame();
+      };
+      videoEl.addEventListener("seeked", onSeeked);
+      const safeT = Math.min(
+        Math.max(0, targetSec),
+        Math.max(0, (videoEl.duration || targetSec) - 0.05),
+      );
+      videoEl.currentTime = safeT;
+    };
+
+    if (videoEl.readyState >= 2 /* HAVE_CURRENT_DATA */ && !Number.isNaN(videoEl.duration)) {
+      seekAndCapture();
+    } else {
+      const onLoaded = () => {
+        videoEl.removeEventListener("loadedmetadata", onLoaded);
+        seekAndCapture();
+      };
+      videoEl.addEventListener("loadedmetadata", onLoaded);
+    }
+  });
+}
+
 // ── ComboEditForm ─────────────────────────────────────────────
 export default function ComboEditForm({ combo, items, patch }: Props) {
   const router = useRouter();
@@ -923,39 +1165,84 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
   const [newThumbnailFile, setNewThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(combo.thumbnailUrl);
   const [newVideoFile,     setNewVideoFile]     = useState<File | null>(null);
-  const [videoSrc,         setVideoSrc]         = useState<string | null>(null);
-  const [showVideoEditor,  setShowVideoEditor]  = useState(false);
+  // videoSrc — single source of truth for the <video> element.
+  // null  → 영상 없음.  combo.videoUrl  → 기존 원격 URL.  blob:  → 새로 고른 파일.
+  const [videoSrc,         setVideoSrc]         = useState<string | null>(combo.videoUrl);
+  // 새로 고른 파일에 대해서만 blob URL 을 만들었으므로, 정리(revoke)는 그 경우에만 수행한다.
+  const [videoBlobUrl,     setVideoBlobUrl]     = useState<string | null>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef     = useRef<HTMLInputElement>(null);
+  const videoRef          = useRef<HTMLVideoElement>(null);
+
+  // Auto-thumbnail extraction
+  const [thumbnailExtracting, setThumbnailExtracting] = useState(false);
+  const [thumbnailError,      setThumbnailError]      = useState<string | null>(null);
 
   // AI
   const [aiPending, startAiTransition] = useTransition();
   const [aiError,        setAiError]       = useState<string | null>(null);
   const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
 
+  // 컴포넌트 unmount 또는 videoBlobUrl 갱신 시에 이전 blob URL 정리
   useEffect(() => {
-    return () => { if (videoSrc) URL.revokeObjectURL(videoSrc); };
-  }, [videoSrc]);
+    return () => { if (videoBlobUrl) URL.revokeObjectURL(videoBlobUrl); };
+  }, [videoBlobUrl]);
 
   const handleThumbnailFile = (f: File) => {
     setNewThumbnailFile(f);
     setThumbnailPreview(URL.createObjectURL(f));
   };
 
+  // 새 영상 파일을 골랐을 때: 기존 blob URL 이 있으면 정리하고
+  // videoSrc 를 새 blob URL 로 교체. 같은 <video> 엘리먼트에서 in-place 로 갱신.
   const handleVideoFile = (f: File) => {
-    if (videoSrc) URL.revokeObjectURL(videoSrc);
+    if (videoBlobUrl) URL.revokeObjectURL(videoBlobUrl);
+    const url = URL.createObjectURL(f);
     setNewVideoFile(f);
-    setVideoSrc(URL.createObjectURL(f));
-    setShowVideoEditor(true);
+    setVideoSrc(url);
+    setVideoBlobUrl(url);
   };
 
   const handleVideoDone = useCallback((blob: Blob, ext: string) => {
-    if (videoSrc) URL.revokeObjectURL(videoSrc);
+    if (videoBlobUrl) URL.revokeObjectURL(videoBlobUrl);
     const processed = new File([blob], `video.${ext}`, { type: blob.type });
+    const url = URL.createObjectURL(processed);
     setNewVideoFile(processed);
-    setVideoSrc(URL.createObjectURL(processed));
-    setShowVideoEditor(false);
-  }, [videoSrc]);
+    setVideoSrc(url);
+    setVideoBlobUrl(url);
+  }, [videoBlobUrl]);
+
+  // 콤보 시퀀스에서 가장 입력이 몰린 시점을 잡아 영상에서 프레임 캡처 → 썸네일로 사용.
+  // TODO: AI 편집 라운드 — 캡처한 프레임에 텍스트·로고·블러 효과를 자동 합성하는 별도 흐름이
+  // 추가될 예정. 현재는 단순 프레임 추출까지만 지원.
+  const handleAutoExtractThumbnail = async () => {
+    const videoEl = videoRef.current;
+    if (!videoEl || !videoSrc) {
+      setThumbnailError("영상이 로드되지 않았습니다.");
+      return;
+    }
+    setThumbnailError(null);
+    setThumbnailExtracting(true);
+    try {
+      const totalMs = combo.durationMs && combo.durationMs > 0
+        ? combo.durationMs
+        : Math.max(0, Math.round((videoEl.duration || 0) * 1000));
+      const tMs = pickBusyTimestamp(sequence, totalMs);
+      const blob = await autoExtractThumbnail(videoEl, tMs);
+      const file = new File([blob], `auto-thumb-${Date.now()}.jpg`, { type: "image/jpeg" });
+      // 기존 미리보기가 blob URL 이면 revoke (combo.thumbnailUrl 같은 원격 URL 은 그대로 둠)
+      if (thumbnailPreview && thumbnailPreview.startsWith("blob:")) {
+        URL.revokeObjectURL(thumbnailPreview);
+      }
+      setNewThumbnailFile(file);
+      setThumbnailPreview(URL.createObjectURL(file));
+    } catch (err) {
+      console.error("auto thumbnail extraction failed:", err);
+      setThumbnailError(err instanceof Error ? err.message : "썸네일 추출 실패");
+    } finally {
+      setThumbnailExtracting(false);
+    }
+  };
 
   // AI autofill 활성화 조건 검사용 — step_marker 제외한 입력만
   const inputOnly = sequence.filter((e) => !isStepMarker(e));
@@ -1140,34 +1427,34 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold">영상 <span className="text-text-muted text-xs font-normal">(mp4 / webm)</span></span>
-            {videoSrc && !showVideoEditor && (
-              <button type="button" onClick={() => setShowVideoEditor(true)}
-                className="text-xs font-semibold text-gold hover:text-gold-light transition-colors">편집 (Trim/Crop)</button>
-            )}
+            <button
+              type="button"
+              onClick={() => videoInputRef.current?.click()}
+              className="text-xs font-semibold text-text-secondary hover:text-text transition-colors"
+            >
+              {videoSrc ? "📁 교체" : "📁 영상 업로드"}
+            </button>
           </div>
           <input ref={videoInputRef} type="file" accept="video/mp4,video/webm" className="hidden"
             onChange={(e) => e.target.files?.[0] && handleVideoFile(e.target.files[0])} />
 
+          {/* Single <video> element — videoSrc 가 단일 source of truth.
+              새 파일을 고르면 같은 element 의 src 가 새 blob URL 로 바뀐다. */}
           {videoSrc ? (
             <video
+              ref={videoRef}
+              key={videoSrc}
               src={videoSrc}
               controls
-              className="w-full max-h-[400px] rounded-lg border border-border bg-black"
-            >
-              영상을 재생할 수 없습니다.
-            </video>
-          ) : combo.videoUrl ? (
-            <video
-              src={combo.videoUrl}
-              controls
               preload="metadata"
+              crossOrigin="anonymous"
               className="w-full max-h-[400px] rounded-lg border border-border bg-black"
             >
               영상을 재생할 수 없습니다.
             </video>
           ) : (
             <div className="w-full h-32 rounded-lg border border-dashed border-border bg-surface-overlay flex items-center justify-center text-sm text-text-muted">
-              영상 없음 — 오버레이에서 녹화 후 아래에서 업로드하세요
+              영상 없음 — 오버레이에서 녹화 후 위 [📁 영상 업로드] 버튼으로 추가하세요
             </div>
           )}
 
@@ -1179,21 +1466,14 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
             </div>
           )}
 
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={() => videoInputRef.current?.click()}
-              className="text-xs font-semibold text-text-muted hover:text-text transition-colors"
-            >
-              {combo.videoUrl || newVideoFile ? "다른 영상으로 교체" : "영상 업로드"}
-            </button>
-          </div>
-
-          {showVideoEditor && videoSrc && (
+          {/* Trim/Crop 편집기 — 영상이 있을 때 항상 펼쳐서 노출. */}
+          {videoSrc && (
             <VideoEditor
+              key={videoSrc}
               src={videoSrc}
               onDone={handleVideoDone}
-              onCancel={() => setShowVideoEditor(false)}
+              onCancel={() => { /* always visible — no close action */ }}
+              alwaysVisible
             />
           )}
         </div>
@@ -1202,17 +1482,28 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold">썸네일</span>
-            <button type="button" onClick={() => thumbnailInputRef.current?.click()}
-              className="text-xs font-semibold text-text-secondary hover:text-text transition-colors">
-              이미지 선택
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleAutoExtractThumbnail}
+                disabled={!videoSrc || thumbnailExtracting}
+                title={videoSrc ? "콤보의 가장 바쁜 순간을 영상에서 캡처" : "영상 로드 후 사용 가능"}
+                className="text-xs font-semibold text-gold hover:text-gold-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {thumbnailExtracting ? "추출 중..." : "🎬 영상에서 자동 추출"}
+              </button>
+              <button type="button" onClick={() => thumbnailInputRef.current?.click()}
+                className="text-xs font-semibold text-text-secondary hover:text-text transition-colors">
+                이미지 선택
+              </button>
+            </div>
           </div>
           <input ref={thumbnailInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
             onChange={(e) => e.target.files?.[0] && handleThumbnailFile(e.target.files[0])} />
           {thumbnailPreview ? (
             <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-border bg-surface-overlay cursor-pointer"
               onClick={() => thumbnailInputRef.current?.click()}>
-              <Image src={thumbnailPreview} alt="썸네일" fill sizes="672px" className="object-cover" />
+              <Image src={thumbnailPreview} alt="썸네일" fill sizes="672px" className="object-cover" unoptimized={thumbnailPreview.startsWith("blob:")} />
               {newThumbnailFile && (
                 <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/70 text-xs font-semibold text-white">변경됨</div>
               )}
@@ -1225,6 +1516,12 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
               className="w-full h-20 rounded-lg border border-dashed border-border bg-surface-overlay flex items-center justify-center text-sm text-text-muted hover:border-[rgba(255,255,255,0.24)] hover:text-text transition-colors">
               + 썸네일 이미지 선택
             </button>
+          )}
+          {thumbnailError && (
+            <p className="text-xs text-hard">{thumbnailError}</p>
+          )}
+          {!videoSrc && (
+            <p className="text-[11px] text-text-muted">영상을 업로드하면 「🎬 영상에서 자동 추출」 버튼이 활성화됩니다.</p>
           )}
         </div>
       </div>

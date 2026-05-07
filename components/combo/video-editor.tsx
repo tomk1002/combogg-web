@@ -109,9 +109,14 @@ interface Props {
   src: string;
   onDone: (blob: Blob, ext: string) => void;
   onCancel: () => void;
+  /**
+   * 편집기를 닫을 수 없는 상태(예: combo edit 폼처럼 영상 옆에 항상 펼쳐 두는 경우).
+   * true 면 "닫기"·"취소" 버튼을 숨긴다.
+   */
+  alwaysVisible?: boolean;
 }
 
-export default function VideoEditor({ src, onDone, onCancel }: Props) {
+export default function VideoEditor({ src, onDone, onCancel, alwaysVisible = false }: Props) {
   const videoRef   = useRef<HTMLVideoElement>(null);
   const canvasRef  = useRef<HTMLCanvasElement>(null);
   const [duration,   setDuration]   = useState(0);
@@ -229,9 +234,11 @@ export default function VideoEditor({ src, onDone, onCancel }: Props) {
   return (
     <div className="flex flex-col gap-4 bg-surface-raised rounded-xl border border-border p-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-bold">영상 편집</p>
-        <button type="button" onClick={onCancel} disabled={processing}
-          className="text-xs text-text-secondary hover:text-text transition-colors disabled:opacity-50">닫기</button>
+        <p className="text-sm font-bold">영상 편집 (Trim · Crop)</p>
+        {!alwaysVisible && (
+          <button type="button" onClick={onCancel} disabled={processing}
+            className="text-xs text-text-secondary hover:text-text transition-colors disabled:opacity-50">닫기</button>
+        )}
       </div>
 
       {/* Hidden source video + preview canvas */}
@@ -289,13 +296,15 @@ export default function VideoEditor({ src, onDone, onCancel }: Props) {
 
       {/* Actions */}
       <div className="flex gap-3">
-        <button type="button" onClick={onCancel} disabled={processing}
-          className="flex-1 h-10 rounded-lg border border-border text-sm font-semibold text-text-secondary hover:text-text transition-colors disabled:opacity-40">
-          취소
-        </button>
+        {!alwaysVisible && (
+          <button type="button" onClick={onCancel} disabled={processing}
+            className="flex-1 h-10 rounded-lg border border-border text-sm font-semibold text-text-secondary hover:text-text transition-colors disabled:opacity-40">
+            취소
+          </button>
+        )}
         <button type="button" onClick={handleProcess} disabled={processing || duration === 0}
           className="flex-1 h-10 rounded-lg bg-gold text-white text-sm font-bold hover:bg-gold-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-          {processing ? "처리 중..." : "처리 완료"}
+          {processing ? "처리 중..." : "Trim/Crop 적용"}
         </button>
       </div>
     </div>
