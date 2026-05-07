@@ -75,7 +75,7 @@ const getHomeData = unstable_cache(async function getHomeData() {
 }, ["home-data"], { revalidate: 60 });
 
 export default async function Home() {
-  const { popularCombos, newestCombos, characters, difficultyCounts, featuredCombo, difficultyGroups } = await getHomeData();
+  const { popularCombos, newestCombos, characters, difficultyCounts, difficultyGroups } = await getHomeData();
   const t = getT("ko");
 
   return (
@@ -102,55 +102,17 @@ export default async function Home() {
             </div>
           </div>
 
-          {/* Right — featured combo card (hidden on mobile) */}
-          {featuredCombo && (
-            <Link
-              href={`/combos/${featuredCombo.id}`}
-              className="hidden lg:block group relative rounded-xl overflow-hidden border border-border bg-surface-raised hover:-translate-y-0.5 transition-transform"
-            >
-              <div className="absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gold text-bg text-xs font-black tracking-widest">
-                <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor">
-                  <path d="M5 0l1.4 3.2L10 4 7 6.4 8 10 5 8 2 10l1-3.6L0 4l3.6-.8L5 0z"/>
-                </svg>
-                {t.spotlight}
-              </div>
-
-              <div className="relative aspect-video bg-surface-overlay">
-                {featuredCombo.thumbnailUrl ? (
-                  <Image src={featuredCombo.thumbnailUrl} alt={featuredCombo.title} fill priority sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-[140px] font-black italic text-white/10 leading-none select-none">
-                      {featuredCombo.character.name[0]}
-                    </span>
-                  </div>
-                )}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center group-hover:bg-white/95 transition-colors">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#1A1D24">
-                      <path d="M8 5v14l11-7z"/>
-                    </svg>
-                  </div>
-                </div>
-                {featuredCombo.durationMs && (
-                  <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded bg-black/70 text-white text-xs font-mono font-bold">
-                    {Math.floor(featuredCombo.durationMs / 60000)}:{String(Math.floor((featuredCombo.durationMs % 60000) / 1000)).padStart(2, "0")}
-                  </div>
-                )}
-              </div>
-
-              <div className="p-5">
-                <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  {featuredCombo.character.iconUrl && (
-                    <Image src={featuredCombo.character.iconUrl} alt={featuredCombo.character.name} width={20} height={20} className="rounded" />
-                  )}
-                  <span className="text-xs font-bold">{featuredCombo.character.name}</span>
-                  <span className="text-xs text-text-muted font-mono ml-auto">↓ {featuredCombo.downloadCount.toLocaleString()}</span>
-                </div>
-                <h3 className="text-base font-bold tracking-tight">{featuredCombo.title}</h3>
-              </div>
-            </Link>
-          )}
+          {/* Right — overlay 활용 예시 영상 (hidden on mobile, autoplay loop) */}
+          <div className="hidden lg:block relative aspect-video rounded-xl overflow-hidden border border-border bg-surface-overlay">
+            <video
+              src="/preview.mp4"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+            />
+          </div>
         </div>
       </section>
 
