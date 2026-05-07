@@ -106,7 +106,7 @@ export default async function LolPage({ searchParams }: Props) {
           </p>
         </div>
         <Link
-          href="/upload"
+          href="/download"
           className="ml-auto h-9 px-4 rounded-lg bg-gold text-white text-sm font-bold hover:bg-gold-light hover:shadow-[0_0_16px_rgba(200,155,60,0.50)] transition-all flex items-center"
         >
           {t.nav_upload}
@@ -135,7 +135,7 @@ export default async function LolPage({ searchParams }: Props) {
           {q ? (
             <Link href="/games/lol" className="text-sm text-gold hover:underline">{t.view_all}</Link>
           ) : (
-            <Link href="/upload" className="text-sm text-gold hover:underline">{t.upload_first}</Link>
+            <Link href="/download" className="text-sm text-gold hover:underline">{t.upload_first}</Link>
           )}
         </div>
       )}

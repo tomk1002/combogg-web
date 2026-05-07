@@ -303,7 +303,7 @@ export default function HomeContent({ popularCombos, newestCombos, characters, d
               <p className="text-text-secondary text-sm max-w-lg">{t.cta_subtitle}</p>
             </div>
             <Link
-              href="/upload"
+              href="/download"
               className="inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-gold text-white font-bold text-sm hover:bg-gold-light hover:shadow-[0_0_20px_rgba(200,155,60,0.50)] transition-all shrink-0"
             >
               {t.cta_button}

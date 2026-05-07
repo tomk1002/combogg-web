@@ -98,7 +98,7 @@ export default async function DownloadPage() {
       <section className="text-center">
         <p className="text-text-secondary text-sm mb-3">{t.dl_bottom_cta_text}</p>
         <Link
-          href="/upload"
+          href="/download"
           className="inline-flex items-center gap-1.5 px-6 h-10 rounded-xl bg-surface-raised border border-border text-sm font-bold hover:border-[rgba(255,255,255,0.24)] transition-colors"
         >
           {t.dl_bottom_cta_btn}
