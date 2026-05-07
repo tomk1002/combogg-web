@@ -21,9 +21,13 @@ interface Props {
 // Crop transform:
 //   - inner <video> 를 (1/crop.w × 1/crop.h) 배율로 키우고 (-crop.x, -crop.y) 만큼 평행이동.
 //     → crop 영역만 wrapper 안에 보임.
+//   - 단, native HTML5 controls 바가 video element 의 맨 아래에 있어 transform 후엔
+//     컨테이너 밖으로 밀려나서 사용자가 못 봄. 그래서 crop 시엔 controls 제거하고
+//     커스텀 play overlay 사용.
 export default function CroppedVideo({ videoUrl, thumbnailUrl, crop, trim }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [nativeAspect, setNativeAspect] = useState<number | null>(null);
+  const [playing, setPlaying] = useState(false);
 
   // native video aspect 측정
   useEffect(() => {
@@ -71,11 +75,12 @@ export default function CroppedVideo({ videoUrl, thumbnailUrl, crop, trim }: Pro
 
   // 컨테이너 aspect ratio 결정
   const containerAspect = (() => {
-    if (nativeAspect == null) return 16 / 9; // fallback
+    if (nativeAspect == null) return 16 / 9;
     if (!crop) return nativeAspect;
     return nativeAspect * (crop.w / crop.h);
   })();
 
+  // ── no crop: native controls 그대로 사용 ──────────────────
   if (!crop) {
     return (
       <div className="relative w-full overflow-hidden" style={{ aspectRatio: containerAspect }}>
@@ -91,6 +96,18 @@ export default function CroppedVideo({ videoUrl, thumbnailUrl, crop, trim }: Pro
     );
   }
 
+  // ── crop: 커스텀 click-to-play overlay (native controls 가림) ───
+  const togglePlay = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) {
+      v.play().then(() => setPlaying(true)).catch(() => {});
+    } else {
+      v.pause();
+      setPlaying(false);
+    }
+  };
+
   const innerStyle: React.CSSProperties = {
     position: "absolute",
     width: `${100 / crop.w}%`,
@@ -100,16 +117,32 @@ export default function CroppedVideo({ videoUrl, thumbnailUrl, crop, trim }: Pro
   };
 
   return (
-    <div className="relative w-full overflow-hidden" style={{ aspectRatio: containerAspect }}>
+    <div className="relative w-full overflow-hidden bg-black" style={{ aspectRatio: containerAspect }}>
       <video
         ref={videoRef}
         src={videoUrl}
-        controls
         preload="metadata"
         poster={thumbnailUrl ?? undefined}
         style={innerStyle}
-        className="object-cover"
+        className="object-cover pointer-events-none"
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => setPlaying(false)}
       />
+      <button
+        type="button"
+        onClick={togglePlay}
+        aria-label={playing ? "일시정지" : "재생"}
+        className="absolute inset-0 flex items-center justify-center cursor-pointer group"
+      >
+        {!playing && (
+          <span className="w-16 h-16 rounded-full bg-black/60 group-hover:bg-black/75 border border-white/20 flex items-center justify-center text-white transition-colors">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </span>
+        )}
+      </button>
     </div>
   );
 }
