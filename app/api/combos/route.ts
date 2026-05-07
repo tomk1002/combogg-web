@@ -82,7 +82,7 @@ export async function POST(req: Request) {
 
     // ── 앱 업로드 흐름: 메타데이터 직접 전달 ──────────────────────
     const { title, description, tip, gameSlug, characterSlug, difficulty, tags,
-            durationMs, inputSummary, gameSpecific, thumbnailUrl, videoUrl,
+            durationMs, inputSummary, gameSpecific, thumbnailUrl, videoUrl, videoCrop,
             tutfileUrl, patchVersion, status } = body;
 
     if (!title || !gameSlug || !characterSlug || !difficulty) {
@@ -97,6 +97,16 @@ export async function POST(req: Request) {
       return badRequest("status는 'draft' 또는 'published'만 가능합니다");
     }
     const resolvedStatus: "draft" | "published" = status === "draft" ? "draft" : "published";
+
+    // videoCrop 검증 (선택)
+    if (videoCrop !== undefined && videoCrop !== null) {
+      if (typeof videoCrop !== "object") return badRequest("videoCrop은 객체여야 합니다");
+      const { x, y, w, h } = videoCrop as { x?: unknown; y?: unknown; w?: unknown; h?: unknown };
+      const isFrac = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1;
+      if (!isFrac(x) || !isFrac(y) || !isFrac(w) || !isFrac(h)) {
+        return badRequest("videoCrop의 x/y/w/h는 0~1 범위 숫자여야 합니다");
+      }
+    }
 
     let validatedGameSpecific: unknown;
     try {
@@ -123,6 +133,7 @@ export async function POST(req: Request) {
         inputSummary: inputSummary ?? [],
         gameSpecific: validatedGameSpecific as object,
         thumbnailUrl, videoUrl, tutfileUrl, patchVersion,
+        ...(videoCrop !== undefined && { videoCrop: videoCrop ?? undefined }),
         status: resolvedStatus,
       },
     });

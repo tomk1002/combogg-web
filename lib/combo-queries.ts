@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import type { ComboListItemDTO, ComboDetailDTO, InputEntryDTO } from "@/lib/api/types";
+import type { ComboListItemDTO, ComboDetailDTO, InputEntryDTO, VideoCropDTO } from "@/lib/api/types";
 
 export const COMBO_INCLUDE = {
   author: { select: { id: true, nickname: true, avatarUrl: true, riotGameName: true, riotTagLine: true } },
@@ -31,7 +31,7 @@ export function toComboListItem(c: ComboWithRelations): ComboListItemDTO {
 }
 
 export function toComboDetail(
-  c: ComboWithRelations & { description: string | null; tip: string | null; gameSpecific: unknown; videoUrl: string | null; tutfileUrl: string | null },
+  c: ComboWithRelations & { description: string | null; tip: string | null; gameSpecific: unknown; videoUrl: string | null; tutfileUrl: string | null; videoCrop?: unknown },
   isLiked: boolean
 ): ComboDetailDTO {
   return {
@@ -40,7 +40,24 @@ export function toComboDetail(
     tip: c.tip,
     gameSpecific: (c.gameSpecific as Record<string, unknown>) ?? {},
     videoUrl: c.videoUrl,
+    videoCrop: parseVideoCrop(c.videoCrop),
     tutfileUrl: c.tutfileUrl,
     isLiked,
+  };
+}
+
+// videoCrop JSONB → 안전한 DTO. 형식 불일치 시 null.
+function parseVideoCrop(raw: unknown): VideoCropDTO | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const isFrac = (v: unknown): v is number =>
+    typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1;
+  if (!isFrac(r.x) || !isFrac(r.y) || !isFrac(r.w) || !isFrac(r.h)) return null;
+  return {
+    x: r.x,
+    y: r.y,
+    w: r.w,
+    h: r.h,
+    ...(typeof r.ratio === "string" && { ratio: r.ratio }),
   };
 }

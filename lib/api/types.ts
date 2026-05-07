@@ -44,11 +44,20 @@ export interface ComboListItemDTO {
   createdAt: string;
 }
 
+export interface VideoCropDTO {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  ratio?: string;
+}
+
 export interface ComboDetailDTO extends ComboListItemDTO {
   description: string | null;
   tip: string | null;
   gameSpecific: Record<string, unknown>;
   videoUrl: string | null;
+  videoCrop: VideoCropDTO | null;
   tutfileUrl: string | null;
   isLiked: boolean;
 }

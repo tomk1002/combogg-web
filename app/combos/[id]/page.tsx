@@ -14,8 +14,9 @@ import ComboCard from "@/components/combo/combo-card";
 import ComboAuthorActions from "@/components/combo/combo-author-actions";
 import ComboShareButton from "@/components/combo/combo-share-button";
 import SaveComboButton from "@/components/combo/save-combo-button";
+import CroppedVideo from "@/components/combo/cropped-video";
 import { formatCount, formatDuration, timeAgo, authorDisplayName } from "@/lib/utils";
-import type { InputEntryDTO, CommentDTO } from "@/lib/api/types";
+import type { InputEntryDTO, CommentDTO, VideoCropDTO } from "@/lib/api/types";
 import type { LolGameSpecific } from "@/lib/games/lol/schema";
 import { getServerT } from "@/lib/i18n-server";
 import type { T } from "@/lib/i18n";
@@ -89,6 +90,7 @@ export default async function ComboDetailPage({ params }: Props) {
   const inputSummary = (combo.inputSummary as unknown as InputEntryDTO[]) ?? [];
   const keys = inputToKeySequence(inputSummary, combo.patchVersion);
   const gameSpecific = (combo.gameSpecific as unknown as Partial<LolGameSpecific>) ?? {};
+  const videoCrop = parseVideoCropForPage(combo.videoCrop);
   const isLiked = !!isLikedRecord;
   const isSaved = !!isSavedRecord;
 
@@ -158,15 +160,22 @@ export default async function ComboDetailPage({ params }: Props) {
         {/* ── Left (영상·제목·시퀀스·댓글·관련) ── */}
         <div className="flex flex-col gap-6 order-last lg:order-first">
 
-          {/* Video */}
-          <div className="relative aspect-video bg-surface-overlay rounded-xl overflow-hidden border border-border">
+          {/* Video — crop 적용 시 컨테이너 aspect 를 crop region 비율로 변경
+              (원본 영상이 16:9 라고 가정, 그 위에서 crop region 의 픽셀 비를 계산) */}
+          <div
+            className={`relative bg-surface-overlay rounded-xl overflow-hidden border border-border ${videoCrop ? "" : "aspect-video"}`}
+            style={
+              videoCrop
+                ? { aspectRatio: `${(16 / 9) * (videoCrop.w / videoCrop.h)}` }
+                : undefined
+            }
+          >
             {combo.videoUrl ? (
-              <video
-                src={combo.videoUrl}
-                controls
-                preload="none"
+              <CroppedVideo
+                videoUrl={combo.videoUrl}
+                thumbnailUrl={combo.thumbnailUrl}
+                crop={videoCrop}
                 className="w-full h-full object-cover"
-                poster={combo.thumbnailUrl ?? undefined}
               />
             ) : combo.thumbnailUrl ? (
               <Image src={combo.thumbnailUrl} alt={combo.title} fill className="object-cover" />
@@ -259,6 +268,20 @@ export default async function ComboDetailPage({ params }: Props) {
       </div>
     </main>
   );
+}
+
+// ── helpers ────────────────────────────────────────────────────────
+
+function parseVideoCropForPage(raw: unknown): VideoCropDTO | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const isFrac = (v: unknown): v is number =>
+    typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1;
+  if (!isFrac(r.x) || !isFrac(r.y) || !isFrac(r.w) || !isFrac(r.h)) return null;
+  return {
+    x: r.x, y: r.y, w: r.w, h: r.h,
+    ...(typeof r.ratio === "string" && { ratio: r.ratio }),
+  };
 }
 
 // ── Streaming sections ────────────────────────────────────────────

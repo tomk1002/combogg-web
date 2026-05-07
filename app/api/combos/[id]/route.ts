@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { getSession } from "@/lib/auth/require-auth";
 import { ok, notFound, forbidden, serverError, badRequest } from "@/lib/api/response";
 import { COMBO_INCLUDE, toComboDetail } from "@/lib/combo-queries";
@@ -42,11 +43,21 @@ export async function PATCH(req: Request, { params }: Ctx) {
     if (combo.authorId !== session.user.id) return forbidden();
 
     const body = await req.json();
-    const { title, description, tip, difficulty, tags, gameSpecific, inputSummary, steps, thumbnailUrl, videoUrl, status } = body;
+    const { title, description, tip, difficulty, tags, gameSpecific, inputSummary, steps, thumbnailUrl, videoUrl, videoCrop, status } = body;
 
     // status: 사용자는 'draft' 또는 'published'만 설정 가능 ('featured'는 admin 전용)
     if (status !== undefined && status !== "draft" && status !== "published") {
       return badRequest("status는 'draft' 또는 'published'만 가능합니다");
+    }
+
+    // videoCrop 검증 — null(=clear) 이거나, 정규화된 0~1 범위의 4개 필드.
+    if (videoCrop !== undefined && videoCrop !== null) {
+      if (typeof videoCrop !== "object") return badRequest("videoCrop은 객체여야 합니다");
+      const { x, y, w, h } = videoCrop as { x?: unknown; y?: unknown; w?: unknown; h?: unknown };
+      const isFrac = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1;
+      if (!isFrac(x) || !isFrac(y) || !isFrac(w) || !isFrac(h)) {
+        return badRequest("videoCrop의 x/y/w/h는 0~1 범위 숫자여야 합니다");
+      }
     }
 
     const updated = await prisma.combo.update({
@@ -65,6 +76,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
         ...(steps !== undefined && { steps }),
         ...(thumbnailUrl !== undefined && { thumbnailUrl }),
         ...(videoUrl !== undefined && { videoUrl }),
+        ...(videoCrop !== undefined && { videoCrop: videoCrop ?? Prisma.JsonNull }),
         ...(status !== undefined && { status }),
       },
     });

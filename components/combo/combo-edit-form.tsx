@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import DifficultyPips from "@/components/shared/difficulty-pips";
 import LolUploadForm from "@/components/games/lol/lol-upload-form";
+import CropOverlay, { type CropResult, type NormalizedCrop } from "@/components/shared/crop-overlay";
 import { type MappableEntry } from "@/components/upload/input-key-mapper";
 import { getSummonerSpellIconUrl } from "@/lib/games/lol/ddragon";
 import type { Difficulty } from "@/types";
@@ -32,6 +33,7 @@ interface Combo {
   steps: unknown;
   thumbnailUrl: string | null;
   videoUrl: string | null;
+  videoCrop: unknown; // JSONB: { x, y, w, h, ratio? } | null
   durationMs: number | null;
   status: "draft" | "published" | "featured" | "removed";
   game: { slug: string };
@@ -1107,6 +1109,52 @@ function autoExtractThumbnail(videoEl: HTMLVideoElement, timestampMs: number): P
   });
 }
 
+// videoCrop JSONB → NormalizedCrop 안전 파싱
+function parseInitialVideoCrop(raw: unknown): NormalizedCrop | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const isFrac = (v: unknown): v is number =>
+    typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1;
+  if (!isFrac(r.x) || !isFrac(r.y) || !isFrac(r.w) || !isFrac(r.h)) return null;
+  return { x: r.x, y: r.y, w: r.w, h: r.h };
+}
+
+// 이미지(또는 미디어) URL 을 받아 crop 영역만 잘라 새 Blob 으로 반환.
+// crop 은 정규화 좌표 (0~1).
+async function cropImageToBlob(
+  imageUrl: string,
+  crop: NormalizedCrop,
+  type: string = "image/jpeg",
+  quality: number = 0.92,
+): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    // window.Image — `Image` 이름은 next/image 컴포넌트와 충돌하므로 globalThis.Image 사용.
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const sx = Math.round(crop.x * img.naturalWidth);
+        const sy = Math.round(crop.y * img.naturalHeight);
+        const sw = Math.max(1, Math.round(crop.w * img.naturalWidth));
+        const sh = Math.max(1, Math.round(crop.h * img.naturalHeight));
+        const canvas = document.createElement("canvas");
+        canvas.width = sw;
+        canvas.height = sh;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { reject(new Error("canvas context 생성 실패")); return; }
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+        canvas.toBlob(
+          (blob) => blob ? resolve(blob) : reject(new Error("crop blob 생성 실패")),
+          type,
+          quality,
+        );
+      } catch (e) { reject(e); }
+    };
+    img.onerror = () => reject(new Error("이미지 로드 실패"));
+    img.src = imageUrl;
+  });
+}
+
 // ── ComboEditForm ─────────────────────────────────────────────
 export default function ComboEditForm({ combo, items, patch }: Props) {
   const router = useRouter();
@@ -1145,6 +1193,21 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
   const [thumbnailExtracting, setThumbnailExtracting] = useState(false);
   const [thumbnailError,      setThumbnailError]      = useState<string | null>(null);
 
+  // Crop overlays
+  // - thumbnailCropOpen: 썸네일 이미지를 픽셀 단위로 잘라 새 파일로 교체
+  // - videoCropOpen: 영상 표시 시점에 적용할 crop 메타만 저장 (재인코딩 X)
+  const [thumbnailCropOpen, setThumbnailCropOpen] = useState(false);
+  const [videoCropOpen,     setVideoCropOpen]     = useState(false);
+  const [videoCrop,         setVideoCrop]         = useState<NormalizedCrop | null>(() => {
+    return parseInitialVideoCrop(combo.videoCrop);
+  });
+  const [videoCropRatio,    setVideoCropRatio]    = useState<string | null>(() => {
+    const raw = combo.videoCrop;
+    if (!raw || typeof raw !== "object") return null;
+    const r = raw as Record<string, unknown>;
+    return typeof r.ratio === "string" ? r.ratio : null;
+  });
+
   // AI
   const [aiPending, startAiTransition] = useTransition();
   const [aiError,        setAiError]       = useState<string | null>(null);
@@ -1168,6 +1231,41 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
     setNewVideoFile(f);
     setVideoSrc(url);
     setVideoBlobUrl(url);
+  };
+
+  // 썸네일 crop 결과 적용:
+  //   thumbnailPreview 이미지를 crop 영역만 잘라 새 File 로 교체.
+  const handleThumbnailCropApply = async (result: CropResult) => {
+    setThumbnailCropOpen(false);
+    if (!thumbnailPreview) return;
+    setThumbnailError(null);
+    setThumbnailExtracting(true);
+    try {
+      const blob = await cropImageToBlob(thumbnailPreview, result, "image/jpeg", 0.92);
+      const file = new File([blob], `cropped-thumb-${Date.now()}.jpg`, { type: "image/jpeg" });
+      if (thumbnailPreview.startsWith("blob:")) {
+        URL.revokeObjectURL(thumbnailPreview);
+      }
+      setNewThumbnailFile(file);
+      setThumbnailPreview(URL.createObjectURL(file));
+    } catch (err) {
+      console.error("thumbnail crop failed:", err);
+      setThumbnailError(err instanceof Error ? err.message : "크롭 실패");
+    } finally {
+      setThumbnailExtracting(false);
+    }
+  };
+
+  // 영상 crop — 메타데이터만 저장 (재인코딩 X). 표시 시점에 CSS 로 적용.
+  const handleVideoCropApply = (result: CropResult) => {
+    setVideoCropOpen(false);
+    setVideoCrop({ x: result.x, y: result.y, w: result.w, h: result.h });
+    setVideoCropRatio(result.ratio);
+  };
+
+  const handleVideoCropClear = () => {
+    setVideoCrop(null);
+    setVideoCropRatio(null);
   };
 
   // 사용자가 영상을 원하는 프레임으로 스크럽한 뒤 클릭 → 그 프레임을 썸네일로 캡처.
@@ -1318,6 +1416,8 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
           steps: stepsPayload,
           ...(newThumbnailUrl && { thumbnailUrl: newThumbnailUrl }),
           ...(newVideoUrl     && { videoUrl: newVideoUrl }),
+          // videoCrop: null → 서버에서 clear, 객체 → 저장. (값이 안 바뀌어도 매번 전송 — 단순함 우선)
+          videoCrop: videoCrop ? { ...videoCrop, ...(videoCropRatio && { ratio: videoCropRatio }) } : null,
           ...(sendStatus !== undefined && { status: sendStatus }),
         }),
       });
@@ -1422,15 +1522,35 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
 
           {/* 현재 프레임 캡처 — 영상에서 원하는 장면으로 스크럽 후 클릭 */}
           {videoSrc && (
-            <button
-              type="button"
-              onClick={handleCaptureCurrentFrame}
-              disabled={thumbnailExtracting}
-              title="영상을 원하는 장면에서 멈춘 뒤 클릭하면 해당 프레임이 썸네일로 사용됩니다"
-              className="self-start text-xs font-semibold text-gold hover:text-gold-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {thumbnailExtracting ? "캡처 중..." : "📷 현재 장면을 썸네일로"}
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={handleCaptureCurrentFrame}
+                disabled={thumbnailExtracting}
+                title="영상을 원하는 장면에서 멈춘 뒤 클릭하면 해당 프레임이 썸네일로 사용됩니다"
+                className="text-xs font-semibold text-gold hover:text-gold-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {thumbnailExtracting ? "캡처 중..." : "📷 현재 장면을 썸네일로"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setVideoCropOpen(true)}
+                title="영상 표시 시점에 적용할 crop 영역을 지정합니다 (재인코딩 없이 메타데이터만 저장)"
+                className="text-xs font-semibold text-text-secondary hover:text-text transition-colors"
+              >
+                🎬 영상 크롭{videoCrop ? " (적용됨)" : ""}
+              </button>
+              {videoCrop && (
+                <button
+                  type="button"
+                  onClick={handleVideoCropClear}
+                  className="text-xs font-semibold text-text-muted hover:text-hard transition-colors"
+                >
+                  영상 크롭 해제
+                </button>
+              )}
+            </div>
           )}
         </div>
 
@@ -1438,10 +1558,23 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold">썸네일</span>
-            <button type="button" onClick={() => thumbnailInputRef.current?.click()}
-              className="text-xs font-semibold text-text-secondary hover:text-text transition-colors">
-              이미지 선택
-            </button>
+            <div className="flex items-center gap-3">
+              {thumbnailPreview && (
+                <button
+                  type="button"
+                  onClick={() => setThumbnailCropOpen(true)}
+                  disabled={thumbnailExtracting}
+                  title="썸네일 이미지의 일부 영역만 잘라 새 썸네일로 사용합니다"
+                  className="text-xs font-semibold text-text-secondary hover:text-text transition-colors disabled:opacity-40"
+                >
+                  🔲 크롭
+                </button>
+              )}
+              <button type="button" onClick={() => thumbnailInputRef.current?.click()}
+                className="text-xs font-semibold text-text-secondary hover:text-text transition-colors">
+                이미지 선택
+              </button>
+            </div>
           </div>
           <input ref={thumbnailInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
             onChange={(e) => e.target.files?.[0] && handleThumbnailFile(e.target.files[0])} />
@@ -1661,6 +1794,23 @@ export default function ComboEditForm({ combo, items, patch }: Props) {
             공개 페이지 보기 →
           </Link>
         </div>
+      )}
+
+      {/* ── Crop overlays (모달, fixed inset-0) ─────────────── */}
+      {thumbnailCropOpen && thumbnailPreview && (
+        <CropOverlay
+          imageUrl={thumbnailPreview}
+          onApply={handleThumbnailCropApply}
+          onCancel={() => setThumbnailCropOpen(false)}
+        />
+      )}
+      {videoCropOpen && videoSrc && (
+        <CropOverlay
+          videoUrl={videoSrc}
+          initialCrop={videoCrop ?? undefined}
+          onApply={handleVideoCropApply}
+          onCancel={() => setVideoCropOpen(false)}
+        />
       )}
     </form>
   );
