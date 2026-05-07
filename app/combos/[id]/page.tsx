@@ -16,6 +16,7 @@ import ComboShareButton from "@/components/combo/combo-share-button";
 import ReportButton from "@/components/combo/report-button";
 import SaveComboButton from "@/components/combo/save-combo-button";
 import CroppedVideo from "@/components/combo/cropped-video";
+import ThumbnailDisplay from "@/components/combo/thumbnail-display";
 import { formatCount, formatDuration, timeAgo, authorDisplayName } from "@/lib/utils";
 import type { InputEntryDTO, CommentDTO, VideoCropDTO, VideoTrimDTO } from "@/lib/api/types";
 import type { LolGameSpecific } from "@/lib/games/lol/schema";
@@ -167,35 +168,28 @@ export default async function ComboDetailPage({ params }: Props) {
         {/* ── Left (영상·제목·시퀀스·댓글·관련) ── */}
         <div className="flex flex-col gap-6 order-last lg:order-first">
 
-          {/* Video — crop 적용 시 컨테이너 aspect 를 crop region 비율로 변경
-              (원본 영상이 16:9 라고 가정, 그 위에서 crop region 의 픽셀 비를 계산) */}
-          <div
-            className={`relative bg-surface-overlay rounded-xl overflow-hidden border border-border ${videoCrop ? "" : "aspect-video"}`}
-            style={
-              videoCrop
-                ? { aspectRatio: `${(16 / 9) * (videoCrop.w / videoCrop.h)}` }
-                : undefined
-            }
-          >
+          {/* Video / thumbnail — aspect 는 미디어 native 를 client 에서 측정해 자동 맞춤
+              (CroppedVideo / ThumbnailDisplay 가 자체 컨테이너에서 aspect 결정).
+              wrapper 는 styling 만 담당. */}
+          <div className="relative bg-surface-overlay rounded-xl overflow-hidden border border-border">
             {combo.videoUrl ? (
               <CroppedVideo
                 videoUrl={combo.videoUrl}
                 thumbnailUrl={combo.thumbnailUrl}
                 crop={videoCrop}
                 trim={videoTrim}
-                className="w-full h-full object-cover"
               />
             ) : combo.thumbnailUrl ? (
-              <Image src={combo.thumbnailUrl} alt={combo.title} fill className="object-cover" />
-            ) : combo.character.iconUrl ? (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Image src={combo.character.iconUrl} alt={combo.character.name} width={96} height={96} className="rounded-full opacity-20" />
-              </div>
-            ) : null}
-            {!combo.videoUrl && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-16 h-16 rounded-full bg-black/50 border border-[rgba(255,255,255,0.16)] flex items-center justify-center text-white">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              <ThumbnailDisplay src={combo.thumbnailUrl} alt={combo.title} />
+            ) : (
+              <div className="aspect-video flex items-center justify-center relative">
+                {combo.character.iconUrl && (
+                  <Image src={combo.character.iconUrl} alt={combo.character.name} width={96} height={96} className="rounded-full opacity-20" />
+                )}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-black/50 border border-[rgba(255,255,255,0.16)] flex items-center justify-center text-white">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                  </div>
                 </div>
               </div>
             )}
