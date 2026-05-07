@@ -1168,10 +1168,8 @@ async function cropImageToBlob(
 
 // ── 영상 trim 컨트롤 ───────────────────────────────────────────
 //
-// 재인코딩 없이 currentTime 으로 재생 범위만 제한.
-// 두 개의 number input + "현재 시간으로 설정" 버튼 + dual-handle range slider.
+// 재인코딩 없이 currentTime 으로 재생 범위만 제한. dual-handle range slider 만.
 function VideoTrimControls({
-  videoRef,
   duration,
   trim,
   onChange,
@@ -1181,177 +1179,35 @@ function VideoTrimControls({
   trim: { start: number; end: number } | null;
   onChange: (v: { start: number; end: number } | null) => void;
 }) {
-  // 입력 필드: trim 값이 있으면 그 값을, 없으면 0 / duration 으로 미리 채움.
-  // duration 을 모를 때(아직 metadata 로딩 전)에는 빈 문자열로.
+  if (duration === null || duration <= 0) return null;
   const startVal = trim?.start ?? 0;
-  const endVal = trim?.end ?? (duration ?? 0);
-  const trimDuration = endVal - startVal;
-  const hasTrim = trim !== null;
+  const endVal = trim?.end ?? duration;
 
   const setStart = (s: number) => {
     if (!Number.isFinite(s) || s < 0) return;
-    const e = trim?.end ?? duration ?? s + 0.1;
-    if (s >= e) return; // 무효 범위 — 무시
+    const e = trim?.end ?? duration;
+    if (s >= e) return;
     onChange({ start: s, end: e });
   };
   const setEnd = (e: number) => {
     if (!Number.isFinite(e) || e <= 0) return;
     const s = trim?.start ?? 0;
     if (e <= s) return;
-    if (duration !== null && e > duration + 0.001) {
-      e = duration;
-    }
-    onChange({ start: s, end: e });
+    onChange({ start: s, end: Math.min(e, duration) });
   };
-
-  const handleSetStartCurrent = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    const t = Math.max(0, Math.round(v.currentTime * 100) / 100);
-    setStart(t);
-  };
-  const handleSetEndCurrent = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    const t = Math.max(0, Math.round(v.currentTime * 100) / 100);
-    setEnd(t);
-  };
-
-  const handleClear = () => onChange(null);
-
-  // Slider — duration 이 없으면 표시하지 않음
-  const max = duration ?? 0;
 
   return (
-    <div className="flex flex-col gap-2 p-3 rounded-lg border border-border bg-surface-overlay">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-bold uppercase tracking-wide text-text-secondary">
-          ✂️ 길이 조정 (Trim)
-        </span>
-        <div className="flex items-center gap-3 text-[11px]">
-          {duration !== null && (
-            <span className="text-text-muted">
-              총 {duration.toFixed(2)}s
-            </span>
-          )}
-          {hasTrim && (
-            <span className="text-gold font-semibold">
-              {trimDuration.toFixed(2)}s 재생
-            </span>
-          )}
-          {hasTrim && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="text-text-muted hover:text-hard transition-colors font-semibold"
-            >
-              초기화
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <label className="flex flex-col gap-1">
-          <span className="text-[11px] text-text-muted">시작 (s)</span>
-          <div className="flex items-center gap-1.5">
-            <input
-              type="number"
-              min={0}
-              step={0.1}
-              max={duration ?? undefined}
-              value={hasTrim ? startVal : ""}
-              placeholder="0"
-              onChange={(e) => {
-                const raw = e.target.value;
-                if (raw === "") {
-                  // 빈 문자열 → trim 에서 start 만 초기화. end 는 유지.
-                  if (trim) onChange({ start: 0, end: trim.end });
-                  return;
-                }
-                const n = Number(raw);
-                if (Number.isFinite(n)) setStart(n);
-              }}
-              className="flex-1 h-8 px-2 rounded-md border border-border bg-surface-raised text-xs focus:outline-none focus:border-[rgba(255,255,255,0.3)]"
-            />
-            <button
-              type="button"
-              onClick={handleSetStartCurrent}
-              className="h-8 px-2 rounded-md border border-border bg-surface-raised text-[11px] font-semibold text-text-secondary hover:text-text hover:bg-surface-overlay transition-colors whitespace-nowrap"
-              title="현재 재생 위치를 시작 시점으로 설정"
-            >
-              현재 시간
-            </button>
-          </div>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-[11px] text-text-muted">끝 (s)</span>
-          <div className="flex items-center gap-1.5">
-            <input
-              type="number"
-              min={0}
-              step={0.1}
-              max={duration ?? undefined}
-              value={hasTrim ? endVal : ""}
-              placeholder={duration !== null ? duration.toFixed(2) : ""}
-              onChange={(e) => {
-                const raw = e.target.value;
-                if (raw === "") {
-                  if (trim) onChange(null);
-                  return;
-                }
-                const n = Number(raw);
-                if (Number.isFinite(n)) setEnd(n);
-              }}
-              className="flex-1 h-8 px-2 rounded-md border border-border bg-surface-raised text-xs focus:outline-none focus:border-[rgba(255,255,255,0.3)]"
-            />
-            <button
-              type="button"
-              onClick={handleSetEndCurrent}
-              className="h-8 px-2 rounded-md border border-border bg-surface-raised text-[11px] font-semibold text-text-secondary hover:text-text hover:bg-surface-overlay transition-colors whitespace-nowrap"
-              title="현재 재생 위치를 끝 시점으로 설정"
-            >
-              현재 시간
-            </button>
-          </div>
-        </label>
-      </div>
-
-      {/* Dual-handle slider — 두 개의 range input 을 겹쳐 표시 */}
-      {duration !== null && duration > 0 && (
-        <div className="flex flex-col gap-1 mt-1">
-          <div className="relative h-5">
-            <input
-              type="range"
-              min={0}
-              max={max}
-              step={0.05}
-              value={startVal}
-              onChange={(e) => setStart(Number(e.target.value))}
-              aria-label="시작 시점"
-              className="absolute inset-x-0 top-1/2 -translate-y-1/2 w-full appearance-none bg-transparent pointer-events-auto accent-gold"
-            />
-            <input
-              type="range"
-              min={0}
-              max={max}
-              step={0.05}
-              value={endVal}
-              onChange={(e) => setEnd(Number(e.target.value))}
-              aria-label="끝 시점"
-              className="absolute inset-x-0 top-1/2 -translate-y-1/2 w-full appearance-none bg-transparent pointer-events-auto accent-gold"
-            />
-          </div>
-          <div className="flex justify-between text-[10px] text-text-muted">
-            <span>0s</span>
-            <span>{duration.toFixed(2)}s</span>
-          </div>
-        </div>
-      )}
-
-      <p className="text-[11px] text-text-muted">
-        영상 파일은 그대로 두고, 표시 시 시작~끝 구간만 재생됩니다.
-      </p>
+    <div className="relative h-5 mt-1">
+      <input
+        type="range" min={0} max={duration} step={0.05} value={startVal}
+        onChange={(e) => setStart(Number(e.target.value))}
+        className="absolute inset-x-0 top-1/2 -translate-y-1/2 w-full appearance-none bg-transparent pointer-events-auto accent-gold"
+      />
+      <input
+        type="range" min={0} max={duration} step={0.05} value={endVal}
+        onChange={(e) => setEnd(Number(e.target.value))}
+        className="absolute inset-x-0 top-1/2 -translate-y-1/2 w-full appearance-none bg-transparent pointer-events-auto accent-gold"
+      />
     </div>
   );
 }
