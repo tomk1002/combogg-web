@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 interface Props {
   searchParams: Promise<{ error?: string }>;
@@ -18,6 +19,11 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 export default async function AuthErrorPage({ searchParams }: Props) {
   const { error } = await searchParams;
+  // During closed alpha, AccessDenied means the email isn't on the allowlist —
+  // route to the dedicated alpha-gate landing page.
+  if (error === "AccessDenied") {
+    redirect("/access-denied");
+  }
   const message = error ? (ERROR_MESSAGES[error] ?? ERROR_MESSAGES.Default) : ERROR_MESSAGES.Default;
 
   return (

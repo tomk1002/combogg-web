@@ -23,6 +23,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
+    /**
+     * Closed alpha email allowlist gate.
+     *
+     * Reads `ALPHA_ALLOWED_EMAILS` (comma-separated) from env. When the list is
+     * empty (e.g. local dev), all sign-ins are allowed. When set, only listed
+     * emails (case-insensitive) may sign in; rejected sign-ins are redirected
+     * to `/access-denied` (see `pages.error` in `auth.config.ts`).
+     */
+    signIn({ user }) {
+      const allowlist =
+        process.env.ALPHA_ALLOWED_EMAILS?.split(",")
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean) ?? [];
+      if (allowlist.length === 0) return true;
+      const email = user.email?.toLowerCase();
+      if (!email) return false;
+      return allowlist.includes(email);
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id!;

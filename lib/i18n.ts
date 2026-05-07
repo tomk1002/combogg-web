@@ -186,6 +186,20 @@ export const dict = {
     // lang toggle
     lang_ko: "한국어",
     lang_en: "English",
+    // footer
+    footer_riot_disclaimer:
+      "combo.gg는 Riot Games의 공식 서비스가 아닙니다. League of Legends 및 Riot Games는 Riot Games, Inc.의 상표입니다. League of Legends © Riot Games, Inc.",
+    footer_privacy: "개인정보 처리방침",
+    footer_terms: "이용약관",
+    footer_contact: "문의",
+    footer_copyright: (year: number) => `© ${year} combo.gg`,
+    // access denied
+    access_denied_title: "비공개 알파 테스트 중",
+    access_denied_desc:
+      "현재 combo.gg는 비공개 알파 테스트 중입니다. 초대된 이메일만 로그인할 수 있습니다.",
+    access_denied_apply: "알파 참가 신청",
+    access_denied_back: "← 홈으로",
+    access_denied_contact: "이미 신청했는데 접근이 안 되시나요?",
   },
   en: {
     nav_explore: "Explore",
@@ -346,6 +360,20 @@ export const dict = {
     login_discord: "Continue with Discord",
     lang_ko: "한국어",
     lang_en: "English",
+    // footer
+    footer_riot_disclaimer:
+      "combo.gg isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing League of Legends. League of Legends and Riot Games are trademarks or registered trademarks of Riot Games, Inc. League of Legends © Riot Games, Inc.",
+    footer_privacy: "Privacy Policy",
+    footer_terms: "Terms of Service",
+    footer_contact: "Contact",
+    footer_copyright: (year: number) => `© ${year} combo.gg`,
+    // access denied
+    access_denied_title: "Closed Alpha Test",
+    access_denied_desc:
+      "combo.gg is currently in closed alpha testing. Only invited emails can sign in.",
+    access_denied_apply: "Apply for alpha access",
+    access_denied_back: "← Back to home",
+    access_denied_contact: "Already applied but can't access?",
   },
 } as const;
 
