@@ -83,9 +83,9 @@ export default function CroppedVideo({ videoUrl, thumbnailUrl, crop, trim }: Pro
           ref={videoRef}
           src={videoUrl}
           controls
-          preload={trim ? "metadata" : "none"}
+          preload="metadata"
           poster={thumbnailUrl ?? undefined}
-          className="absolute inset-0 w-full h-full"
+          className="absolute inset-0 w-full h-full object-cover"
         />
       </div>
     );
@@ -105,9 +105,10 @@ export default function CroppedVideo({ videoUrl, thumbnailUrl, crop, trim }: Pro
         ref={videoRef}
         src={videoUrl}
         controls
-        preload={trim ? "metadata" : "none"}
+        preload="metadata"
         poster={thumbnailUrl ?? undefined}
         style={innerStyle}
+        className="object-cover"
       />
     </div>
   );
