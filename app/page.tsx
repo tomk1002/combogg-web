@@ -99,9 +99,6 @@ export default async function Home() {
                 </svg>
                 {t.hero_share}
               </Link>
-              <Link href="/download" className="inline-flex items-center gap-2 h-11 px-6 rounded-[8px] border border-border text-text-secondary font-bold text-sm hover:bg-surface-overlay hover:text-text transition-colors">
-                {t.hero_download}
-              </Link>
             </div>
           </div>
 
