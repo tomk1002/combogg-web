@@ -49,9 +49,7 @@ export default async function DownloadPage() {
             </div>
             <p className="text-sm text-text-secondary leading-relaxed mb-3">{t.dl_install_step1_desc}</p>
             <a
-              href="https://www.overwolf.com/"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="https://download.overwolf.com/install/Download"
               className="text-sm text-gold hover:underline font-bold"
             >
               {t.dl_install_step1_link}
