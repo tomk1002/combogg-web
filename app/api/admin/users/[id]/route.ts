@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { ok, badRequest, notFound, serverError } from "@/lib/api/response";
+import { ok, badRequest, forbidden, notFound, serverError } from "@/lib/api/response";
 import { requireAdminApi } from "@/lib/auth/require-admin";
 import type { UserRole } from "@prisma/client";
 
@@ -33,6 +33,27 @@ export async function PATCH(req: Request, { params }: Ctx) {
     });
 
     return ok({ id: updated.id, role: updated.role });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+export async function DELETE(_req: Request, { params }: Ctx) {
+  try {
+    const guard = await requireAdminApi();
+    if (!guard.ok) return guard.response;
+
+    const { id } = await params;
+    if (id === guard.userId) {
+      return forbidden("자기 자신은 삭제할 수 없습니다");
+    }
+
+    const existing = await prisma.user.findUnique({ where: { id }, select: { id: true } });
+    if (!existing) return notFound();
+
+    await prisma.user.delete({ where: { id } });
+
+    return ok({ id });
   } catch (err) {
     return serverError(err);
   }

@@ -197,7 +197,7 @@ model Combo {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
-  author        User           @relation(fields: [authorId], references: [id])
+  author        User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
   game          Game           @relation(fields: [gameId], references: [id])
   character     Character      @relation(fields: [characterId], references: [id])
   likes         Like[]
