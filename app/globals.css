@@ -148,3 +148,14 @@ html[data-theme="light"] .text-gradient-gold {
   -webkit-text-fill-color: transparent;
   color: transparent;
 }
+
+/* ──────────────────────────────────────────────────────────
+   SCROLLBAR UTILITIES
+────────────────────────────────────────────────────────── */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
