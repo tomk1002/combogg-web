@@ -25,25 +25,6 @@ export interface InputEntryDTO {
   slot?: number | string;
 }
 
-export interface ComboListItemDTO {
-  id: string;
-  title: string;
-  author: AuthorDTO;
-  game: GameDTO;
-  character: CharacterDTO;
-  difficulty: Difficulty;
-  tags: string[];
-  durationMs: number | null;
-  inputSummary: InputEntryDTO[];
-  thumbnailUrl: string | null;
-  videoUrl: string | null;
-  likeCount: number;
-  downloadCount: number;
-  viewCount: number;
-  patchVersion: string | null;
-  createdAt: string;
-}
-
 export interface VideoCropDTO {
   x: number;
   y: number;
@@ -57,13 +38,32 @@ export interface VideoTrimDTO {
   end: number;
 }
 
+export interface ComboListItemDTO {
+  id: string;
+  title: string;
+  author: AuthorDTO;
+  game: GameDTO;
+  character: CharacterDTO;
+  difficulty: Difficulty;
+  tags: string[];
+  durationMs: number | null;
+  inputSummary: InputEntryDTO[];
+  thumbnailUrl: string | null;
+  videoUrl: string | null;
+  videoCrop: VideoCropDTO | null;
+  videoTrim: VideoTrimDTO | null;
+  likeCount: number;
+  downloadCount: number;
+  viewCount: number;
+  patchVersion: string | null;
+  createdAt: string;
+}
+
 export interface ComboDetailDTO extends ComboListItemDTO {
   description: string | null;
   tip: string | null;
   gameSpecific: Record<string, unknown>;
   videoUrl: string | null;
-  videoCrop: VideoCropDTO | null;
-  videoTrim: VideoTrimDTO | null;
   tutfileUrl: string | null;
   isLiked: boolean;
 }

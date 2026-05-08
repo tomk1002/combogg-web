@@ -9,7 +9,9 @@ export const COMBO_INCLUDE = {
 
 type ComboWithRelations = Prisma.ComboGetPayload<{ include: typeof COMBO_INCLUDE }>;
 
-export function toComboListItem(c: ComboWithRelations): ComboListItemDTO {
+export function toComboListItem(
+  c: ComboWithRelations & { videoCrop?: unknown; videoTrim?: unknown }
+): ComboListItemDTO {
   return {
     id: c.id,
     title: c.title,
@@ -22,6 +24,8 @@ export function toComboListItem(c: ComboWithRelations): ComboListItemDTO {
     inputSummary: (c.inputSummary as unknown as InputEntryDTO[]) ?? [],
     thumbnailUrl: c.thumbnailUrl,
     videoUrl: c.videoUrl,
+    videoCrop: parseVideoCrop(c.videoCrop),
+    videoTrim: parseVideoTrim(c.videoTrim),
     likeCount: c.likeCount,
     downloadCount: c.downloadCount,
     viewCount: c.viewCount,
@@ -40,8 +44,6 @@ export function toComboDetail(
     tip: c.tip,
     gameSpecific: (c.gameSpecific as Record<string, unknown>) ?? {},
     videoUrl: c.videoUrl,
-    videoCrop: parseVideoCrop(c.videoCrop),
-    videoTrim: parseVideoTrim(c.videoTrim),
     tutfileUrl: c.tutfileUrl,
     isLiked,
   };
