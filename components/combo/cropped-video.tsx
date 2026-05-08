@@ -24,10 +24,14 @@ interface Props {
 //   - 단, native HTML5 controls 바가 video element 의 맨 아래에 있어 transform 후엔
 //     컨테이너 밖으로 밀려나서 사용자가 못 봄. 그래서 crop 시엔 controls 제거하고
 //     커스텀 play overlay 사용.
+//   - poster 속성은 video element 자체의 transform 영향을 받아 잘려 보임 →
+//     poster 대신 컨테이너 사이즈에 맞춘 별도 <img> 를 underlay 로 표시.
+//     video 재생 시작하면 숨김.
 export default function CroppedVideo({ videoUrl, thumbnailUrl, crop, trim }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [nativeAspect, setNativeAspect] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [started, setStarted] = useState(false); // 한 번이라도 재생 시작했는지 (썸네일 underlay hide)
 
   // native video aspect 측정
   useEffect(() => {
@@ -80,7 +84,7 @@ export default function CroppedVideo({ videoUrl, thumbnailUrl, crop, trim }: Pro
     return nativeAspect * (crop.w / crop.h);
   })();
 
-  // ── no crop: native controls 그대로 사용 ──────────────────
+  // ── no crop: native controls + native poster ──────────────
   if (!crop) {
     return (
       <div className="relative w-full overflow-hidden" style={{ aspectRatio: containerAspect }}>
@@ -96,12 +100,12 @@ export default function CroppedVideo({ videoUrl, thumbnailUrl, crop, trim }: Pro
     );
   }
 
-  // ── crop: 커스텀 click-to-play overlay (native controls 가림) ───
+  // ── crop: poster underlay + transformed video + custom play button ───
   const togglePlay = () => {
     const v = videoRef.current;
     if (!v) return;
     if (v.paused) {
-      v.play().then(() => setPlaying(true)).catch(() => {});
+      v.play().then(() => { setPlaying(true); setStarted(true); }).catch(() => {});
     } else {
       v.pause();
       setPlaying(false);
@@ -118,14 +122,22 @@ export default function CroppedVideo({ videoUrl, thumbnailUrl, crop, trim }: Pro
 
   return (
     <div className="relative w-full overflow-hidden bg-black" style={{ aspectRatio: containerAspect }}>
+      {/* 썸네일 underlay — 컨테이너 사이즈로 표시. 재생 시작 후엔 숨김. */}
+      {thumbnailUrl && !started && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={thumbnailUrl}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      )}
       <video
         ref={videoRef}
         src={videoUrl}
         preload="metadata"
-        poster={thumbnailUrl ?? undefined}
         style={innerStyle}
         className="object-cover pointer-events-none"
-        onPlay={() => setPlaying(true)}
+        onPlay={() => { setPlaying(true); setStarted(true); }}
         onPause={() => setPlaying(false)}
         onEnded={() => setPlaying(false)}
       />
