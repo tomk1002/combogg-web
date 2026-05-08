@@ -103,25 +103,9 @@ export default function CropOverlay({
     return () => ro.disconnect();
   }, []);
 
-  // 16:9 비율 보정 (stageSize 알게 된 뒤, initialCrop 유무와 무관하게 1회).
-  // 기존에 다른 비율로 저장된 crop 도 강제로 16:9 로 맞춤.
-  const didInitRatioRef = useRef(false);
-  useEffect(() => {
-    if (didInitRatioRef.current) return;
-    if (stageSize.w === 0 || stageSize.h === 0) return;
-    const preset = RATIOS.find((r) => r.value === ratio);
-    if (!preset?.ratio) { didInitRatioRef.current = true; return; }
-    setCrop((c) => {
-      const adjusted = adjustForRatio(c.w, c.h, preset.ratio!, stageSize.w, stageSize.h);
-      // 중심 유지
-      const cx = c.x + c.w / 2;
-      const cy = c.y + c.h / 2;
-      const nx = clamp(cx - adjusted.w / 2, 0, 1 - adjusted.w);
-      const ny = clamp(cy - adjusted.h / 2, 0, 1 - adjusted.h);
-      return { x: nx, y: ny, w: adjusted.w, h: adjusted.h };
-    });
-    didInitRatioRef.current = true;
-  }, [stageSize, ratio]);
+  // 16:9 보정은 사용자가 드래그/리사이즈 할 때만 적용 (resize handler 안의 ratio 보존 로직).
+  // initialCrop 은 그대로 보여주고, 사용자가 손을 대면 그때부터 16:9 로 맞춰감.
+  // 자동 보정을 하면 기존에 저장된 crop 위치/크기가 의도치 않게 바뀌어 혼란을 일으키므로 의도적으로 비활성.
 
   // pointer → 정규화 좌표
   const pointerToNorm = useCallback((clientX: number, clientY: number) => {
