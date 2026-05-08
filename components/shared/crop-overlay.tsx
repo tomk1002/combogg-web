@@ -19,12 +19,10 @@ export interface CropResult extends NormalizedCrop {
 
 export type AspectRatioPreset = "16:9" | "4:3" | "1:1" | "9:16" | "free";
 
+// crop 비율은 detail 페이지 컨테이너 비율(16:9)에 통일.
+// 다른 비율을 허용하면 썸네일/영상/컨테이너 간 cover-fit 잘림이 생겨 중앙 정렬·일관성이 깨짐.
 const RATIOS: { value: AspectRatioPreset; label: string; ratio: number | null }[] = [
   { value: "16:9", label: "16:9", ratio: 16 / 9 },
-  { value: "4:3",  label: "4:3",  ratio: 4 / 3 },
-  { value: "1:1",  label: "1:1",  ratio: 1 },
-  { value: "9:16", label: "9:16", ratio: 9 / 16 },
-  { value: "free", label: "자유", ratio: null },
 ];
 
 interface Props {
@@ -80,9 +78,7 @@ export default function CropOverlay({
   const mediaWrapRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const [ratio, setRatio] = useState<AspectRatioPreset>(
-    initialCrop ? "free" : "16:9"
-  );
+  const [ratio] = useState<AspectRatioPreset>("16:9");
   const [crop, setCrop] = useState<NormalizedCrop>(
     initialCrop ?? { x: 0.1, y: 0.1, w: 0.8, h: 0.8 }
   );
@@ -107,12 +103,11 @@ export default function CropOverlay({
     return () => ro.disconnect();
   }, []);
 
-  // 초기 16:9 비율 보정 (stageSize 알게 된 뒤)
-  // initialCrop 가 없을 때만, stageSize 가 들어온 첫 시점에 한 번.
+  // 16:9 비율 보정 (stageSize 알게 된 뒤, initialCrop 유무와 무관하게 1회).
+  // 기존에 다른 비율로 저장된 crop 도 강제로 16:9 로 맞춤.
   const didInitRatioRef = useRef(false);
   useEffect(() => {
     if (didInitRatioRef.current) return;
-    if (initialCrop) { didInitRatioRef.current = true; return; }
     if (stageSize.w === 0 || stageSize.h === 0) return;
     const preset = RATIOS.find((r) => r.value === ratio);
     if (!preset?.ratio) { didInitRatioRef.current = true; return; }
@@ -126,34 +121,7 @@ export default function CropOverlay({
       return { x: nx, y: ny, w: adjusted.w, h: adjusted.h };
     });
     didInitRatioRef.current = true;
-  }, [stageSize, initialCrop, ratio]);
-
-  // 비율 프리셋 변경
-  const handleRatioChange = useCallback(
-    (next: AspectRatioPreset) => {
-      setRatio(next);
-      const preset = RATIOS.find((r) => r.value === next);
-      if (!preset?.ratio || stageSize.w === 0 || stageSize.h === 0) return;
-      setCrop((c) => {
-        const adjusted = adjustForRatio(c.w, c.h, preset.ratio!, stageSize.w, stageSize.h);
-        const cx = c.x + c.w / 2;
-        const cy = c.y + c.h / 2;
-        const nx = clamp(cx - adjusted.w / 2, 0, 1 - adjusted.w);
-        const ny = clamp(cy - adjusted.h / 2, 0, 1 - adjusted.h);
-        // 경계로 인해 잘려도 다시 비율 맞춤
-        const w2 = Math.min(adjusted.w, 1);
-        const h2 = Math.min(adjusted.h, 1);
-        const final = adjustForRatio(w2, h2, preset.ratio!, stageSize.w, stageSize.h);
-        return {
-          x: clamp(nx, 0, 1 - final.w),
-          y: clamp(ny, 0, 1 - final.h),
-          w: final.w,
-          h: final.h,
-        };
-      });
-    },
-    [stageSize]
-  );
+  }, [stageSize, ratio]);
 
   // pointer → 정규화 좌표
   const pointerToNorm = useCallback((clientX: number, clientY: number) => {
@@ -295,23 +263,11 @@ export default function CropOverlay({
       role="dialog"
       aria-label="크롭 편집"
     >
-      {/* 헤더 — 비율 프리셋 */}
-      <div className="flex flex-wrap items-center justify-center gap-2 px-4 py-3 border-b border-white/10 bg-black/50">
-        <span className="text-xs font-bold uppercase tracking-wide text-white/60 mr-2">비율</span>
-        {RATIOS.map((r) => (
-          <button
-            key={r.value}
-            type="button"
-            onClick={() => handleRatioChange(r.value)}
-            className={`h-8 px-3 rounded-md border text-xs font-bold transition-colors ${
-              ratio === r.value
-                ? "border-gold bg-gold/20 text-gold"
-                : "border-white/20 text-white/70 hover:text-white hover:border-white/40"
-            }`}
-          >
-            {r.label}
-          </button>
-        ))}
+      {/* 헤더 — 비율 안내 (16:9 고정) */}
+      <div className="flex items-center justify-center gap-2 px-4 py-3 border-b border-white/10 bg-black/50">
+        <span className="text-xs font-bold uppercase tracking-wide text-white/60">비율</span>
+        <span className="h-8 px-3 inline-flex items-center rounded-md border border-gold bg-gold/20 text-gold text-xs font-bold">16:9</span>
+        <span className="text-[11px] text-white/40">컨테이너 일관성을 위해 16:9 고정</span>
       </div>
 
       {/* 미디어 + 크롭 박스 */}

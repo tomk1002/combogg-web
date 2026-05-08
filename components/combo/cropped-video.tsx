@@ -10,44 +10,19 @@ interface Props {
   trim?: VideoTrimDTO | null;
 }
 
-// Display-time video crop using CSS transform (no re-encoding).
-// Display-time video trim using currentTime control (no re-encoding).
+// 컨테이너 비율은 16:9 고정 (crop overlay 도 16:9 만 허용).
 //
-// Aspect ratio:
-//   - 컨테이너의 aspect = native video aspect × (crop.w / crop.h) (crop 있을 때)
-//   - 또는 native video aspect (crop 없을 때)
-//   - native dims 가 로드되기 전까지는 16:9 fallback
+// Crop transform (display-time, 재인코딩 X):
+//   - inner <video> 를 (1/crop.w × 1/crop.h) 배율로 키우고 (-crop.x, -crop.y) 만큼 평행이동
+//   - 컨테이너 overflow-hidden 으로 crop 영역만 보임
 //
-// Crop transform:
-//   - inner <video> 를 (1/crop.w × 1/crop.h) 배율로 키우고 (-crop.x, -crop.y) 만큼 평행이동.
-//     → crop 영역만 wrapper 안에 보임.
-//   - 단, native HTML5 controls 바가 video element 의 맨 아래에 있어 transform 후엔
-//     컨테이너 밖으로 밀려나서 사용자가 못 봄. 그래서 crop 시엔 controls 제거하고
-//     커스텀 play overlay 사용.
-//   - poster 속성은 video element 자체의 transform 영향을 받아 잘려 보임 →
-//     poster 대신 컨테이너 사이즈에 맞춘 별도 <img> 를 underlay 로 표시.
-//     video 재생 시작하면 숨김.
+// Native HTML5 controls 바는 transform 후 컨테이너 밖으로 밀려나므로 crop 시엔 제거하고
+// 커스텀 click-to-play overlay 사용. poster 속성도 같은 이유로 제거하고 별도 <img> underlay
+// 로 표시 (재생 시작하면 hide).
 export default function CroppedVideo({ videoUrl, thumbnailUrl, crop, trim }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [nativeAspect, setNativeAspect] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
-  const [started, setStarted] = useState(false); // 한 번이라도 재생 시작했는지 (썸네일 underlay hide)
-
-  // native video aspect 측정
-  useEffect(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    const onLoaded = () => {
-      if (v.videoWidth > 0 && v.videoHeight > 0) {
-        setNativeAspect(v.videoWidth / v.videoHeight);
-      }
-    };
-    v.addEventListener("loadedmetadata", onLoaded);
-    if (v.readyState >= 1 && v.videoWidth > 0 && v.videoHeight > 0) {
-      setNativeAspect(v.videoWidth / v.videoHeight);
-    }
-    return () => v.removeEventListener("loadedmetadata", onLoaded);
-  }, [videoUrl]);
+  const [started, setStarted] = useState(false);
 
   // trim 효과
   useEffect(() => {
@@ -77,17 +52,10 @@ export default function CroppedVideo({ videoUrl, thumbnailUrl, crop, trim }: Pro
     };
   }, [trim]);
 
-  // 컨테이너 aspect ratio 결정
-  const containerAspect = (() => {
-    if (nativeAspect == null) return 16 / 9;
-    if (!crop) return nativeAspect;
-    return nativeAspect * (crop.w / crop.h);
-  })();
-
   // ── no crop: native controls + native poster ──────────────
   if (!crop) {
     return (
-      <div className="relative w-full overflow-hidden" style={{ aspectRatio: containerAspect }}>
+      <div className="relative w-full aspect-video overflow-hidden">
         <video
           ref={videoRef}
           src={videoUrl}
@@ -100,7 +68,7 @@ export default function CroppedVideo({ videoUrl, thumbnailUrl, crop, trim }: Pro
     );
   }
 
-  // ── crop: poster underlay + transformed video + custom play button ───
+  // ── crop: 썸네일 underlay + transformed video + 커스텀 play 버튼 ───
   const togglePlay = () => {
     const v = videoRef.current;
     if (!v) return;
@@ -121,8 +89,7 @@ export default function CroppedVideo({ videoUrl, thumbnailUrl, crop, trim }: Pro
   };
 
   return (
-    <div className="relative w-full overflow-hidden bg-black" style={{ aspectRatio: containerAspect }}>
-      {/* 썸네일 underlay — 컨테이너 사이즈로 표시. 재생 시작 후엔 숨김. */}
+    <div className="relative w-full aspect-video overflow-hidden bg-black">
       {thumbnailUrl && !started && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
