@@ -69,7 +69,8 @@ export default function ComboCard({ combo, priority = false }: Props) {
           </div>
         ) : null}
 
-        {/* hover 시 페이드인되는 비디오 오버레이 — videoCrop 있으면 transform 으로 crop 적용 */}
+        {/* hover 시 페이드인되는 비디오 오버레이 — 카드는 작아서 crop 적용하면 잘리는 영역이
+            너무 좁아져 의미가 없음. 원본 그대로 표시. */}
         {combo.videoUrl && (
           <video
             ref={videoRef}
@@ -78,24 +79,8 @@ export default function ComboCard({ combo, priority = false }: Props) {
             loop
             playsInline
             preload="none"
-            style={
-              combo.videoCrop
-                ? {
-                    opacity: 0,
-                    transition: "opacity 0.35s ease",
-                    position: "absolute",
-                    width: `${100 / combo.videoCrop.w}%`,
-                    height: `${100 / combo.videoCrop.h}%`,
-                    left: `${-combo.videoCrop.x * (100 / combo.videoCrop.w)}%`,
-                    top: `${-combo.videoCrop.y * (100 / combo.videoCrop.h)}%`,
-                  }
-                : { opacity: 0, transition: "opacity 0.35s ease" }
-            }
-            className={
-              combo.videoCrop
-                ? "object-cover pointer-events-none"
-                : "absolute inset-0 w-full h-full object-cover pointer-events-none"
-            }
+            style={{ opacity: 0, transition: "opacity 0.35s ease" }}
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
           />
         )}
 
