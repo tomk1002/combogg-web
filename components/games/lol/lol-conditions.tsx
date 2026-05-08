@@ -42,26 +42,26 @@ export default async function LolConditions({ gameSpecific, patch = "16.8.1" }: 
   }
 
   return (
-    <div className="bg-surface-raised rounded-xl p-5 border border-border">
-      <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-4">조건</h2>
+    <div>
+      <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">조건</h2>
       <div className="flex flex-col gap-4">
 
         {hasStats && (
           <div className="grid grid-cols-3 gap-2">
             {required_level && (
-              <div className="bg-surface-overlay rounded-lg p-3 text-center">
+              <div className="text-center">
                 <p className="text-lg font-black">{required_level}</p>
                 <p className="text-xs text-text-muted mt-0.5">최소 레벨</p>
               </div>
             )}
             {ability_haste_min && (
-              <div className="bg-surface-overlay rounded-lg p-3 text-center">
+              <div className="text-center">
                 <p className="text-lg font-black">{ability_haste_min}</p>
                 <p className="text-xs text-text-muted mt-0.5">스킬 가속</p>
               </div>
             )}
             {attack_speed_min && (
-              <div className="bg-surface-overlay rounded-lg p-3 text-center">
+              <div className="text-center">
                 <p className="text-lg font-black">{attack_speed_min}</p>
                 <p className="text-xs text-text-muted mt-0.5">공격 속도</p>
               </div>
@@ -74,7 +74,7 @@ export default async function LolConditions({ gameSpecific, patch = "16.8.1" }: 
             <p className="text-xs font-semibold text-text-muted mb-2">소환사 주문</p>
             <div className="flex gap-2 flex-wrap">
               {summoner_spells!.map((spell) => (
-                <div key={spell} className="flex items-center gap-1.5 bg-surface-overlay rounded-lg px-2.5 py-1.5">
+                <div key={spell} className="flex items-center gap-1.5">
                   <Image
                     src={`https://ddragon.leagueoflegends.com/cdn/${patch}/img/spell/${spell}.png`}
                     alt={spell}
@@ -94,7 +94,7 @@ export default async function LolConditions({ gameSpecific, patch = "16.8.1" }: 
             <p className="text-xs font-semibold text-text-muted mb-2">필요 아이템</p>
             <div className="flex gap-2 flex-wrap">
               {required_items!.map((itemId) => (
-                <div key={itemId} className="flex items-center gap-1.5 bg-surface-overlay rounded-lg px-2.5 py-1.5">
+                <div key={itemId} className="flex items-center gap-1.5">
                   <Image
                     src={`https://ddragon.leagueoflegends.com/cdn/${patch}/img/item/${itemId}.png`}
                     alt={itemId}
@@ -112,9 +112,9 @@ export default async function LolConditions({ gameSpecific, patch = "16.8.1" }: 
         {hasSkills && (
           <div>
             <p className="text-xs font-semibold text-text-muted mb-2">필요 스킬 레벨</p>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-3 flex-wrap">
               {Object.entries(required_skills!).map(([skill, level]) => (
-                <div key={skill} className="flex items-center gap-1 bg-surface-overlay rounded-lg px-2.5 py-1.5">
+                <div key={skill} className="flex items-center gap-1">
                   <span className="text-xs font-black text-gold">{SKILL_LABELS[skill] ?? skill}</span>
                   <span className="text-xs font-semibold text-text-muted">Lv.{level}+</span>
                 </div>

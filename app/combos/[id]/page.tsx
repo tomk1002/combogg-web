@@ -101,77 +101,13 @@ export default async function ComboDetailPage({ params }: Props) {
     <main className="flex-1 max-w-[var(--width-content)] mx-auto px-4 sm:px-8 py-6 sm:py-10 w-full">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
 
-        {/* ── Right (챔피언·통계·액션) — 모바일에서 먼저 표시 ── */}
-        <div className="flex flex-col gap-4 order-first lg:order-last">
-
-          {/* Champion */}
-          <div className="bg-surface-raised rounded-xl p-5 border border-border">
-            <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">{t.detail_champion}</h2>
-            <div className="flex items-center gap-3">
-              {combo.character.iconUrl && (
-                <Image src={combo.character.iconUrl} alt={combo.character.name} width={48} height={48} className="rounded-lg" />
-              )}
-              <div>
-                <p className="font-bold">{combo.character.name}</p>
-                <p className="text-xs text-text-secondary">{combo.game.name}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* LoL conditions */}
-          {combo.game.slug === "lol" && (
-            <LolConditions gameSpecific={gameSpecific} patch={combo.patchVersion ?? undefined} />
-          )}
-
-          {/* Stats */}
-          <div className="bg-surface-raised rounded-xl p-5 border border-border">
-            <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-3">{t.detail_stats}</h2>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              {[
-                { label: t.detail_stat_likes, value: formatCount(combo.likeCount) },
-                { label: t.detail_stat_saves, value: formatCount(saveCount) },
-                { label: t.detail_stat_views, value: formatCount(combo.viewCount) },
-              ].map(({ label, value }) => (
-                <div key={label}>
-                  <p className="text-lg font-black">{value}</p>
-                  <p className="text-xs text-text-muted">{label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Save to my library — primary CTA */}
-          <SaveComboButton comboId={id} initialIsSaved={isSaved} isLoggedIn={!!userId} />
-
-          {/* Like */}
-          <ComboActions
-            comboId={id}
-            initialIsLiked={isLiked}
-            initialLikeCount={combo.likeCount}
-            isLoggedIn={!!userId}
-          />
-
-          {/* Share */}
-          <ComboShareButton comboId={id} isOwn={combo.authorId === userId} />
-
-          {/* Report — only show to non-owners */}
-          {combo.authorId !== userId && (
-            <ReportButton targetType="combo" targetId={id} />
-          )}
-
-          {/* Author actions */}
-          {combo.authorId === userId && (
-            <ComboAuthorActions comboId={id} />
-          )}
-        </div>
-
-        {/* ── Left (영상·제목·시퀀스·댓글·관련) ── */}
-        <div className="flex flex-col gap-6 order-last lg:order-first">
+        {/* ── Left (영상·제목·시퀀스·댓글·관련) — 모바일에서도 영상 먼저 ── */}
+        <div className="flex flex-col gap-6">
 
           {/* Video / thumbnail — aspect 는 미디어 native 를 client 에서 측정해 자동 맞춤
               (CroppedVideo / ThumbnailDisplay 가 자체 컨테이너에서 aspect 결정).
               wrapper 는 styling 만 담당. */}
-          <div className="relative bg-surface-overlay rounded-xl overflow-hidden border border-border">
+          <div className="relative bg-surface-overlay rounded-xl overflow-hidden">
             {combo.videoUrl ? (
               <CroppedVideo
                 videoUrl={combo.videoUrl}
@@ -223,8 +159,8 @@ export default async function ComboDetailPage({ params }: Props) {
 
           {/* Input sequence */}
           {keys.length > 0 && (
-            <div className="bg-surface-raised rounded-xl p-5 border border-border">
-              <h2 className="text-xs font-bold mb-4 text-text-secondary uppercase tracking-wide">{t.detail_input_seq}</h2>
+            <div>
+              <h2 className="text-xs font-bold mb-3 text-text-secondary uppercase tracking-wide">{t.detail_input_seq}</h2>
               <KeySequence keys={keys} size="md" maxKeys={12} />
               <p className="text-xs text-text-muted mt-2">
                 {t.detail_input_count(combo.inputCount)}
@@ -237,7 +173,7 @@ export default async function ComboDetailPage({ params }: Props) {
           {combo.tags.length > 0 && (
             <div className="flex gap-2 flex-wrap">
               {combo.tags.map((tag) => (
-                <span key={tag} className="px-3 py-1 rounded-full bg-surface-overlay border border-border text-xs font-semibold text-text-secondary">
+                <span key={tag} className="px-3 py-1 rounded-full border border-border-subtle text-xs font-semibold text-text-muted">
                   {tag}
                 </span>
               ))}
@@ -246,7 +182,7 @@ export default async function ComboDetailPage({ params }: Props) {
 
           {/* Comments — streamed */}
           <Suspense fallback={
-            <div className="bg-surface-raised rounded-xl p-5 border border-border">
+            <div>
               <div className="h-4 w-16 bg-surface-overlay rounded animate-pulse mb-4" />
               <div className="space-y-3">
                 {[1,2].map(i => <div key={i} className="h-12 bg-surface-overlay rounded-lg animate-pulse" />)}
@@ -265,6 +201,70 @@ export default async function ComboDetailPage({ params }: Props) {
               t={t}
             />
           </Suspense>
+        </div>
+
+        {/* ── Right (챔피언·통계·액션) — desktop은 우측, mobile은 영상 아래 ── */}
+        <div className="flex flex-col gap-5">
+
+          {/* Save to my library — primary CTA, 가장 위에 */}
+          <SaveComboButton comboId={id} initialIsSaved={isSaved} isLoggedIn={!!userId} />
+
+          {/* Like + Share */}
+          <div className="flex flex-col gap-2">
+            <ComboActions
+              comboId={id}
+              initialIsLiked={isLiked}
+              initialLikeCount={combo.likeCount}
+              isLoggedIn={!!userId}
+            />
+            <ComboShareButton comboId={id} isOwn={combo.authorId === userId} />
+          </div>
+
+          {/* Champion */}
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-2">{t.detail_champion}</h2>
+            <div className="flex items-center gap-3">
+              {combo.character.iconUrl && (
+                <Image src={combo.character.iconUrl} alt={combo.character.name} width={40} height={40} className="rounded-lg" />
+              )}
+              <div>
+                <p className="font-bold text-sm">{combo.character.name}</p>
+                <p className="text-xs text-text-muted">{combo.game.name}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* LoL conditions */}
+          {combo.game.slug === "lol" && (
+            <LolConditions gameSpecific={gameSpecific} patch={combo.patchVersion ?? undefined} />
+          )}
+
+          {/* Stats */}
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-2">{t.detail_stats}</h2>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              {[
+                { label: t.detail_stat_likes, value: formatCount(combo.likeCount) },
+                { label: t.detail_stat_saves, value: formatCount(saveCount) },
+                { label: t.detail_stat_views, value: formatCount(combo.viewCount) },
+              ].map(({ label, value }) => (
+                <div key={label}>
+                  <p className="text-lg font-black">{value}</p>
+                  <p className="text-xs text-text-muted">{label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Report — 작성자가 아닌 사람에게만 */}
+          {combo.authorId !== userId && (
+            <ReportButton targetType="combo" targetId={id} />
+          )}
+
+          {/* Author actions */}
+          {combo.authorId === userId && (
+            <ComboAuthorActions comboId={id} />
+          )}
         </div>
 
       </div>
@@ -311,9 +311,7 @@ async function CommentsSection({ comboId, currentUserId }: { comboId: string; cu
     createdAt: c.createdAt.toISOString(),
   }));
   return (
-    <div className="bg-surface-raised rounded-xl p-5 border border-border">
-      <ComboComments comboId={comboId} initialComments={initialComments} currentUserId={currentUserId} />
-    </div>
+    <ComboComments comboId={comboId} initialComments={initialComments} currentUserId={currentUserId} />
   );
 }
 
