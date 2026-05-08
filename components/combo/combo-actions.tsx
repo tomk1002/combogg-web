@@ -8,9 +8,10 @@ interface Props {
   initialIsLiked: boolean;
   initialLikeCount: number;
   isLoggedIn: boolean;
+  compact?: boolean;
 }
 
-export default function ComboActions({ comboId, initialIsLiked, initialLikeCount, isLoggedIn }: Props) {
+export default function ComboActions({ comboId, initialIsLiked, initialLikeCount, isLoggedIn, compact = false }: Props) {
   const router = useRouter();
   const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [likeCount, setLikeCount] = useState(initialLikeCount);
@@ -36,18 +37,23 @@ export default function ComboActions({ comboId, initialIsLiked, initialLikeCount
     }
   };
 
+  const sizing = compact
+    ? "h-9 px-4 rounded-full text-xs"
+    : "w-full h-10 rounded-xl text-sm";
+
   return (
     <button
       type="button"
       onClick={handleLike}
       disabled={isLiking}
-      className={`w-full h-10 rounded-xl border font-semibold text-sm transition-colors cursor-pointer ${
+      className={`${sizing} border font-semibold transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 ${
         isLiked
           ? "border-gold/50 bg-gold/10 text-gold"
           : "border-border text-text-secondary hover:bg-surface-overlay hover:text-text"
       }`}
     >
-      {isLiked ? `♥ ${likeCount}` : `♡ ${likeCount}`}
+      <span aria-hidden>{isLiked ? "♥" : "♡"}</span>
+      <span className="tabular-nums">{likeCount}</span>
     </button>
   );
 }

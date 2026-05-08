@@ -99,174 +99,150 @@ export default async function ComboDetailPage({ params }: Props) {
 
   return (
     <main className="flex-1 max-w-[var(--width-content)] mx-auto px-4 sm:px-8 py-6 sm:py-10 w-full">
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
+      <div className="max-w-[1024px] mx-auto flex flex-col gap-5">
 
-        {/* ── Left (영상·제목·시퀀스·댓글·관련) — 모바일에서도 영상 먼저 ── */}
-        <div className="flex flex-col gap-6">
-
-          {/* Video / thumbnail — aspect 는 미디어 native 를 client 에서 측정해 자동 맞춤
-              (CroppedVideo / ThumbnailDisplay 가 자체 컨테이너에서 aspect 결정).
-              wrapper 는 styling 만 담당. */}
-          <div className="relative bg-surface-overlay rounded-xl overflow-hidden">
-            {combo.videoUrl ? (
-              <CroppedVideo
-                videoUrl={combo.videoUrl}
-                thumbnailUrl={combo.thumbnailUrl}
-                crop={videoCrop}
-                trim={videoTrim}
-              />
-            ) : combo.thumbnailUrl ? (
-              <ThumbnailDisplay src={combo.thumbnailUrl} alt={combo.title} />
-            ) : (
-              <div className="aspect-video flex items-center justify-center relative">
-                {combo.character.iconUrl && (
-                  <Image src={combo.character.iconUrl} alt={combo.character.name} width={96} height={96} className="rounded-full opacity-20" />
-                )}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-16 h-16 rounded-full bg-black/50 border border-[rgba(255,255,255,0.16)] flex items-center justify-center text-white">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                  </div>
+        {/* Video / thumbnail */}
+        <div className="relative bg-surface-overlay rounded-xl overflow-hidden">
+          {combo.videoUrl ? (
+            <CroppedVideo
+              videoUrl={combo.videoUrl}
+              thumbnailUrl={combo.thumbnailUrl}
+              crop={videoCrop}
+              trim={videoTrim}
+            />
+          ) : combo.thumbnailUrl ? (
+            <ThumbnailDisplay src={combo.thumbnailUrl} alt={combo.title} />
+          ) : (
+            <div className="aspect-video flex items-center justify-center relative">
+              {combo.character.iconUrl && (
+                <Image src={combo.character.iconUrl} alt={combo.character.name} width={96} height={96} className="rounded-full opacity-20" />
+              )}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-black/50 border border-[rgba(255,255,255,0.16)] flex items-center justify-center text-white">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                 </div>
               </div>
-            )}
-          </div>
-
-          {/* Title / meta */}
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <DifficultyPips difficulty={combo.difficulty} />
-              {combo.patchVersion && (
-                <span className="text-xs text-text-muted font-semibold">{t.lol_patch_label(combo.patchVersion)}</span>
-              )}
-            </div>
-            <h1 className="text-2xl font-black tracking-tight mb-3">{combo.title}</h1>
-            {combo.description && (
-              <p className="text-text-secondary text-sm mb-2 leading-relaxed">{combo.description}</p>
-            )}
-            {combo.tip && (
-              <p className="text-text-secondary text-sm mb-3 leading-relaxed whitespace-pre-wrap border-l-2 border-gold/40 pl-3">{combo.tip}</p>
-            )}
-            <div className="flex items-center gap-4 text-sm text-text-secondary">
-              <span className="flex items-center gap-1.5">
-                <span className="w-6 h-6 rounded-full bg-gold/20 flex items-center justify-center text-xs font-bold text-gold">
-                  {authorDisplayName(combo.author)[0]?.toUpperCase()}
-                </span>
-                {authorDisplayName(combo.author)}
-              </span>
-              <span>{timeAgo(combo.createdAt)}</span>
-            </div>
-          </div>
-
-          {/* Input sequence */}
-          {keys.length > 0 && (
-            <div>
-              <h2 className="text-xs font-bold mb-3 text-text-secondary uppercase tracking-wide">{t.detail_input_seq}</h2>
-              <KeySequence keys={keys} size="md" maxKeys={12} />
-              <p className="text-xs text-text-muted mt-2">
-                {t.detail_input_count(combo.inputCount)}
-                {combo.durationMs ? ` · ${formatDuration(combo.durationMs)}` : ""}
-              </p>
             </div>
           )}
-
-          {/* Tags */}
-          {combo.tags.length > 0 && (
-            <div className="flex gap-2 flex-wrap">
-              {combo.tags.map((tag) => (
-                <span key={tag} className="px-3 py-1 rounded-full border border-border-subtle text-xs font-semibold text-text-muted">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Comments — streamed */}
-          <Suspense fallback={
-            <div>
-              <div className="h-4 w-16 bg-surface-overlay rounded animate-pulse mb-4" />
-              <div className="space-y-3">
-                {[1,2].map(i => <div key={i} className="h-12 bg-surface-overlay rounded-lg animate-pulse" />)}
-              </div>
-            </div>
-          }>
-            <CommentsSection comboId={id} currentUserId={userId} />
-          </Suspense>
-
-          {/* Related combos — streamed */}
-          <Suspense fallback={null}>
-            <RelatedCombosSection
-              characterId={combo.characterId}
-              comboId={id}
-              characterName={combo.character.name}
-              t={t}
-            />
-          </Suspense>
         </div>
 
-        {/* ── Right (챔피언·통계·액션) — desktop은 우측, mobile은 영상 아래 ── */}
-        <div className="flex flex-col gap-5">
+        {/* Title */}
+        <h1 className="text-2xl font-black tracking-tight">{combo.title}</h1>
 
-          {/* Save to my library — primary CTA, 가장 위에 */}
-          <SaveComboButton comboId={id} initialIsSaved={isSaved} isLoggedIn={!!userId} />
-
-          {/* Like + Share */}
-          <div className="flex flex-col gap-2">
+        {/* Meta + Action bar — youtube style. author·stats 좌측, action buttons 우측. wrap on small screens. */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 text-sm">
+            <span className="w-7 h-7 rounded-full bg-gold/20 flex items-center justify-center text-xs font-bold text-gold shrink-0">
+              {authorDisplayName(combo.author)[0]?.toUpperCase()}
+            </span>
+            <span className="font-semibold">{authorDisplayName(combo.author)}</span>
+            <span className="text-text-muted">·</span>
+            <span className="text-xs text-text-muted">
+              {formatCount(combo.viewCount)} views · {formatCount(saveCount)} saves · {timeAgo(combo.createdAt)}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
             <ComboActions
               comboId={id}
               initialIsLiked={isLiked}
               initialLikeCount={combo.likeCount}
               isLoggedIn={!!userId}
+              compact
             />
-            <ComboShareButton comboId={id} isOwn={combo.authorId === userId} />
+            <SaveComboButton comboId={id} initialIsSaved={isSaved} isLoggedIn={!!userId} compact />
+            <ComboShareButton comboId={id} isOwn={combo.authorId === userId} compact />
           </div>
+        </div>
 
-          {/* Champion */}
-          <div>
-            <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-2">{t.detail_champion}</h2>
+        {/* Description + tip — 있을 때만, 배경 없이 텍스트만 */}
+        {(combo.description || combo.tip) && (
+          <div className="text-sm text-text-secondary leading-relaxed flex flex-col gap-2">
+            {combo.description && <p>{combo.description}</p>}
+            {combo.tip && (
+              <p className="border-l-2 border-gold/40 pl-3 whitespace-pre-wrap">{combo.tip}</p>
+            )}
+          </div>
+        )}
+
+        {/* 통합 정보 카드 — Champion + 난이도 + 패치 + 조건 (레벨/AH/AS/소환사주문/아이템/스킬) */}
+        <div className="bg-surface-raised rounded-xl border border-border p-5 flex flex-col gap-5">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3">
               {combo.character.iconUrl && (
-                <Image src={combo.character.iconUrl} alt={combo.character.name} width={40} height={40} className="rounded-lg" />
+                <Image src={combo.character.iconUrl} alt={combo.character.name} width={44} height={44} className="rounded-lg" />
               )}
               <div>
-                <p className="font-bold text-sm">{combo.character.name}</p>
+                <p className="font-bold">{combo.character.name}</p>
                 <p className="text-xs text-text-muted">{combo.game.name}</p>
               </div>
             </div>
-          </div>
-
-          {/* LoL conditions */}
-          {combo.game.slug === "lol" && (
-            <LolConditions gameSpecific={gameSpecific} patch={combo.patchVersion ?? undefined} />
-          )}
-
-          {/* Stats */}
-          <div>
-            <h2 className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-2">{t.detail_stats}</h2>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              {[
-                { label: t.detail_stat_likes, value: formatCount(combo.likeCount) },
-                { label: t.detail_stat_saves, value: formatCount(saveCount) },
-                { label: t.detail_stat_views, value: formatCount(combo.viewCount) },
-              ].map(({ label, value }) => (
-                <div key={label}>
-                  <p className="text-lg font-black">{value}</p>
-                  <p className="text-xs text-text-muted">{label}</p>
-                </div>
-              ))}
+            <div className="flex items-center gap-3">
+              <DifficultyPips difficulty={combo.difficulty} />
+              {combo.patchVersion && (
+                <span className="text-xs text-text-muted font-semibold">{t.lol_patch_label(combo.patchVersion)}</span>
+              )}
             </div>
           </div>
 
-          {/* Report — 작성자가 아닌 사람에게만 */}
-          {combo.authorId !== userId && (
-            <ReportButton targetType="combo" targetId={id} />
-          )}
-
-          {/* Author actions */}
-          {combo.authorId === userId && (
-            <ComboAuthorActions comboId={id} />
+          {combo.game.slug === "lol" && (
+            <LolConditions gameSpecific={gameSpecific} patch={combo.patchVersion ?? undefined} />
           )}
         </div>
 
+        {/* Input sequence */}
+        {keys.length > 0 && (
+          <div>
+            <h2 className="text-xs font-bold mb-3 text-text-secondary uppercase tracking-wide">{t.detail_input_seq}</h2>
+            <KeySequence keys={keys} size="md" maxKeys={12} />
+            <p className="text-xs text-text-muted mt-2">
+              {t.detail_input_count(combo.inputCount)}
+              {combo.durationMs ? ` · ${formatDuration(combo.durationMs)}` : ""}
+            </p>
+          </div>
+        )}
+
+        {/* Tags */}
+        {combo.tags.length > 0 && (
+          <div className="flex gap-2 flex-wrap">
+            {combo.tags.map((tag) => (
+              <span key={tag} className="px-3 py-1 rounded-full border border-border-subtle text-xs font-semibold text-text-muted">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Comments — streamed */}
+        <Suspense fallback={
+          <div>
+            <div className="h-4 w-16 bg-surface-overlay rounded animate-pulse mb-4" />
+            <div className="space-y-3">
+              {[1,2].map(i => <div key={i} className="h-12 bg-surface-overlay rounded-lg animate-pulse" />)}
+            </div>
+          </div>
+        }>
+          <CommentsSection comboId={id} currentUserId={userId} />
+        </Suspense>
+
+        {/* Related — streamed */}
+        <Suspense fallback={null}>
+          <RelatedCombosSection
+            characterId={combo.characterId}
+            comboId={id}
+            characterName={combo.character.name}
+            t={t}
+          />
+        </Suspense>
+
+        {/* Footer actions: report (non-owner) / author actions (owner) — 페이지 맨 아래 */}
+        {combo.authorId !== userId && (
+          <div className="flex justify-end pt-2">
+            <ReportButton targetType="combo" targetId={id} />
+          </div>
+        )}
+        {combo.authorId === userId && (
+          <ComboAuthorActions comboId={id} />
+        )}
       </div>
     </main>
   );

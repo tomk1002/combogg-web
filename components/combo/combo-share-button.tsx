@@ -5,9 +5,10 @@ import { useState } from "react";
 interface Props {
   comboId: string;
   isOwn?: boolean;
+  compact?: boolean;
 }
 
-export default function ComboShareButton({ comboId, isOwn = false }: Props) {
+export default function ComboShareButton({ comboId, isOwn = false, compact = false }: Props) {
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
@@ -25,11 +26,15 @@ export default function ComboShareButton({ comboId, isOwn = false }: Props) {
     }
   };
 
+  const sizing = compact
+    ? "h-9 px-4 rounded-full text-xs"
+    : "w-full h-10 rounded-xl text-sm";
+
   return (
     <button
       type="button"
       onClick={handleShare}
-      className="w-full h-10 rounded-xl border border-border font-semibold text-sm text-text-secondary hover:bg-surface-overlay hover:text-text transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+      className={`${sizing} border border-border font-semibold text-text-secondary hover:bg-surface-overlay hover:text-text transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5`}
     >
       {copied ? (
         <>

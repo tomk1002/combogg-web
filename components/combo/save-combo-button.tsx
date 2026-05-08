@@ -8,9 +8,10 @@ interface Props {
   comboId: string;
   initialIsSaved: boolean;
   isLoggedIn: boolean;
+  compact?: boolean;
 }
 
-export default function SaveComboButton({ comboId, initialIsSaved, isLoggedIn }: Props) {
+export default function SaveComboButton({ comboId, initialIsSaved, isLoggedIn, compact = false }: Props) {
   const router = useRouter();
   const { t } = useLang();
   const [isSaved, setIsSaved] = useState(initialIsSaved);
@@ -36,13 +37,17 @@ export default function SaveComboButton({ comboId, initialIsSaved, isLoggedIn }:
     }
   };
 
+  const sizing = compact
+    ? "h-9 px-4 rounded-full text-xs"
+    : "w-full h-12 rounded-xl text-sm";
+
   // Logged-out — show login-aware button
   if (!isLoggedIn) {
     return (
       <button
         type="button"
         onClick={handleToggle}
-        className="w-full h-12 rounded-xl border border-border font-bold text-sm text-text-secondary hover:bg-surface-overlay hover:text-text transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+        className={`${sizing} border border-border font-bold text-text-secondary hover:bg-surface-overlay hover:text-text transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5`}
       >
         <BookmarkIcon filled={false} />
         {t.save_login}
@@ -56,7 +61,7 @@ export default function SaveComboButton({ comboId, initialIsSaved, isLoggedIn }:
       onClick={handleToggle}
       disabled={isPending}
       aria-pressed={isSaved}
-      className={`w-full h-12 rounded-xl font-bold text-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-70 disabled:cursor-not-allowed ${
+      className={`${sizing} font-bold transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 disabled:opacity-70 disabled:cursor-not-allowed ${
         isSaved
           ? "bg-gold text-white shadow-[0_2px_8px_rgba(184,134,11,0.32)] hover:bg-gold-light"
           : "border border-border text-text-secondary hover:bg-surface-overlay hover:text-text"
